@@ -38,7 +38,7 @@
             <h1 class="text-2xl font-black text-white tracking-tight uppercase">La Barata del Hogar</h1>
             <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-6">Catálogo de Refacciones</p>
             
-            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo authorized para acceder.</p>
+            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo autorizado para acceder.</p>
             
             <div class="text-left mb-4">
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico</label>
@@ -64,13 +64,10 @@
                 </div>
 
                 <div class="relative w-full md:w-96">
-                    <button onclick="filtrarProductos()" class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-emerald-400 transition cursor-pointer bg-transparent border-none h-full z-10">
+                    <span onclick="filtrarProductos()" class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-emerald-400 transition-colors duration-150 cursor-pointer z-10">
                         <i class="fa-solid fa-magnifying-glass"></i>
-                    </button>
-                    <input type="text" id="buscador" 
-                           oninput="filtrarProductos()" 
-                           onkeydown="if(event.key === 'Enter') { filtrarProductos(); this.blur(); }" 
-                           placeholder="Buscar por SKU, refacción, marca o moto..." 
+                    </span>
+                    <input type="text" id="buscador" oninput="filtrarProductos()" onkeydown="manejarTecladoBuscador(event)" placeholder="Buscar por SKU, refacción, marca o moto..." 
                            class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
                 </div>
 
@@ -106,7 +103,7 @@
 
     <script>
         // Configuración de Servidor
-        const API_URL = "https://script.google.com/macros/s/AKfycbwT5ClpZlwMo--zjRLsIU5bG942ZMJ8PehTarHpvBgkeReWQDCO5qqAWFXq6yaL0uJS/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbyOrdzwCugQWSbMySEebpqqAiIvV8tE6LbUvq_YDL0JXA91sfewDIKsfGS03CDZXe2f/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         
         // URL para formulario de actualización de admin
@@ -275,8 +272,8 @@
             // Extraer ID de Drive de cualquier estructura común
             let match = linkClean.match(/([-\w]{25,})/);
             if (match && match[0]) {
-                // Nuevo endpoint global directo de Google para renderizado público en elementos <img>
-                return `http://googleusercontent.com/profile/picture/${match[0]}`;
+                // Enlace de alta disponibilidad directo para renderizado público en elementos img
+                return `https://lh3.googleusercontent.com/d/${match[0]}`;
             }
 
             return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
@@ -434,6 +431,13 @@
                 return s.includes(consulta);
             });
             renderizarTarjetasProductos(filtrados);
+        }
+
+        // --- CONTROLADORES DE INTERFAZ ADICIONALES ---
+        function manejarTecladoBuscador(e) {
+            if (e.key === "Enter") {
+                document.getElementById('buscador').blur();
+            }
         }
     </script>
 </body>
