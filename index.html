@@ -3,215 +3,426 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>La Barata del Hogar - Catálogo Maestro</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>LA BARATA DEL HOGAR - Catálogo Maestro de Refacciones</title>
+    <style>
+        /* Paleta de colores: Base oscura original con acentos de Grupo Camejo (#22B14C / #1A7F31) */
+        :root {
+            --bg-principal: #0d1117;
+            --bg-tarjetas: #161b22;
+            --bg-modal: #1f242c;
+            --texto-blanco: #ffffff;
+            --texto-mutado: #8b949e;
+            --acento-camejo: #22b14c;
+            --acento-camejo-hover: #1a7f31;
+            --borde-tarjeta: #30363d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-principal);
+            color: var(--texto-blanco);
+            padding: 20px;
+        }
+
+        header {
+            max-width: 1200px;
+            margin: 0 auto 30px auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        h1 {
+            font-size: 24px;
+            letter-spacing: 0.5px;
+        }
+
+        .buscador-contenedor {
+            position: relative;
+            width: 100%;
+        }
+
+        .buscador-contenedor input {
+            width: 100%;
+            padding: 14px 20px;
+            background-color: var(--bg-tarjetas);
+            border: 1px solid var(--borde-tarjeta);
+            border-radius: 8px;
+            color: var(--texto-blanco);
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .buscador-contenedor input:focus {
+            border-color: var(--acento-camejo);
+        }
+
+        /* Rejilla de productos */
+        .catalogo-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        /* Tarjetas estilo Glide */
+        .tarjeta-producto {
+            background-color: var(--bg-tarjetas);
+            border: 1px solid var(--borde-tarjeta);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 280px;
+        }
+
+        .tarjeta-producto:hover {
+            transform: translateY(-4px);
+            border-color: var(--acento-camejo);
+        }
+
+        .imagen-placeholder {
+            width: 100%;
+            height: 140px;
+            background-color: var(--bg-principal);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--texto-mutado);
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .marca-tag {
+            align-self: flex-start;
+            background-color: rgba(34, 177, 76, 0.15);
+            color: var(--acento-camejo);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .producto-titulo {
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .producto-sku {
+            font-size: 12px;
+            color: var(--texto-mutado);
+        }
+
+        /* Modal / Ventana Emergente estilo Detalle de GlideApps */
+        .modal-detalles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 1000;
+            padding: 15px;
+        }
+
+        .modal-detalles.activo {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-contenido {
+            background-color: var(--bg-modal);
+            border: 1px solid var(--borde-tarjeta);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 85vh;
+            overflow-y: auto;
+            position: relative;
+            animation: deslizar 0.3s ease;
+        }
+
+        @keyframes deslizar {
+            from { transform: translateY(20px); }
+            to { transform: translateY(0); }
+        }
+
+        .btn-cerrar {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            color: var(--texto-blanco);
+            font-size: 24px;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background-color: rgba(250,250,250,0.1);
+        }
+
+        .modal-cuerpo {
+            padding: 24px;
+        }
+
+        .modal-imagen {
+            width: 100%;
+            height: 200px;
+            background-color: var(--bg-principal);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--texto-mutado);
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .modal-info-principal {
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--borde-tarjeta);
+            padding-bottom: 15px;
+        }
+
+        .modal-titulo {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .seccion-compatibilidad {
+            background-color: var(--bg-principal);
+            border-radius: 10px;
+            padding: 16px;
+            border-left: 4px solid var(--acento-camejo);
+        }
+
+        .seccion-compatibilidad h3 {
+            font-size: 14px;
+            color: var(--acento-camejo);
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 0.5px;
+        }
+
+        .lista-compatibilidad {
+            list-style: none;
+        }
+
+        .lista-compatibilidad li {
+            font-size: 14px;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+        }
+
+        .lista-compatibilidad li::before {
+            content: "•";
+            color: var(--acento-camejo);
+            font-weight: bold;
+            display: inline-block; 
+            width: 1em;
+            margin-left: 3px;
+        }
+
+        .lista-compatibilidad li:last-child {
+            border-bottom: none;
+        }
+
+        .estado-carga {
+            text-align: center;
+            color: var(--texto-mutado);
+            padding: 40px;
+            grid-column: 1 / -1;
+            font-size: 16px;
+        }
+    </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+<body>
 
-    <div id="vista-login" class="flex items-center justify-center min-h-screen px-4">
-        <div class="bg-white text-slate-800 p-8 rounded-2xl shadow-2xl max-w-md w-full text-center">
-            <div class="text-4xl text-blue-600 mb-3">
-                <i class="fa-solid fa-motorcycle"></i>
-            </div>
-            <h1 class="text-2xl font-black text-slate-900 tracking-tight uppercase">La Barata del Hogar</h1>
-            <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-6">Catálogo Maestro de Refacciones</p>
-            
-            <p class="text-sm text-slate-500 mb-6">Ingresa tu correo autorizado para desbloquear el buscador visual e identificar compatibilidades.</p>
-            
-            <div class="text-left mb-4">
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">Correo Electrónico</label>
-                <input type="email" id="input-correo" placeholder="ejemplo@labarata.com" 
-                       class="w-full px-4 py-3 border border-slate-200 rounded-xl bg-slate-50 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium">
-            </div>
-
-            <div id="error-login" class="hidden bg-red-50 text-red-600 text-xs font-semibold p-3 rounded-xl mb-4 text-center border border-red-100"></div>
-
-            <button id="btn-login" onclick="manejarInicioDeSesion()" 
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg shadow-blue-500/20 cursor-pointer">
-                Acceder al Catálogo
-            </button>
+    <header>
+        <h1>LA BARATA DEL HOGAR</h1>
+        <div class="buscador-contenedor">
+            <input type="text" id="inputBuscador" placeholder="Buscar por SKU, refacción, marca o moto compatible...">
         </div>
-    </div>
+    </header>
 
-    <div id="vista-catalogo" class="hidden min-h-screen flex flex-col">
-        <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 sticky top-0 z-50 shadow-md">
-            <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-lg font-black tracking-tight uppercase">La Barata del Hogar</h2>
-                    <p class="text-xs text-slate-400">Usuario Activo: <span id="nombre-usuario" class="text-blue-400 font-bold">---</span></p>
+    <main class="catalogo-grid" id="contenedorCatalogo">
+        <div class="estado-carga">Consultando Google Sheets en tiempo real...</div>
+    </main>
+
+    <div class="modal-detalles" id="modalDetalles" onclick="cerrarModalExterno(event)">
+        <div class="modal-contenido">
+            <button class="btn-cerrar" onclick="alternarModal()">&times;</button>
+            <div class="modal-cuerpo" id="modalCuerpo">
                 </div>
-
-                <div class="relative w-full md:w-96">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </span>
-                    <input type="text" id="buscador" oninput="filtrarProductos()" placeholder="Buscar por SKU, refacción, marca o moto..." 
-                           class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm">
-                </div>
-            </div>
-        </header>
-
-        <div id="cargando-datos" class="flex-1 flex flex-col items-center justify-center p-8">
-            <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
-            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Consultando Google Sheets en tiempo real...</p>
         </div>
-
-        <main id="contenido-catalogo" class="hidden flex-1 max-w-7xl w-full mx-auto p-6">
-            <div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                </div>
-
-            <div id="sin-resultados" class="hidden text-center py-16">
-                <div class="text-4xl text-slate-600 mb-3">
-                    <i class="fa-solid fa-box-open"></i>
-                </div>
-                <p class="text-base font-semibold text-slate-400">No encontramos refacciones que coincidan con tu búsqueda.</p>
-                <p class="text-xs text-slate-500 mt-1">Prueba verificando el SKU o el modelo de la motocicleta.</p>
-            </div>
-        </main>
     </div>
 
     <script>
-        // Enlace oficial de tu Google Apps Script ya corregido
-        const API_URL = "https://script.google.com/macros/s/AKfycbxxDGEGAiX-fp7RAseVvXs-qjaoaV6D8yGKjAbGCmrLhOfCI-3rr2CXLW7FzcOJdEhk/exec";
-
+        // URL de tu API Web App de Google Apps Script
+        const URL_API = "https://script.google.com/macros/s/AKfycbxxDGEGAiX-fp7RAseVvXs-qjaoaV6D8yGKjAbGCmrLhOfCI-3rr2CXLW7FzcOJdEhk/exec"; 
+        
         let inventarioMaestro = [];
-        let usuarioActual = "";
-        let tokenActual = "";
 
-        // Función para procesar la validación de credenciales
-        async function manejarInicioDeSesion() {
-            const correoInput = document.getElementById('input-correo');
-            const errorEl = document.getElementById('error-login');
-            const btnLogin = document.getElementById('btn-login');
-            
-            const correo = correoInput.value.trim();
-            if (!correo) return;
-
-            errorEl.classList.add('hidden');
-            btnLogin.disabled = true;
-            btnLogin.innerText = "Verificando...";
-
+        // Inicializar la carga de datos al abrir la página
+        async function cargarInventario() {
             try {
-                const respuesta = await fetch(API_URL, {
+                // Modifica los parámetros según requiera tu función doPost en Apps Script
+                const respuesta = await fetch(URL_API, {
                     method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({ action: 'login', correo: correo })
+                    body: JSON.stringify({ action: "obtenerInventario" })
                 });
-
-                const resultado = await respuesta.json();
-
-                if (resultado.success) {
-                    usuarioActual = correo;
-                    tokenActual = resultado.token;
-                    document.getElementById('nombre-usuario').innerText = resultado.nombre;
-                    
-                    // Transición de pantallas
-                    document.getElementById('vista-login').classList.add('hidden');
-                    document.getElementById('vista-catalogo').classList.remove('hidden');
-                    
-                    // Cargar los productos del Sheets inmediatamente
-                    await obtenerInventarioDesdeServidor();
-                } else {
-                    errorEl.innerText = resultado.message;
-                    errorEl.classList.remove('hidden');
-                    btnLogin.disabled = false;
-                    btnLogin.innerText = "Acceder al Catálogo";
-                }
-            } catch (err) {
-                errorEl.innerText = "Error de conexión con el servidor. Inténtalo de nuevo.";
-                errorEl.classList.remove('hidden');
-                btnLogin.disabled = false;
-                btnLogin.innerText = "Acceder al Catálogo";
-            }
-        }
-
-        // Función para bajar toda la base de datos de refacciones
-        async function obtenerInventarioDesdeServidor() {
-            try {
-                const respuesta = await fetch(API_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({ action: 'obtenerInventario', token: tokenActual, correo: usuarioActual })
-                });
-
-                const resultado = await respuesta.json();
-
-                if (resultado.success) {
-                    inventarioMaestro = resultado.data;
-                    renderizarTarjetasProductos(inventarioMaestro);
-                    
-                    // Ocultar cargador y mostrar cuadrícula
-                    document.getElementById('cargando-datos').classList.add('hidden');
-                    document.getElementById('contenido-catalogo').classList.remove('hidden');
-                } else {
-                    alert("Error de autenticación: " + resultado.message);
-                    location.reload();
-                }
-            } catch (err) {
-                alert("Ocurrió un error al descargar el inventario en tiempo real.");
-            }
-        }
-
-        // Función para renderizar e inyectar visualmente las refacciones en el HTML
-        function renderizarTarjetasProductos(listaProductos) {
-            const grid = document.getElementById('grid-productos');
-            const sinResultados = document.getElementById('sin-resultados');
-            grid.innerHTML = "";
-
-            if (listaProductos.length === 0) {
-                sinResultados.classList.remove('hidden');
-                return;
-            }
-            sinResultados.classList.add('hidden');
-
-            listaProductos.forEach(item => {
-                const tarjeta = document.createElement('div');
-                tarjeta.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col hover:border-blue-500 transition duration-200 group";
-
-                // Contenedor multimedia de imagen con respaldo por defecto
-                const urlImagen = item.Imagen && item.Imagen.startsWith('http') ? item.Imagen : 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
+                const datos = await respuesta.json();
                 
-                tarjeta.innerHTML = `
-                    <div class="relative pt-[75%] bg-slate-900 overflow-hidden">
-                        <img src="${urlImagen}" alt="${item.Producto}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                        <span class="absolute top-3 right-3 bg-slate-950/80 text-blue-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase">${item.Marca}</span>
-                    </div>
-                    <div class="p-4 flex flex-col flex-1 justify-between gap-3">
-                        <div>
-                            <span class="text-[11px] font-mono font-bold text-slate-400 tracking-wide block mb-1">SKU: ${item.SKU}</span>
-                            <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-blue-400 transition duration-150">${item.Producto}</h3>
-                        </div>
-                        <div class="bg-slate-900/50 rounded-xl p-2.5 border border-slate-700/40">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Compatibilidad:</span>
-                            <p class="text-xs text-slate-300 font-medium line-clamp-2">${item.Compatibilidad || 'Compatibilidad universal / genérica'}</p>
-                        </div>
-                    </div>
-                `;
-                grid.appendChild(tarjeta);
-            });
+                if(datos.success || Array.isArray(datos)) {
+                    // Adaptar según la estructura exacta de retorno de tu JSON
+                    inventarioMaestro = datos.inventario || datos; 
+                    renderizarCatalogo(inventarioMaestro);
+                } else {
+                    document.getElementById('contenedorCatalogo').innerHTML = `<div class="estado-carga">Error al estructurar los datos del servidor.</div>`;
+                }
+            } catch (error) {
+                console.error("Error cargando inventario:", error);
+                document.getElementById('contenedorCatalogo').innerHTML = `<div class="estado-carga">Error de conexión con la base de datos de Sheets.</div>`;
+            }
         }
 
-        // Filtro dinámico en tiempo real del buscador
-        function filtrarProductos() {
-            const consulta = document.getElementById('buscador').value.toLowerCase().trim();
-            
-            if (!consulta) {
-                renderizarTarjetasProductos(inventarioMaestro);
+        // Renderiza las tarjetas del catálogo en pantalla
+        function renderizarCatalogo(productos) {
+            const contenedor = document.getElementById('contenedorCatalogo');
+            contenedor.innerHTML = "";
+
+            if(productos.length === 0) {
+                contenedor.innerHTML = `<div class="estado-carga">No se encontraron productos coincidentes.</div>`;
                 return;
             }
 
-            const filtrados = inventarioMaestro.filter(item => {
-                return String(item.SKU).toLowerCase().includes(consulta) ||
-                       String(item.Producto).toLowerCase().includes(consulta) ||
-                       String(item.Marca).toLowerCase().includes(consulta) ||
-                       String(item.Compatibilidad).toLowerCase().includes(consulta);
+            productos.forEach((prod, indice) => {
+                // Ajusta los índices [0], [1], [2] según el orden de tus columnas en Sheets (SKU, Producto, Marca, Compatibilidad)
+                const sku = prod[0];
+                const titulo = prod[1];
+                const marca = prod[2] || 'Genérico';
+                const compatibilidadTexto = prod[3] || 'Universal';
+
+                const tarjeta = document.createElement('div');
+                tarjeta.className = 'tarjeta-producto';
+                tarjeta.onclick = () => abrirDetalleProducto(prod);
+
+                tarjeta.innerHTML = `
+                    <div>
+                        <div class="imagen-placeholder">Sin Foto</div>
+                        <span class="marca-tag">${marca}</span>
+                        <div class="producto-titulo">${titulo}</div>
+                    </div>
+                    <div class="producto-sku">SKU: ${sku}</div>
+                `;
+                contenedor.appendChild(tarjeta);
+            });
+        }
+
+        // Buscador interactivo en tiempo real
+        document.getElementById('inputBuscador').addEventListener('input', function(e) {
+            const termino = e.target.value.toLowerCase().trim();
+            
+            const productosFiltrados = inventarioMaestro.filter(prod => {
+                const sku = String(prod[0]).toLowerCase();
+                const titulo = String(prod[1]).toLowerCase();
+                const marca = String(prod[2]).toLowerCase();
+                const compatibilidad = String(prod[3]).toLowerCase();
+
+                return sku.includes(termino) || 
+                       titulo.includes(termino) || 
+                       marca.includes(termino) || 
+                       compatibilidad.includes(termino);
             });
 
-            renderizarTarjetasProductos(filtrados);
+            renderizarCatalogo(productosFiltrados);
+        });
+
+        // Desplegar la vista de lista de compatibilidades (Estilo Glide)
+        function abrirDetalleProducto(prod) {
+            const sku = prod[0];
+            const titulo = prod[1];
+            const marca = prod[2] || 'Genérico';
+            const compatibilidadTexto = prod[3] || '';
+
+            // Procesar el texto largo de compatibilidades separado por comas o saltos de línea para pasarlo a una lista estructurada
+            let listaHtml = "";
+            if(compatibilidadTexto) {
+                const modelos = compatibilidadTexto.split(/[,\n]/);
+                modelos.forEach(modelo => {
+                    if(modelo.trim()) {
+                        listaHtml += `<li>${modelo.trim()}</li>`;
+                    }
+                });
+            } else {
+                listaHtml = "<li>Compatibilidad universal / genérica</li>";
+            }
+
+            const cuerpoModal = document.getElementById('modalCuerpo');
+            cuerpoModal.innerHTML = `
+                <div class="modal-imagen">Sin Foto</div>
+                <div class="modal-info-principal">
+                    <span class="marca-tag">${marca}</span>
+                    <h2 class="modal-titulo">${titulo}</h2>
+                    <div class="producto-sku">SKU único: ${sku}</div>
+                </div>
+                <div class="seccion-compatibilidad">
+                    <h3>Modelos Compatibles</h3>
+                    <ul class="lista-compatibilidad">
+                        ${listaHtml}
+                    </ul>
+                </div>
+            `;
+
+            alternarModal();
         }
+
+        function alternarModal() {
+            const modal = document.getElementById('modalDetalles');
+            modal.classList.toggle('activo');
+        }
+
+        function cerrarModalExterno(e) {
+            if(e.target.id === "modalDetalles") {
+                alternarModal();
+            }
+        }
+
+        // Llamar la carga inicial
+        window.onload = cargarInventario;
     </script>
 </body>
 </html>
