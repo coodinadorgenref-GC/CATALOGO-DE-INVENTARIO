@@ -103,7 +103,7 @@
 
     <script>
         // Configuración de Servidor
-        const API_URL = "https://script.google.com/macros/s/AKfycbwv71QgIhH3uvKcnkrGwo0rIFQdl3waw-gcJPyAm6RQpsXCfShCWU3Jgjp1olUyX1FA/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbwVwQTz-xa9OC21EdflDT6PEjnOHLYyISzx5QG2spQ-aawINDfHo_ZbTz4Wmn8qrUp2/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         
         // URL para formulario de actualización de admin
@@ -181,7 +181,11 @@
             const btnLogin = document.getElementById('btn-login');
             
             const correo = correoInput.value.trim();
-            if (!correo) return;
+            if (!correo) {
+                errorEl.innerText = "Por favor, ingresa tu correo electrónico.";
+                errorEl.classList.remove('hidden');
+                return;
+            }
 
             errorEl.classList.add('hidden');
             btnLogin.disabled = true;
@@ -217,7 +221,7 @@
                     btnLogin.innerText = "Acceder al Catálogo";
                 }
             } catch (err) {
-                errorEl.innerText = "Error de conexión con el servidor.";
+                errorEl.innerText = "Error de conexión con el servidor de acceso.";
                 errorEl.classList.remove('hidden');
                 btnLogin.disabled = false;
                 btnLogin.innerText = "Acceder al Catálogo";
@@ -252,26 +256,32 @@
         }
 
         // --- UTILIDADES ---
-function optimizarEnlaceImagen(enlaceOriginal) {
-    if (!enlaceOriginal || typeof enlaceOriginal !== 'string') {
-        return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
-    }
+        function optimizarEnlaceImagen(enlaceOriginal) {
+            if (!enlaceOriginal || typeof enlaceOriginal !== 'string') {
+                return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
+            }
 
-    let id = "";
-    // Extrae el ID del enlace
-    if (enlaceOriginal.includes('/d/')) {
-        id = enlaceOriginal.split('/d/')[1].split('/')[0];
-    } else if (enlaceOriginal.includes('id=')) {
-        id = enlaceOriginal.split('id=')[1].split('&')[0];
-    }
+            // 1. Si ya es un enlace directo de visualización, lo usamos tal cual
+            if (enlaceOriginal.includes('uc?export=view')) return enlaceOriginal;
 
-    // Usamos el servidor de imágenes de Google que SI permite cargar en <img>
-    if (id) {
-        return `https://lh3.googleusercontent.com/d/${id}`;
-    }
+            // 2. Extraer el ID de cualquier formato de Google Drive
+            let id = "";
+            if (enlaceOriginal.includes('open?id=')) {
+                id = enlaceOriginal.split('open?id=')[1].split('&')[0];
+            } else if (enlaceOriginal.includes('/d/')) {
+                id = enlaceOriginal.split('/d/')[1].split('/')[0];
+            } else if (enlaceOriginal.includes('id=')) {
+                id = enlaceOriginal.split('id=')[1].split('&')[0];
+            }
 
-    return 'https://placehold.co/400x300/1e293b/94a3b8?text=Error';
-}
+            // 3. Retornar la URL de descarga/visualización directa oficial
+            if (id) {
+                return `https://drive.google.com/uc?export=view&id=${id}`;
+            }
+
+            return 'https://placehold.co/400x300/1e293b/94a3b8?text=Error';
+        }
+
         // --- RENDERIZADO ---
         function renderizarTarjetasProductos(listaProductos) {
             const grid = document.getElementById('grid-productos');
@@ -326,7 +336,7 @@ function optimizarEnlaceImagen(enlaceOriginal) {
                 htmlBotonAdmin = `
                 <a href="${URL_FORM_ADMIN}${encodeURIComponent(sku)}" target="_blank" 
                    class="mt-6 block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg cursor-pointer">
-                    <i class="fa-solid fa-pen-to-square mr-2"></i> Actualizar Info / Foto
+                     <i class="fa-solid fa-pen-to-square mr-2"></i> Actualizar Info / Foto
                 </a>`;
             }
 
