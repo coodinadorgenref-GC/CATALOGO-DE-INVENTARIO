@@ -38,7 +38,7 @@
             <h1 class="text-2xl font-black text-white tracking-tight uppercase">La Barata del Hogar</h1>
             <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-6">Catálogo Maestro de Refacciones</p>
             
-            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo authorized para desbloquear el buscador visual e identificar compatibilidades.</p>
+            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo autorizado para desbloquear el buscador visual e identificar compatibilidades.</p>
             
             <div class="text-left mb-4">
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico</label>
@@ -98,7 +98,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzPMXRJulx_2Gsc_5mX2psiTST2eZdUClhvxXbCCFzXgWzauLTW5MwU-rGXaLISiN_J/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxZhHznqJfq-rs2Em4VAtTZWlNPvDpdNE_QZjOChAVWLD8kg7JnaO3ixj5U1zzOf4o7/exec";
 
         let inventarioMaestro = [];
         let usuarioActual = "";
@@ -175,7 +175,7 @@
             }
         }
 
-        // Convertidor robusto para enlaces "open?id=" y "/file/d/" de Google Drive
+        // Convertidor MEJORADO para limpiar parámetros extras de Drive como /view?usp=sharing
         function optimizarEnlaceImagen(enlaceOriginal) {
             if (!enlaceOriginal || typeof enlaceOriginal !== 'string' || !enlaceOriginal.startsWith('http')) {
                 return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
@@ -183,10 +183,13 @@
             
             if (enlaceOriginal.includes('drive.google.com')) {
                 let idDrive = '';
+                
                 if (enlaceOriginal.includes('id=')) {
                     idDrive = enlaceOriginal.split('id=')[1].split('&')[0];
                 } else if (enlaceOriginal.includes('/file/d/')) {
-                    idDrive = enlaceOriginal.split('/file/d/')[1].split('/')[0];
+                    // Extrae el ID removiendo /view y parámetros posteriores
+                    let parteDespuesDeD = enlaceOriginal.split('/file/d/')[1];
+                    idDrive = parteDespuesDeD.split('/')[0].split('?')[0];
                 }
                 
                 if (idDrive) {
@@ -232,7 +235,6 @@
             });
         }
 
-        // Lector inteligente con separación por bloques de marca en el Modal
         function abrirDetalleProducto(item) {
             const sku = item.SKU || item.sku || "---";
             const titulo = item.Producto || item.PRODUCTO || "Sin Nombre";
@@ -244,7 +246,6 @@
             let bloquesHTML = "";
 
             if (rawCompatibilidad && rawCompatibilidad.trim() !== "") {
-                // Separar renglones por saltos de línea o comas principales
                 const lineas = rawCompatibilidad.split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 0);
                 
                 let marcaActual = "";
@@ -266,9 +267,8 @@
                 }
 
                 lineas.forEach(linea => {
-                    // Detectar si la línea define una marca (ejemplo "ITALIKA:" o "VENTO:")
                     if (linea.includes(':')) {
-                        cerrarBloque(); // Guardar lo acumulado antes de cambiar
+                        cerrarBloque();
                         const partes = linea.split(':');
                         marcaActual = partes[0].trim();
                         modelosDeMarca = partes[1] && partes[1].trim() ? [partes[1].trim()] : [];
@@ -279,7 +279,7 @@
                         modelosDeMarca.push(linea);
                     }
                 });
-                cerrarBloque(); // Guardar el último grupo
+                cerrarBloque();
             } else {
                 bloquesHTML = `<p class="text-xs text-slate-500 italic py-2">No se ha capturado información de compatibilidad para este SKU.</p>`;
             }
