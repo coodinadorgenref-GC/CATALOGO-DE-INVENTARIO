@@ -103,7 +103,7 @@
 
     <script>
         // Configuración de Servidor
-        const API_URL = "https://script.google.com/macros/s/AKfycbzbqY2MXM567y3XVEK_B1mgPr0i-sI3kXmlTX43cvEmlKnQ-zQvyp6yfzw6sLHyAp2o/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxlBLY1SO_P_pWIAZmxhARXa0f29_2v-23hdMQNmvhl4emCcZlzjm3zYDBrQMPbyjC4/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         
         // URL para formulario de actualización de admin
@@ -149,9 +149,7 @@
 
         // --- COMPONENTE SEGURO DE RENDERIZADO DE IMÁGENES ---
         function generarHtmlContenedorImagen(url) {
-            if (url.includes("/preview")) {
-                return `<iframe src="${url}" class="absolute inset-0 w-full h-full" style="border: none;" allow="autoplay" referrerpolicy="no-referrer"></iframe>`;
-            }
+            // Renderizado nativo directo usando la política no-referrer para saltar bloqueos de seguridad cruzados
             return `<img src="${url}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">`;
         }
 
@@ -269,31 +267,32 @@
             }
 
             let linkClean = enlaceOriginal.trim();
-            if (linkClean.includes('file/d/') && linkClean.includes('/preview')) return linkClean;
-            if (linkClean.includes('uc?export=view')) return linkClean;
+            
+            // Si ya viene con el formato directo procesado por el servidor, lo dejamos pasar
+            if (linkClean.includes('googleusercontent.com/profile/picture/')) return linkClean;
 
+            // Extraemos el ID único de la imagen de Google Drive
             let match = linkClean.match(/([-\w]{25,})/);
             if (match && match[0]) {
-                return `https://drive.google.com/file/d/${match[0]}/preview`;
+                // Opción A: Renderizado directo sin restricciones de cookies de Google Drive
+                return `https://lh3.googleusercontent.com/d/0B6wwyazyzml-OGQ3VUo0Z2thdmc=w1000${match[0]}`;
             }
 
             return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
         }
 
-        // Función de rescate automático para móviles/incógnito (CORS Bypass)
+        // Función de rescate por si el link directo falla
         function gestionarFalloImagenDrive(imgElement) {
             let urlActual = imgElement.src;
-            if (urlActual.includes("drive.google.com")) {
-                let match = urlActual.match(/id=([-\w]{25,})/);
+            // Si falló usando googleusercontent, podemos intentar usar el fallback uc?export de respaldo
+            if (urlActual.includes("googleusercontent.com")) {
+                let match = urlActual.match(/picture\/\d+([-\w]{25,})/);
                 if (match && match[1]) {
-                    const contenedor = imgElement.parentElement;
-                    if (contenedor) {
-                        contenedor.innerHTML = `<iframe src="https://drive.google.com/file/d/${match[1]}/preview" class="absolute inset-0 w-full h-full" style="border: none;" allow="autoplay" referrerpolicy="no-referrer"></iframe>`;
-                    }
+                    imgElement.src = `https://docs.google.com/uc?export=view&id=${match[1]}`;
+                    return;
                 }
-            } else {
-                imgElement.src = 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
             }
+            imgElement.src = 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
         }
 
         // --- RENDERIZADO ---
