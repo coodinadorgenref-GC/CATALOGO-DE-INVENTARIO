@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo Digital de Refacciones - La Barata del Hogar</title>
+    <!-- Tailwind CSS para diseño profesional -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        .loader { border-top-color: #2563eb; animation: spinner 1s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Scrollbar personalizado para las compatibilidades */
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
+
+    <!-- PANTALLA DE LOGO E INICIO DE SESIÓN (Control de Prospectos) -->
+    <div id="login-screen" class="min-h-screen flex items-center justify-center bg-slate-900 px-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full border border-slate-100">
+            <div class="text-center mb-6">
+                <span class="text-4xl">🏍️</span>
+                <h2 class="text-2xl font-black text-slate-900 mt-2 tracking-tight">LA BARATA DEL HOGAR</h2>
+                <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mt-1">Catálogo Maestro de Refacciones</p>
+                <p class="text-sm text-slate-500 mt-2">Ingresa tu correo autorizado para desbloquear el buscador visual e identificar compatibilidades.</p>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-1 tracking-wide">Correo Electrónico</label>
+                    <input type="email" id="user-email" class="w-full bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-sm focus:border-blue-600 focus:bg-white focus:outline-none transition-colors" placeholder="ejemplo@taller.com">
+                </div>
+                <button onclick="handleLogin()" id="btn-login" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3.5 rounded-xl transition duration-200 shadow-lg shadow-blue-500/20 cursor-pointer text-sm">
+                    Acceder al Catálogo
+                </button>
+                <p id="login-error" class="text-xs text-red-500 font-semibold text-center hidden bg-red-50 p-2.5 rounded-lg border border-red-100"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- APLICACIÓN PRINCIPAL (Oculta hasta autenticarse) -->
+    <div id="main-app" class="hidden min-h-screen flex flex-col">
+        <!-- Encabezado / Barra de Búsqueda -->
+        <header class="bg-white border-b border-slate-200 sticky top-0 z-50 px-4 py-4 shadow-xs">
+            <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <h1 class="text-lg font-black text-slate-900 tracking-tight">LA BARATA DEL HOGAR</h1>
+                    <p class="text-xs text-slate-500 font-medium">Usuario Activo: <span id="display-user" class="text-blue-600 font-bold"></span></p>
+                </div>
+                <!-- Buscador Avanzado Inteligente -->
+                <div class="relative flex-1 max-w-xl">
+                    <span class="absolute left-3.5 top-3.5 text-slate-400 text-sm">🔍</span>
+                    <input type="text" id="search-bar" oninput="filtrarCatalogo()" class="w-full bg-slate-100 border border-transparent rounded-xl py-2.5 pl-10 pr-4 focus:bg-white focus:border-blue-600 focus:outline-none text-sm transition-all" placeholder="Buscar por SKU, refacción, marca o moto compatible...">
+                </div>
+            </div>
+        </header>
+
+        <!-- Contenedor Principal de Productos -->
+        <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6">
+            <!-- Loader de descarga inicial -->
+            <div id="loading-catalog" class="flex flex-col items-center justify-center py-24">
+                <div class="loader ease-linear rounded-full border-4 border-slate-200 h-10 w-10 mb-3 border-t-blue-600"></div>
+                <p class="text-xs text-slate-500 font-bold uppercase tracking-wider">Consultando Google Sheets en tiempo real...</p>
+            </div>
+
+            <!-- Grid de Tarjetas Visuales (Renderizado por JS) -->
+            <div id="cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 hidden"></div>
+        </main>
+    </div>
+
+    <script>
+        // =========================================================================
+        // PASO 1: PEGA TU URL DE GOOGLE APPS SCRIPT ENTRE LAS COMILLAS DE ABAJO
+        // =========================================================================
+        const API_URL = "https://script.google.com/macros/s/AKfycbwlOOobSLaWQ6tbjSxduQU8G0th1Ln49UuF-q_ELBB4HWOzT_7oOmNlJ0IMmEp-dY-_/exec";
+
+        let inventarioMaestro = [];
+        let usuarioActual = "";
+        let tokenActual = "";
+
+        // Manejo del Login de Control de Usuarios
+        async function handleLogin() {
+            const correo = document.getElementById('user-email').value.trim();
+            const errorEl = document.getElementById('login-error');
+            const btn = document.getElementById('btn-login');
+            
+            if(!correo) return;
+            
+            btn.disabled = true;
+            btn.innerText = "Verificando...";
+            errorEl.classList.add('hidden');
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    mode: 'cors',
+                    body: JSON.stringify({ action: "login", correo: correo })
+                });
+                const res = await response.json();
+
+                if(res.success) {
+                    usuarioActual = correo;
+                    tokenActual = res.token;
+                    document.getElementById('display-user').innerText = res.nombre || correo;
+                    
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('main-app').classList.remove('hidden');
+                    
+                    await cargarInventario();
+                } else {
+                    errorEl.innerText = res.message;
+                    errorEl.classList.remove('hidden');
+                    btn.disabled = false;
+                    btn.innerText = "Acceder al Catálogo";
+                }
+            } catch (err) {
+                errorEl.innerText = "Error crítico de comunicación con el backend de Google.";
+                errorEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.innerText = "Acceder al Catálogo";
+            }
+        }
+
+        // Descarga del Inventario Directo de Google Sheets
+        async function cargarInventario() {
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: "obtenerInventario", token: tokenActual, correo: usuarioActual })
+                });
+                const res = await response.json();
+
+                if(res.success) {
+                    inventarioMaestro = res.data;
+                    document.getElementById('loading-catalog').classList.add('hidden');
+                    document.getElementById('cards-grid').classList.remove('hidden');
+                    renderizarTarjetas(inventarioMaestro);
+                } else {
+                    alert("Error de sesión: " + res.message);
+                    window.location.reload();
+                }
+            } catch (err) {
+                alert("Error de red al intentar recuperar los datos del inventario.");
+            }
+        }
+
+        // Renderizado UX Profesional: Grid de Tarjetas con Estructura de Lista por Marcas
+        function renderizarTarjetas(lista) {
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = "";
+
+            if(lista.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center text-slate-400 py-16 font-medium text-sm">No se encontraron refacciones que coincidan con tu búsqueda.</div>`;
+                return;
+            }
+
+            lista.forEach(item => {
+                let compatibilidadHtml = "";
+                
+                if (item.Compatibilidad) {
+                    const lineas = item.Compatibilidad.split('\n');
+                    
+                    compatibilidadHtml = lineas.map(linea => {
+                        const textoLinea = linea.trim();
+                        if (!textoLinea) return '';
+                        
+                        // Detectar Marcas en MAYÚSCULAS puras (Ej: ITALIKA, VENTO, HONDA)
+                        if (textoLinea === textoLinea.toUpperCase() && !textoLinea.startsWith('•') && !textoLinea.startsWith('-')) {
+                            return `<span class="block text-xs font-black text-slate-800 tracking-wider uppercase mt-3 mb-1 first:mt-0 font-semibold">${textoLinea}</span>`;
+                        } else {
+                            // Asegurar viñeta consistente
+                            const formatoLinea = textoLinea.startsWith('•') ? textoLinea : `• ${textoLinea}`;
+                            return `<span class="block text-xs text-slate-600 font-medium pl-1 mb-0.5">${formatoLinea}</span>`;
+                        }
+                    }).join('');
+                } else {
+                    compatibilidadHtml = `<span class="text-xs text-slate-400 italic">Universal / No especificado</span>`;
+                }
+
+                const card = `
+                    <div class="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-xs hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex flex-col">
+                        <!-- Imagen Principal -->
+                        <div class="relative bg-slate-50 pt-[100%] border-b border-slate-100">
+                            <img src="${item.Imagen || 'https://via.placeholder.com/400x400?text=Sin+Imagen+Referencia'}" alt="${item.Producto}" class="absolute top-0 left-0 w-full h-full object-cover" loading="lazy">
+                            <span class="absolute top-3 right-3 text-[10px] uppercase font-black tracking-widest px-2.5 py-1 rounded-md bg-slate-950 text-white shadow-sm">${item.Marca || 'GENÉRICO'}</span>
+                        </div>
+                        
+                        <!-- Contenido Técnico -->
+                        <div class="p-4 flex-1 flex flex-col justify-between space-y-4">
+                            <div class="space-y-1">
+                                <span class="text-[11px] text-blue-600 font-mono font-black tracking-wider uppercase">SKU: ${item.SKU}</span>
+                                <h3 class="text-sm font-bold text-slate-900 leading-snug line-clamp-2">${item.Producto}</h3>
+                                
+                                <!-- Lista de Compatibilidades -->
+                                <div class="mt-4 pt-3 border-t border-slate-100">
+                                    <span class="block text-[10px] font-black tracking-wider uppercase text-slate-400 mb-2">Compatible con:</span>
+                                    <div class="custom-scroll max-h-40 overflow-y-auto pr-1 space-y-0.5">
+                                        ${compatibilidadHtml}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Botones de Captura de Leads / Contacto -->
+                            <div class="pt-2 border-t border-slate-100">
+                                <div class="grid grid-cols-2 gap-2">
+                                    <a href="https://wa.me/5211234567890?text=Hola!%20Me%20interesa%20la%20refacción%20con%20SKU%20${item.SKU}%20(${item.Producto})" target="_blank" onclick="registrarClick('${item.SKU}', 'WHATSAPP')" class="text-center bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs transition duration-150 shadow-xs">
+                                        WhatsApp
+                                    </a>
+                                    <button onclick="registrarClick('${item.SKU}', 'COTIZACION'); alert('Solicitud de cotización registrada para el SKU: ${item.SKU}. Un asesor se pondrá en contacto contigo.')" class="bg-slate-900 hover:bg-slate-950 text-white font-bold py-2.5 rounded-xl text-xs transition duration-150 shadow-xs cursor-pointer">
+                                        Cotizar Pieza
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                grid.innerHTML += card;
+            });
+        }
+
+        // Buscador Instantáneo Multi-criterio en Memoria (Client-side)
+        let timeoutBusqueda = null;
+        function filtrarCatalogo() {
+            const query = document.getElementById('search-bar').value.toLowerCase().trim();
+            
+            const filtrados = inventarioMaestro.filter(item => {
+                return (
+                    String(item.SKU).toLowerCase().includes(query) ||
+                    String(item.Producto).toLowerCase().includes(query) ||
+                    String(item.Marca).toLowerCase().includes(query) ||
+                    String(item.Compatibilidad).toLowerCase().includes(query)
+                );
+            });
+            
+            renderizarTarjetas(filtrados);
+
+            // Registro de Auditoría de Búsquedas (Debounce para no saturar Google Sheets)
+            clearTimeout(timeoutBusqueda);
+            if(query.length > 2) {
+                timeoutBusqueda = setTimeout(() => {
+                    fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: "registrarBitacora", correo: usuarioActual, token: tokenActual, evento: "BUSQUEDA", detalles: "Término: " + query })
+                    });
+                }, 1500);
+            }
+        }
+
+        // Registro de Auditoría de Clicks y Cotizaciones
+        function registrarClick(sku, tipo) {
+            fetch(API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action: "registrarBitacora", correo: usuarioActual, token: tokenActual, evento: tipo, detalles: "Artículo SKU: " + sku })
+            });
+        }
+    </script>
+</body>
+</html>
