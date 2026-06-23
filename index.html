@@ -38,7 +38,7 @@
             <h1 class="text-2xl font-black text-white tracking-tight uppercase">La Barata del Hogar</h1>
             <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-6">Catálogo de Refacciones</p>
             
-            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo o número autorizado para acceder.</p>
+            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo autorizado para acceder.</p>
             
             <div class="text-left mb-4">
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico</label>
@@ -126,8 +126,7 @@
     </div>
 
     <script>
-        // Recuerda verificar que este enlace sea el correcto de tu script activo
-        const API_URL = "https://script.google.com/macros/s/AKfycbwGBCvX2T0nKxDmV0nYfDvqKUBWak09w2s-7QFkVSTHpygOxC4WOjEWCfdTrQmHk7aW/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbx6P2pNYUJfCT4hdST96ghg_l5hBM-UpsM-r5JpDWXTwgQfABXDTSWrXVPkC8oVjThW/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?usp=pp_url&entry.231242934=";
 
@@ -340,7 +339,8 @@
                     abrirDetalleProducto(item);
                 };
 
-                const rawImagen = item.Imagen || item.IMAGEN_REFERENCIA || "";
+                // Corregido para usar exactamente las mayúsculas del backend
+                const rawImagen = item.Imagen || "";
                 const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
                 const htmlImagen = generarHtmlContenedorImagen(urlImagenOptimizada);
 
@@ -351,8 +351,8 @@
                     </div>
                     <div class="p-4 flex flex-col flex-1 justify-between gap-3">
                         <div>
-                            <span class="text-[11px] font-mono font-bold text-slate-400 tracking-wide block mb-1">SKU: ${item.SKU}</span>
-                            <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition duration-150">${item.Producto}</h3>
+                            <span class="text-[11px] font-mono font-bold text-slate-400 tracking-wide block mb-1">SKU: ${item.SKU || '---'}</span>
+                            <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition duration-150">${item.Producto || 'Sin Nombre'}</h3>
                         </div>
                     </div>
                 `;
@@ -450,17 +450,18 @@
             if (e.target.id === "modal-detalles") alternarModal();
         }
 
+        // Unificado el filtrado para leer las propiedades con mayúsculas del script
         function filtrarProductos() {
             actualizarTimestampSesion();
             const consulta = document.getElementById('buscador').value.toLowerCase().trim();
             const filtrados = inventarioMaestro.filter(item => {
-                const s = (String(item.SKU) + String(item.Producto) + String(item.Marca) + String(item.Compatibilidad)).toLowerCase();
+                const s = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
                 return s.includes(consulta);
             });
             renderizarTarjetasProductos(filtrados);
         }
 
-        function manejarTecladoBuscador(e) {
+        style= function manejarTecladoBuscador(e) {
             if (e.key === "Enter") document.getElementById('buscador').blur();
         }
 
