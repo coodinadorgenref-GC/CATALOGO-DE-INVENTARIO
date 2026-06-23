@@ -70,6 +70,10 @@
                     <input type="text" id="buscador" oninput="filtrarProductos()" placeholder="Buscar por SKU, refacción, marca o moto..." 
                            class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
                 </div>
+
+                <button onclick="cerrarSesion()" class="bg-slate-700 hover:bg-red-900 text-white text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer">
+                    <i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
+                </button>
             </div>
         </header>
 
@@ -98,11 +102,83 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbxZhHznqJfq-rs2Em4VAtTZWlNPvDpdNE_QZjOChAVWLD8kg7JnaO3ixj5U1zzOf4o7/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxuOUO3AhQtdCXwi127WHAYRyfiQbAd5G4DZc5HNZrMGcJp3KQogLssDA0Cs9m8WsSY/exec";
+        const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000; // 15 minutos en milisegundos
 
         let inventarioMaestro = [];
         let usuarioActual = "";
         let tokenActual = "";
+
+        // Al cargar la página, verificar si hay una sesión válida guardada
+        window.onload = function() {
+            verificarSesionGuardada();
+        };
+
+        function verificarSesionGuardada() {
+            const sesionStr = localStorage.getItem("sesion_catalogo");
+            if (!sesionStr) {
+                // No hay sesión, ocultar cargador y dejar login disponible
+                document.getElementById('cargando-datos').classList.add('hidden');
+                return;
+            }
+
+            const sesion = JSON.parse(sesionStr);
+            const tiempoActual = new Date().getTime();
+
+            // Si pasó más tiempo del permitido (15 min) desde la última actividad
+            if (tiempoActual - sesion.timestamp > TIEMPO_EXPIRACION_MS) {
+                cerrarSesion();
+            } else {
+                // Sesión válida: restaurar variables de estado e ir por los datos
+                usuarioActual = sesion.correo;
+                tokenActual = sesion.token;
+                document.getElementById('nombre-usuario').innerText = sesion.nombre;
+                
+                document.getElementById('vista-login').classList.add('hidden');
+                document.getElementById('vista-catalogo').classList.remove('hidden');
+                
+                // Actualizar el tiempo para dar otros 15 minutos limpios desde que refrescó
+                actualizarTimestampSesion();
+                obtenerInventarioDesdeServidor();
+            }
+        }
+
+        function guardarSesionEnDispositivo(correo, token, nombre) {
+            const tiempoActual = new Date().getTime();
+            const datosSesion = {
+                correo: correo,
+                token: token,
+                nombre: nombre,
+                timestamp: tiempoActual
+            };
+            localStorage.setItem("sesion_catalogo", JSON.stringify(datosSesion));
+        }
+
+        function actualizarTimestampSesion() {
+            const sesionStr = localStorage.getItem("sesion_catalogo");
+            if (sesionStr) {
+                const sesion = JSON.parse(sesionStr);
+                sesion.timestamp = new Date().getTime();
+                localStorage.setItem("sesion_catalogo", JSON.stringify(sesion));
+            }
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem("sesion_catalogo");
+            usuarioActual = "";
+            tokenActual = "";
+            inventarioMaestro = [];
+            
+            document.getElementById('vista-catalogo').classList.add('hidden');
+            document.getElementById('contenido-catalogo').classList.add('hidden');
+            document.getElementById('cargando-datos').classList.add('hidden');
+            document.getElementById('vista-login').classList.remove('hidden');
+            
+            const btnLogin = document.getElementById('btn-login');
+            btnLogin.disabled = false;
+            btnLogin.innerText = "Acceder al Catálogo";
+            document.getElementById('input-correo').value = "";
+        }
 
         async function manejarInicioDeSesion() {
             const correoInput = document.getElementById('input-correo');
@@ -131,8 +207,12 @@
                     tokenActual = resultado.token;
                     document.getElementById('nombre-usuario').innerText = resultado.nombre;
                     
+                    // Guardar localmente
+                    guardarSesionEnDispositivo(correo, resultado.token, resultado.nombre);
+
                     document.getElementById('vista-login').classList.add('hidden');
                     document.getElementById('vista-catalogo').classList.remove('hidden');
+                    document.getElementById('cargando-datos').classList.remove('hidden');
                     
                     await obtenerInventarioDesdeServidor();
                 } else {
@@ -168,14 +248,14 @@
                     document.getElementById('contenido-catalogo').classList.remove('hidden');
                 } else {
                     alert("Error de autenticación: " + resultado.message);
-                    location.reload();
+                    cerrarSesion();
                 }
             } catch (err) {
                 alert("Ocurrió un error al descargar el inventario.");
             }
         }
 
-        // Convertidor MEJORADO para limpiar parámetros extras de Drive como /view?usp=sharing
+        // FUNCIÓN CORREGIDA Y BLINDADA EXTRA: Limpia cualquier parámetro de Drive (?usp=drive_link, etc.)
         function optimizarEnlaceImagen(enlaceOriginal) {
             if (!enlaceOriginal || typeof enlaceOriginal !== 'string' || !enlaceOriginal.startsWith('http')) {
                 return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
@@ -187,8 +267,8 @@
                 if (enlaceOriginal.includes('id=')) {
                     idDrive = enlaceOriginal.split('id=')[1].split('&')[0];
                 } else if (enlaceOriginal.includes('/file/d/')) {
-                    // Extrae el ID removiendo /view y parámetros posteriores
                     let parteDespuesDeD = enlaceOriginal.split('/file/d/')[1];
+                    // Divide de forma segura removiendo barras diagonales secundarias o signos de interrogación
                     idDrive = parteDespuesDeD.split('/')[0].split('?')[0];
                 }
                 
@@ -214,7 +294,10 @@
                 const tarjeta = document.createElement('div');
                 tarjeta.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col transition duration-200 group cursor-pointer border-camejo";
                 
-                tarjeta.onclick = () => abrirDetalleProducto(item);
+                tarjeta.onclick = () => {
+                    actualizarTimestampSesion(); // Extiende 15 mins más al interactuar
+                    abrirDetalleProducto(item);
+                };
 
                 const rawImagen = item.IMAGEN_REFERENCIA || item.Imagen || item.imagen || "";
                 const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
@@ -322,6 +405,7 @@
         }
 
         function filtrarProductos() {
+            actualizarTimestampSesion(); // Cada búsqueda renueva el tiempo límite
             const consulta = document.getElementById('buscador').value.toLowerCase().trim();
             
             if (!consulta) {
