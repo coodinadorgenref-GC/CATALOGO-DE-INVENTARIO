@@ -126,7 +126,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbx6P2pNYUJfCT4hdST96ghg_l5hBM-UpsM-r5JpDWXTwgQfABXDTSWrXVPkC8oVjThW/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbye8JO_nU2ijHWExs0N7QHybZ3Wr0njTJmqO0QDizBC6N6Im9teEM3Ln0Z9LxfWAXMK/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?usp=pp_url&entry.231242934=";
 
@@ -293,16 +293,21 @@
             }
         }
 
-        function optimizarEnlaceImagen(enlaceOriginal) {
+function optimizarEnlaceImagen(enlaceOriginal) {
             if (!enlaceOriginal || typeof enlaceOriginal !== 'string') {
                 return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
             }
             let linkClean = enlaceOriginal.trim();
-            if (linkClean.includes('googleusercontent.com')) return linkClean;
+            
+            // Si el backend ya le dio el formato correcto de visualización, lo dejamos pasar directo
+            if (linkClean.includes('docs.google.com/uc') || linkClean.includes('googleusercontent.com')) {
+                return linkClean;
+            }
 
+            // Respaldo por si acaso llega un enlace crudo de Drive al HTML
             let match = linkClean.match(/([-\w]{25,})/);
             if (match && match[0]) {
-                return `https://googleusercontent.com/profile/picture/0${match[0]}`;
+                return `https://docs.google.com/uc?export=view&id=${match[0]}`;
             }
             return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
         }
