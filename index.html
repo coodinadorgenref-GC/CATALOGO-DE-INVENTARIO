@@ -96,14 +96,14 @@
 
     <div id="modal-detalles" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300" onclick="cerrarModalExterno(event)">
         <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto transform translate-y-4 transition-transform duration-300 relative" id="modal-contenido">
-            <button onclick="alternarModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-900 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-xl z-10">&times;</button>
+            <button onclick="alternarModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-900 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-xl z-10">×</button>
             <div id="modal-cuerpo" class="p-6"></div>
         </div>
     </div>
 
     <script>
         // Configuración de Servidor
-        const API_URL = "https://script.google.com/macros/s/AKfycbzJiVFv_H9rqPdZHt-giv69bbRIhlx5T5DtQaU8qCO9kQzeNJqiraR20DgiiV62BZ-w/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbzQTH442NxwCqCrVEBS_XGQXAjVp50G1nmopF_X3D2i2iwudf4k2teASp8E3Lv-K22o/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         
         // URL para formulario de actualización de admin
@@ -149,7 +149,6 @@
 
         // --- COMPONENTE SEGURO DE RENDERIZADO DE IMÁGENES ---
         function generarHtmlContenedorImagen(url) {
-            // Renderizado nativo directo usando la política no-referrer para saltar bloqueos de seguridad cruzados
             return `<img src="${url}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">`;
         }
 
@@ -268,27 +267,27 @@
 
             let linkClean = enlaceOriginal.trim();
             
-            // Si ya viene con el formato directo procesado por el servidor, lo dejamos pasar
-            if (linkClean.includes('googleusercontent.com/profile/picture/')) return linkClean;
+            if (linkClean.includes('lh3.googleusercontent.com/d/')) return linkClean;
 
-            // Extraemos el ID único de la imagen de Google Drive
+            // Extraer ID de Drive de cualquier estructura común
             let match = linkClean.match(/([-\w]{25,})/);
             if (match && match[0]) {
-                // Opción A: Renderizado directo sin restricciones de cookies de Google Drive
-                return `https://lh3.googleusercontent.com/d/0B6wwyazyzml-OGQ3VUo0Z2thdmc=w1000${match[0]}`;
+                // Nuevo endpoint global directo de Google para renderizado público en elementos <img>
+                return `https://lh3.googleusercontent.com/d/${match[0]}`;
             }
 
             return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
         }
 
-        // Función de rescate por si el link directo falla
+        // Sistema de rescate si el proveedor bloquea el ID temporalmente
         function gestionarFalloImagenDrive(imgElement) {
             let urlActual = imgElement.src;
-            // Si falló usando googleusercontent, podemos intentar usar el fallback uc?export de respaldo
-            if (urlActual.includes("googleusercontent.com")) {
-                let match = urlActual.match(/picture\/\d+([-\w]{25,})/);
-                if (match && match[1]) {
-                    imgElement.src = `https://docs.google.com/uc?export=view&id=${match[1]}`;
+            if (urlActual.includes("lh3.googleusercontent.com/d/")) {
+                let parts = urlActual.split('/');
+                let id = parts[parts.length - 1];
+                if (id) {
+                    // Fallback clásico alternativo mediante export view por si acaso
+                    imgElement.src = `https://docs.google.com/uc?export=view&id=${id}`;
                     return;
                 }
             }
