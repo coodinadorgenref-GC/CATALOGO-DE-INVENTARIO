@@ -38,7 +38,7 @@
             <h1 class="text-2xl font-black text-white tracking-tight uppercase">La Barata del Hogar</h1>
             <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-6">Catálogo de Refacciones</p>
             
-            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo authorized para acceder.</p>
+            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo autorizado para acceder.</p>
             
             <div class="text-left mb-4">
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico</label>
@@ -103,7 +103,7 @@
 
     <script>
         // Configuración de Servidor
-        const API_URL = "https://script.google.com/macros/s/AKfycbzQTH442NxwCqCrVEBS_XGQXAjVp50G1nmopF_X3D2i2iwudf4k2teASp8E3Lv-K22o/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxoA2_puBvnOeWeG5rUSrUzvfNDQcEFfvFXAqheiRI7Fy5aLApqR0QkvxukWY5trmA/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         
         // URL para formulario de actualización de admin
@@ -272,7 +272,7 @@
             // Extraer ID de Drive de cualquier estructura común
             let match = linkClean.match(/([-\w]{25,})/);
             if (match && match[0]) {
-                // Nuevo endpoint global directo de Google para renderizado público en elementos <img>
+                // Enlace de alta disponibilidad directo para renderizado público en elementos img
                 return `https://lh3.googleusercontent.com/d/${match[0]}`;
             }
 
