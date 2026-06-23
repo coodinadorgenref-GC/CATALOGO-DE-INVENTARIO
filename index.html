@@ -257,34 +257,24 @@ function optimizarEnlaceImagen(enlaceOriginal) {
         return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
     }
 
-    // Si el link ya es una imagen directa (termina en jpg, png, etc) o ya es un link de descarga directa, lo dejamos pasar
-    if (enlaceOriginal.includes('uc?export=view') || enlaceOriginal.match(/\.(jpeg|jpg|gif|png)$/)) {
-        return enlaceOriginal;
-    }
+    // Si ya es un enlace de descarga directa, lo aceptamos
+    if (enlaceOriginal.includes('export=view')) return enlaceOriginal;
 
-    // Extraer ID de cualquier link de Google Drive (view, open, file/d, etc)
     let id = "";
+    // Extrae el ID de los formatos comunes de Google Drive
     if (enlaceOriginal.includes('/d/')) {
         id = enlaceOriginal.split('/d/')[1].split('/')[0];
     } else if (enlaceOriginal.includes('id=')) {
         id = enlaceOriginal.split('id=')[1].split('&')[0];
     }
 
+    // Retorna la URL de visualización directa oficial
     if (id) {
-        // FORZAMOS el formato de visualización de imagen directa de Google
-        return `https://lh3.googleusercontent.com/d/${id}=s400`;
+        return `https://drive.google.com/uc?export=view&id=${id}`;
     }
 
-    return 'https://placehold.co/400x300/1e293b/94a3b8?text=Error+Formato';
+    return 'https://placehold.co/400x300/1e293b/94a3b8?text=Error';
 }
-        
-        if (idDrive) {
-            return `https://drive.google.com/uc?export=view&id=${idDrive}`;
-        }
-    }
-    return enlaceOriginal;
-}
-
         // --- RENDERIZADO ---
         function renderizarTarjetasProductos(listaProductos) {
             const grid = document.getElementById('grid-productos');
