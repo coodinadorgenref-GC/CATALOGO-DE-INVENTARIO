@@ -103,7 +103,7 @@
 
     <script>
         // Configuración de Servidor
-        const API_URL = "https://script.google.com/macros/s/AKfycby1kyqaUOGqZ4Mh1LSnCaw6hby2vDy9E39rTRkDscx0X_FYpv23eWHxzVP-GtyUPxwg/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbzkBtYTXOSUvEAp7J7nfFuQeKtr_VROvZe3L_-RK6faZra2r1U8QLxtFMo9yKM5kGRS/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         
         // URL para formulario de actualización de admin
@@ -145,6 +145,14 @@
                 actualizarTimestampSesion();
                 obtenerInventarioDesdeServidor();
             }
+        }
+
+        // --- COMPONENTE SEGURO DE RENDERIZADO DE IMÁGENES ---
+        function generarHtmlContenedorImagen(url) {
+            if (url.includes("/preview")) {
+                return `<iframe src="${url}" class="absolute inset-0 w-full h-full" style="border: none;" allow="autoplay" referrerpolicy="no-referrer"></iframe>`;
+            }
+            return `<img src="${url}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">`;
         }
 
         function guardarSesionEnDispositivo(correo, token, nombre, esAdmin) {
@@ -261,12 +269,12 @@
             }
 
             let linkClean = enlaceOriginal.trim();
+            if (linkClean.includes('file/d/') && linkClean.includes('/preview')) return linkClean;
             if (linkClean.includes('uc?export=view')) return linkClean;
 
-            // Extraer el ID limpio usando una Expresión Regular precisa
             let match = linkClean.match(/([-\w]{25,})/);
             if (match && match[0]) {
-                return `https://drive.google.com/uc?export=view&id=${match[0]}`;
+                return `https://drive.google.com/file/d/${match[0]}/preview`;
             }
 
             return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
@@ -278,8 +286,10 @@
             if (urlActual.includes("drive.google.com")) {
                 let match = urlActual.match(/id=([-\w]{25,})/);
                 if (match && match[1]) {
-                    // Si el renderizado directo falla, se conmuta al visor embebido público
-                    imgElement.src = `https://drive.google.com/file/d/${match[1]}/preview`;
+                    const contenedor = imgElement.parentElement;
+                    if (contenedor) {
+                        contenedor.innerHTML = `<iframe src="https://drive.google.com/file/d/${match[1]}/preview" class="absolute inset-0 w-full h-full" style="border: none;" allow="autoplay" referrerpolicy="no-referrer"></iframe>`;
+                    }
                 }
             } else {
                 imgElement.src = 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
@@ -309,15 +319,12 @@
 
                 const rawImagen = item.IMAGEN_REFERENCIA || item.Imagen || item.imagen || "";
                 const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
+                const htmlImagen = generarHtmlContenedorImagen(urlImagenOptimizada);
 
                 tarjeta.innerHTML = `
                     <div class="relative pt-[75%] bg-slate-900 overflow-hidden">
-                        <img src="${urlImagenOptimizada}" 
-                             alt="${item.Producto || item.PRODUCTO}" 
-                             referrerpolicy="no-referrer"
-                             onerror="gestionarFalloImagenDrive(this)"
-                             class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                        <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase">${item.Marca || item.MARCA || 'GENÉRICO'}</span>
+                        ${htmlImagen}
+                        <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase z-10">${item.Marca || item.MARCA || 'GENÉRICO'}</span>
                     </div>
                     <div class="p-4 flex flex-col flex-1 justify-between gap-3">
                         <div>
@@ -336,6 +343,7 @@
             const marca = item.Marca || item.MARCA || 'GENÉRICO';
             const rawImagen = item.IMAGEN_REFERENCIA || item.Imagen || item.imagen || "";
             const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
+            const htmlImagenModal = generarHtmlContenedorImagen(urlImagenOptimizada);
             const rawCompatibilidad = item.COMPATIBILIDAD || item.Compatibilidad || item.compatibilidad || "";
 
             let htmlBotonAdmin = "";
@@ -387,10 +395,7 @@
 
             document.getElementById('modal-cuerpo').innerHTML = `
                 <div class="relative pt-[65%] bg-slate-900 overflow-hidden rounded-xl mb-4 border border-slate-700">
-                    <img src="${urlImagenOptimizada}" 
-                         referrerpolicy="no-referrer"
-                         onerror="gestionarFalloImagenDrive(this)"
-                         class="absolute inset-0 w-full h-full object-cover">
+                    ${htmlImagenModal}
                 </div>
                 <div class="mb-4">
                     <span class="bg-emerald-950 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase inline-block mb-2">${marca}</span>
