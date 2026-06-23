@@ -252,21 +252,28 @@
         }
 
         // --- UTILIDADES ---
-        function optimizarEnlaceImagen(enlaceOriginal) {
-            if (!enlaceOriginal || typeof enlaceOriginal !== 'string' || !enlaceOriginal.startsWith('http')) {
-                return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
-            }
-            if (enlaceOriginal.includes('drive.google.com')) {
-                let idDrive = '';
-                if (enlaceOriginal.includes('id=')) {
-                    idDrive = enlaceOriginal.split('id=')[1].split('&')[0];
-                } else if (enlaceOriginal.includes('/file/d/')) {
-                    idDrive = enlaceOriginal.split('/file/d/')[1].split('/')[0].split('?')[0];
-                }
-                return idDrive ? `https://drive.google.com/uc?export=view&id=${idDrive}` : enlaceOriginal;
-            }
-            return enlaceOriginal;
+function optimizarEnlaceImagen(enlaceOriginal) {
+    if (!enlaceOriginal || typeof enlaceOriginal !== 'string' || !enlaceOriginal.startsWith('http')) {
+        return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
+    }
+    
+    // Si el link es de drive, extraemos el ID
+    if (enlaceOriginal.includes('drive.google.com')) {
+        let idDrive = '';
+        
+        if (enlaceOriginal.includes('id=')) {
+            // Esto captura tanto id=123 como open?id=123
+            idDrive = enlaceOriginal.split('id=')[1].split('&')[0];
+        } else if (enlaceOriginal.includes('/file/d/')) {
+            idDrive = enlaceOriginal.split('/file/d/')[1].split('/')[0].split('?')[0];
         }
+        
+        if (idDrive) {
+            return `https://drive.google.com/uc?export=view&id=${idDrive}`;
+        }
+    }
+    return enlaceOriginal;
+}
 
         // --- RENDERIZADO ---
         function renderizarTarjetasProductos(listaProductos) {
