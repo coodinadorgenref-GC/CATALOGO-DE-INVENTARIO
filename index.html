@@ -106,9 +106,14 @@
         </div>
     </div>
 
+    <div id="modal-zoom-imagen" class="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300 select-none cursor-zoom-out" onclick="cerrarZoomImagen()">
+        <button onclick="cerrarZoomImagen()" class="absolute top-6 right-6 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer text-2xl z-[70] shadow-xl border border-slate-700">×</button>
+        <img id="img-ampliada" src="" alt="Vista ampliada" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl transform scale-95 transition-transform duration-300">
+    </div>
+
     <script>
         // Configuración de Servidor
-        const API_URL = "https://script.google.com/macros/s/AKfycbyUbXGuCO0NCmtLDtNefkPwVvjj0Yccgs3hgXzUkWzQ1tO5XI45uXDXT2AeZeQMy4oR/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxn-eW-khAZKiL6bZyttpveXM3JnumTQk-M-hnfhdvTrupM5Osj4AKDzlISDPUZhjjG/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         
         // URL para formulario de actualización de admin
@@ -366,7 +371,10 @@
             const marca = item.Marca || item.MARCA || 'GENÉRICO';
             const rawImagen = item.IMAGEN_REFERENCIA || item.Imagen || item.imagen || "";
             const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
-            const htmlImagenModal = generarHtmlContenedorImagen(urlImagenOptimizada);
+            
+            // AGREGAMOS cursor-pointer AL CONTENEDOR Y UN ONCLICK PARA LLAMAR AL ZOOM
+            const htmlImagenModal = `<img src="${urlImagenOptimizada}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" onclick="abrirZoomImagen('${urlImagenOptimizada}')" class="absolute inset-0 w-full h-full object-cover cursor-zoom-in group-hover:scale-105 transition duration-300">`;
+            
             const rawCompatibilidad = item.COMPATIBILIDAD || item.Compatibilidad || item.compatibilidad || "";
 
             let htmlBotonAdmin = "";
@@ -417,8 +425,11 @@
             }
 
             document.getElementById('modal-cuerpo').innerHTML = `
-                <div class="relative pt-[65%] bg-slate-900 overflow-hidden rounded-xl mb-4 border border-slate-700">
+                <div class="relative pt-[65%] bg-slate-900 overflow-hidden rounded-xl mb-4 border border-slate-700 group">
                     ${htmlImagenModal}
+                    <div class="absolute bottom-2 right-2 bg-black/60 backdrop-blur-xs text-slate-300 text-[10px] font-bold py-1 px-2 rounded-md pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> Clic para ampliar
+                    </div>
                 </div>
                 <div class="mb-4">
                     <span class="bg-emerald-950 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase inline-block mb-2">${marca}</span>
@@ -463,6 +474,26 @@
             if (e.key === "Enter") {
                 document.getElementById('buscador').blur();
             }
+        }
+
+        // --- FUNCIONES EXCLUSIVAS PARA CONTROLAR EL LIGHTBOX / ZOOM DE IMAGEN ---
+        function abrirZoomImagen(urlSrc) {
+            const modalZoom = document.getElementById('modal-zoom-imagen');
+            const imgAmpliada = document.getElementById('img-ampliada');
+            
+            imgAmpliada.src = urlSrc;
+            modalZoom.classList.remove('opacity-0', 'pointer-events-none');
+            imgAmpliada.classList.remove('scale-95');
+            imgAmpliada.classList.add('scale-100');
+        }
+
+        function cerrarZoomImagen() {
+            const modalZoom = document.getElementById('modal-zoom-imagen');
+            const imgAmpliada = document.getElementById('img-ampliada');
+            
+            modalZoom.classList.add('opacity-0', 'pointer-events-none');
+            imgAmpliada.classList.remove('scale-100');
+            imgAmpliada.classList.add('scale-95');
         }
     </script>
 </body>
