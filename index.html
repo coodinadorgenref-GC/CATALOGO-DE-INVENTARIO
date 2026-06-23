@@ -111,26 +111,35 @@
         <img id="img-ampliada" src="" alt="Vista ampliada" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl transform scale-95 transition-transform duration-300">
     </div>
 
+    <div id="modal-formulario-admin" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300" onclick="cerrarModalFormularioExterno(event)">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-xl w-full h-[85vh] flex flex-col transform translate-y-4 transition-transform duration-300 relative">
+            <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-slate-800/50 rounded-t-2xl">
+                <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square"></i> Panel de Actualización
+                </h3>
+                <button onclick="alternarModalFormulario()" class="text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-900 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-xl">×</button>
+            </div>
+            <div class="flex-1 bg-slate-900 relative">
+                <iframe id="iframe-form" src="" class="w-full h-full border-0 rounded-b-2xl"></iframe>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Configuración de Servidor
-        const API_URL = "https://script.google.com/macros/s/AKfycbwo2KpcXOKUqmjkaMkGANqy8ck9wXw3zLhYdHKsreu3sDUCWdZmwld-wWu7b1OUwRF3/exec";
+        // Recuerda verificar que este enlace sea el correcto de tu script activo
+        const API_URL = "https://script.google.com/macros/s/AKfycbwGBCvX2T0nKxDmV0nYfDvqKUBWak09w2s-7QFkVSTHpygOxC4WOjEWCfdTrQmHk7aW/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
-        
-        // URL para formulario de actualización de admin
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?usp=pp_url&entry.231242934=";
 
-        // Variables de estado
         let inventarioMaestro = [];
         let usuarioActual = "";
         let tokenActual = "";
         let esAdmin = false;
 
-        // --- INICIALIZACIÓN ---
         window.onload = function() {
             verificarSesionGuardada();
         };
 
-        // --- GESTIÓN DE SESIÓN ---
         function verificarSesionGuardada() {
             const sesionStr = localStorage.getItem("sesion_catalogo");
             if (!sesionStr) {
@@ -157,12 +166,10 @@
             }
         }
 
-        // --- COMPONENTE SEGURO DE RENDERIZADO DE IMÁGENES ---
         function generarHtmlContenedorImagen(url) {
             return `<img src="${url}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">`;
         }
 
-        // --- GESTIÓN DE INCIDENTES Y TRÁFICO ---
         function forzarSincronizacionDatos() {
             actualizarTimestampSesion();
             const icono = document.getElementById('icono-sincronizar');
@@ -208,7 +215,6 @@
             location.reload();
         }
 
-        // --- LÓGICA DE LOGIN ---
         async function manejarInicioDeSesion() {
             const correoInput = document.getElementById('input-correo');
             const errorEl = document.getElementById('error-login');
@@ -221,7 +227,7 @@
                 return;
             }
 
-            errorEl.classList.add('hidden');
+            errorEl.className = "hidden";
             btnLogin.disabled = true;
             btnLogin.innerText = "Verificando...";
 
@@ -262,7 +268,6 @@
             }
         }
 
-        // --- OBTENCIÓN DE DATOS ---
         async function obtenerInventarioDesdeServidor() {
             try {
                 const respuesta = await fetch(API_URL, {
@@ -289,34 +294,25 @@
             }
         }
 
-        // --- UTILIDADES DE IMAGEN (OPTIMIZACIÓN Y RESPALDO MÓVIL) ---
         function optimizarEnlaceImagen(enlaceOriginal) {
             if (!enlaceOriginal || typeof enlaceOriginal !== 'string') {
                 return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
             }
-
             let linkClean = enlaceOriginal.trim();
-            
-            if (linkClean.includes('lh3.googleusercontent.com/d/')) return linkClean;
+            if (linkClean.includes('googleusercontent.com')) return linkClean;
 
-            // Extraer ID de Drive de cualquier estructura común
             let match = linkClean.match(/([-\w]{25,})/);
             if (match && match[0]) {
-                // Enlace de alta disponibilidad directo para renderizado público en elementos img
-                return `https://lh3.googleusercontent.com/d/${match[0]}`;
+                return `https://googleusercontent.com/profile/picture/0${match[0]}`;
             }
-
             return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
         }
 
-        // Sistema de rescate si el proveedor bloquea el ID temporalmente
         function gestionarFalloImagenDrive(imgElement) {
             let urlActual = imgElement.src;
-            if (urlActual.includes("lh3.googleusercontent.com/d/")) {
-                let parts = urlActual.split('/');
-                let id = parts[parts.length - 1];
+            if (urlActual.includes("googleusercontent.com")) {
+                let id = urlActual.split('/').pop();
                 if (id) {
-                    // Fallback clásico alternativo mediante export view por si acaso
                     imgElement.src = `https://docs.google.com/uc?export=view&id=${id}`;
                     return;
                 }
@@ -324,7 +320,6 @@
             imgElement.src = 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
         }
 
-        // --- RENDERIZADO ---
         function renderizarTarjetasProductos(listaProductos) {
             const grid = document.getElementById('grid-productos');
             const sinResultados = document.getElementById('sin-resultados');
@@ -345,19 +340,19 @@
                     abrirDetalleProducto(item);
                 };
 
-                const rawImagen = item.IMAGEN_REFERENCIA || item.Imagen || item.imagen || "";
+                const rawImagen = item.Imagen || item.IMAGEN_REFERENCIA || "";
                 const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
                 const htmlImagen = generarHtmlContenedorImagen(urlImagenOptimizada);
 
                 tarjeta.innerHTML = `
                     <div class="relative pt-[75%] bg-slate-900 overflow-hidden">
                         ${htmlImagen}
-                        <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase z-10">${item.Marca || item.MARCA || 'GENÉRICO'}</span>
+                        <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase z-10">${item.Marca || 'GENÉRICO'}</span>
                     </div>
                     <div class="p-4 flex flex-col flex-1 justify-between gap-3">
                         <div>
-                            <span class="text-[11px] font-mono font-bold text-slate-400 tracking-wide block mb-1">SKU: ${item.SKU || item.sku}</span>
-                            <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition duration-150">${item.Producto || item.PRODUCTO}</h3>
+                            <span class="text-[11px] font-mono font-bold text-slate-400 tracking-wide block mb-1">SKU: ${item.SKU}</span>
+                            <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition duration-150">${item.Producto}</h3>
                         </div>
                     </div>
                 `;
@@ -366,30 +361,27 @@
         }
 
         function abrirDetalleProducto(item) {
-            const sku = item.SKU || item.sku || "---";
-            const titulo = item.Producto || item.PRODUCTO || "Sin Nombre";
-            const marca = item.Marca || item.MARCA || 'GENÉRICO';
-            const rawImagen = item.IMAGEN_REFERENCIA || item.Imagen || item.imagen || "";
+            const sku = item.SKU || "---";
+            const titulo = item.Producto || "Sin Nombre";
+            const marca = item.Marca || 'GENÉRICO';
+            const rawImagen = item.Imagen || "";
             const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
             
-            // AGREGAMOS cursor-pointer AL CONTENEDOR Y UN ONCLICK PARA LLAMAR AL ZOOM
             const htmlImagenModal = `<img src="${urlImagenOptimizada}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" onclick="abrirZoomImagen('${urlImagenOptimizada}')" class="absolute inset-0 w-full h-full object-cover cursor-zoom-in group-hover:scale-105 transition duration-300">`;
-            
-            const rawCompatibilidad = item.COMPATIBILIDAD || item.Compatibilidad || item.compatibilidad || "";
+            const rawCompatibilidad = item.Compatibilidad || "";
 
             let htmlBotonAdmin = "";
             if (esAdmin) {
                 htmlBotonAdmin = `
-                <a href="${URL_FORM_ADMIN}${encodeURIComponent(sku)}" target="_blank" 
+                <button onclick="abrirFormularioEnIframe('${sku}')" 
                    class="mt-6 block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg cursor-pointer">
                      <i class="fa-solid fa-pen-to-square mr-2"></i> Actualizar Info / Foto
-                </a>`;
+                </button>`;
             }
 
             let bloquesHTML = "";
             if (rawCompatibilidad && rawCompatibilidad.trim() !== "") {
                 const lineas = rawCompatibilidad.split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 0);
-                
                 let marcaActual = "";
                 let modelosDeMarca = [];
 
@@ -445,7 +437,6 @@
         function alternarModal() {
             const modal = document.getElementById('modal-detalles');
             const contenido = document.getElementById('modal-contenido');
-            
             if (modal.classList.contains('opacity-0')) {
                 modal.classList.remove('opacity-0', 'pointer-events-none');
                 contenido.classList.remove('translate-y-4');
@@ -463,24 +454,19 @@
             actualizarTimestampSesion();
             const consulta = document.getElementById('buscador').value.toLowerCase().trim();
             const filtrados = inventarioMaestro.filter(item => {
-                const s = (String(item.SKU || item.sku) + String(item.Producto || item.PRODUCTO) + String(item.Marca || item.MARCA) + String(item.COMPATIBILIDAD || item.Compatibilidad)).toLowerCase();
+                const s = (String(item.SKU) + String(item.Producto) + String(item.Marca) + String(item.Compatibilidad)).toLowerCase();
                 return s.includes(consulta);
             });
             renderizarTarjetasProductos(filtrados);
         }
 
-        // --- CONTROLADORES DE INTERFAZ ADICIONALES ---
         function manejarTecladoBuscador(e) {
-            if (e.key === "Enter") {
-                document.getElementById('buscador').blur();
-            }
+            if (e.key === "Enter") document.getElementById('buscador').blur();
         }
 
-        // --- FUNCIONES EXCLUSIVAS PARA CONTROLAR EL LIGHTBOX / ZOOM DE IMAGEN ---
         function abrirZoomImagen(urlSrc) {
             const modalZoom = document.getElementById('modal-zoom-imagen');
             const imgAmpliada = document.getElementById('img-ampliada');
-            
             imgAmpliada.src = urlSrc;
             modalZoom.classList.remove('opacity-0', 'pointer-events-none');
             imgAmpliada.classList.remove('scale-95');
@@ -490,10 +476,30 @@
         function cerrarZoomImagen() {
             const modalZoom = document.getElementById('modal-zoom-imagen');
             const imgAmpliada = document.getElementById('img-ampliada');
-            
             modalZoom.classList.add('opacity-0', 'pointer-events-none');
             imgAmpliada.classList.remove('scale-100');
             imgAmpliada.classList.add('scale-95');
+        }
+
+        function abrirFormularioEnIframe(sku) {
+            alternarModal();
+            const iframe = document.getElementById('iframe-form');
+            iframe.src = `${URL_FORM_ADMIN}${encodeURIComponent(sku)}`;
+            alternarModalFormulario();
+        }
+
+        function alternarModalFormulario() {
+            const modalForm = document.getElementById('modal-formulario-admin');
+            if (modalForm.classList.contains('opacity-0')) {
+                modalForm.classList.remove('opacity-0', 'pointer-events-none');
+            } else {
+                modalForm.classList.add('opacity-0', 'pointer-events-none');
+                document.getElementById('iframe-form').src = "";
+            }
+        }
+
+        function cerrarModalFormularioExterno(e) {
+            if (e.target.id === "modal-formulario-admin") alternarModalFormulario();
         }
     </script>
 </body>
