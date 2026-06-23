@@ -7,23 +7,21 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* Acentos personalizados basados en Grupo Camejo para las listas y hovers */
         .accent-camejo { color: #22b14c; }
         .bg-camejo { background-color: #22b14c; }
         .border-camejo:hover { border-color: #22b14c; }
         
-        /* Estilos específicos para la lista de compatibilidad en el Modal */
         .lista-compatibilidad-modal { list-style: none; }
         .lista-compatibilidad-modal li {
             position: relative;
-            padding-left: 1.5rem;
+            padding-left: 1.25rem;
             margin-bottom: 0.25rem;
         }
         .lista-compatibilidad-modal li::before {
             content: "•";
             color: #22b14c;
             font-weight: bold;
-            font-size: 1.25rem;
+            font-size: 1.1rem;
             position: absolute;
             left: 0;
             top: -2px;
@@ -40,7 +38,7 @@
             <h1 class="text-2xl font-black text-white tracking-tight uppercase">La Barata del Hogar</h1>
             <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-6">Catálogo Maestro de Refacciones</p>
             
-            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo autorizado para desbloquear el buscador visual e identificar compatibilidades.</p>
+            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo authorized para desbloquear el buscador visual e identificar compatibilidades.</p>
             
             <div class="text-left mb-4">
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico</label>
@@ -81,15 +79,13 @@
         </div>
 
         <main id="contenido-catalogo" class="hidden flex-1 max-w-7xl w-full mx-auto p-6">
-            <div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                </div>
+            <div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
 
             <div id="sin-resultados" class="hidden text-center py-16">
                 <div class="text-4xl text-slate-600 mb-3">
                     <i class="fa-solid fa-box-open"></i>
                 </div>
                 <p class="text-base font-semibold text-slate-400">No encontramos refacciones que coincidan con tu búsqueda.</p>
-                <p class="text-xs text-slate-500 mt-1">Prueba verificando el SKU o el modelo de la motocicleta.</p>
             </div>
         </main>
     </div>
@@ -97,21 +93,17 @@
     <div id="modal-detalles" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300" onclick="cerrarModalExterno(event)">
         <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto transform translate-y-4 transition-transform duration-300 relative" id="modal-contenido">
             <button onclick="alternarModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-900 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-xl z-10">&times;</button>
-            
-            <div id="modal-cuerpo" class="p-6">
-                </div>
+            <div id="modal-cuerpo" class="p-6"></div>
         </div>
     </div>
 
     <script>
-        // Enlace oficial de tu Google Apps Script
-        const API_URL = "https://script.google.com/macros/s/AKfycbwz4S6W35d0ubVyt41cw0j2I7TIqy-XR4tsuBNxroonSDxcckhfzFlSFXjYrNNMG4-4/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbzPMXRJulx_2Gsc_5mX2psiTST2eZdUClhvxXbCCFzXgWzauLTW5MwU-rGXaLISiN_J/exec";
 
         let inventarioMaestro = [];
         let usuarioActual = "";
         let tokenActual = "";
 
-        // Función original para procesar la validación de credenciales
         async function manejarInicioDeSesion() {
             const correoInput = document.getElementById('input-correo');
             const errorEl = document.getElementById('error-login');
@@ -139,11 +131,9 @@
                     tokenActual = resultado.token;
                     document.getElementById('nombre-usuario').innerText = resultado.nombre;
                     
-                    // Transición de pantallas
                     document.getElementById('vista-login').classList.add('hidden');
                     document.getElementById('vista-catalogo').classList.remove('hidden');
                     
-                    // Cargar los productos del Sheets inmediatamente
                     await obtenerInventarioDesdeServidor();
                 } else {
                     errorEl.innerText = resultado.message;
@@ -152,14 +142,13 @@
                     btnLogin.innerText = "Acceder al Catálogo";
                 }
             } catch (err) {
-                errorEl.innerText = "Error de conexión con el servidor. Inténtalo de nuevo.";
+                errorEl.innerText = "Error de conexión con el servidor.";
                 errorEl.classList.remove('hidden');
                 btnLogin.disabled = false;
                 btnLogin.innerText = "Acceder al Catálogo";
             }
         }
 
-        // Función original para bajar toda la base de datos de refacciones
         async function obtenerInventarioDesdeServidor() {
             try {
                 const respuesta = await fetch(API_URL, {
@@ -175,7 +164,6 @@
                     inventarioMaestro = resultado.data;
                     renderizarTarjetasProductos(inventarioMaestro);
                     
-                    // Ocultar cargador y mostrar cuadrícula
                     document.getElementById('cargando-datos').classList.add('hidden');
                     document.getElementById('contenido-catalogo').classList.remove('hidden');
                 } else {
@@ -183,11 +171,11 @@
                     location.reload();
                 }
             } catch (err) {
-                alert("Ocurrió un error al descargar el inventario en tiempo real.");
+                alert("Ocurrió un error al descargar el inventario.");
             }
         }
 
-        // Convertidor inteligente para enlaces de Google Drive e Imágenes rotas
+        // Convertidor robusto para enlaces "open?id=" y "/file/d/" de Google Drive
         function optimizarEnlaceImagen(enlaceOriginal) {
             if (!enlaceOriginal || typeof enlaceOriginal !== 'string' || !enlaceOriginal.startsWith('http')) {
                 return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
@@ -195,10 +183,10 @@
             
             if (enlaceOriginal.includes('drive.google.com')) {
                 let idDrive = '';
-                if (enlaceOriginal.includes('/file/d/')) {
-                    idDrive = enlaceOriginal.split('/file/d/')[1].split('/')[0];
-                } else if (enlaceOriginal.includes('id=')) {
+                if (enlaceOriginal.includes('id=')) {
                     idDrive = enlaceOriginal.split('id=')[1].split('&')[0];
+                } else if (enlaceOriginal.includes('/file/d/')) {
+                    idDrive = enlaceOriginal.split('/file/d/')[1].split('/')[0];
                 }
                 
                 if (idDrive) {
@@ -208,7 +196,6 @@
             return enlaceOriginal;
         }
 
-        // Función para renderizar e inyectar las refacciones en el HTML original
         function renderizarTarjetasProductos(listaProductos) {
             const grid = document.getElementById('grid-productos');
             const sinResultados = document.getElementById('sin-resultados');
@@ -220,11 +207,10 @@
             }
             sinResultados.classList.add('hidden');
 
-            listaProductos.forEach((item, index) => {
+            listaProductos.forEach((item) => {
                 const tarjeta = document.createElement('div');
                 tarjeta.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col transition duration-200 group cursor-pointer border-camejo";
                 
-                // Evento de clic estilo GlideApps para abrir detalles completos
                 tarjeta.onclick = () => abrirDetalleProducto(item);
 
                 const rawImagen = item.IMAGEN_REFERENCIA || item.Imagen || item.imagen || "";
@@ -246,7 +232,7 @@
             });
         }
 
-        // Desplegar ventana flotante (Modal) con los datos y compatibilidad organizada
+        // Lector inteligente con separación por bloques de marca en el Modal
         function abrirDetalleProducto(item) {
             const sku = item.SKU || item.sku || "---";
             const titulo = item.Producto || item.PRODUCTO || "Sin Nombre";
@@ -255,15 +241,47 @@
             const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
             const rawCompatibilidad = item.COMPATIBILIDAD || item.Compatibilidad || item.compatibilidad || "";
 
-            // Fragmentar el texto por comas o saltos de línea para pasarlo a una lista estructurada
-            let listaHtml = "";
+            let bloquesHTML = "";
+
             if (rawCompatibilidad && rawCompatibilidad.trim() !== "") {
-                const elementos = rawCompatibilidad.split(/[,/\n]+/).map(i => i.trim()).filter(i => i.length > 0);
-                elementos.forEach(subItem => {
-                    listaHtml += `<li>${subItem}</li>`;
+                // Separar renglones por saltos de línea o comas principales
+                const lineas = rawCompatibilidad.split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 0);
+                
+                let marcaActual = "";
+                let modelosDeMarca = [];
+
+                function cerrarBloque() {
+                    if (modelosDeMarca.length > 0) {
+                        bloquesHTML += `
+                            <div class="mb-4 last:mb-0">
+                                <div class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider border-b border-slate-700/60 pb-1 mb-2">
+                                    ${marcaActual || 'MODELOS'}
+                                </div>
+                                <ul class="lista-compatibilidad-modal text-xs text-slate-300 font-medium space-y-1">
+                                    ${modelosDeMarca.map(m => `<li>${m}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    }
+                }
+
+                lineas.forEach(linea => {
+                    // Detectar si la línea define una marca (ejemplo "ITALIKA:" o "VENTO:")
+                    if (linea.includes(':')) {
+                        cerrarBloque(); // Guardar lo acumulado antes de cambiar
+                        const partes = linea.split(':');
+                        marcaActual = partes[0].trim();
+                        modelosDeMarca = partes[1] && partes[1].trim() ? [partes[1].trim()] : [];
+                    } else {
+                        if (!marcaActual && modelosDeMarca.length === 0) {
+                            marcaActual = "MODELOS COMPATIBLES";
+                        }
+                        modelosDeMarca.push(linea);
+                    }
                 });
+                cerrarBloque(); // Guardar el último grupo
             } else {
-                listaHtml = `<li class="text-slate-500 italic">No se ha capturado información de compatibilidad para este SKU.</li>`;
+                bloquesHTML = `<p class="text-xs text-slate-500 italic py-2">No se ha capturado información de compatibilidad para este SKU.</p>`;
             }
 
             const cuerpoModal = document.getElementById('modal-cuerpo');
@@ -276,11 +294,8 @@
                     <h2 class="text-lg font-bold text-white leading-snug">${titulo}</h2>
                     <span class="text-xs font-mono text-slate-400 block mt-1">SKU: ${sku}</span>
                 </div>
-                <div class="bg-slate-900 rounded-xl p-4 border border-slate-700/50 border-l-4 border-l-[#22b14c]">
-                    <span class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block mb-2">Compatibilidad Detallada</span>
-                    <ul class="lista-compatibilidad-modal text-xs text-slate-300 font-medium space-y-1">
-                        ${listaHtml}
-                    </ul>
+                <div class="bg-slate-900 rounded-xl p-4 border border-slate-700/50">
+                    ${bloquesHTML}
                 </div>
             `;
 
@@ -306,7 +321,6 @@
             }
         }
 
-        // Filtro dinámico en tiempo real del buscador original
         function filtrarProductos() {
             const consulta = document.getElementById('buscador').value.toLowerCase().trim();
             
@@ -321,10 +335,7 @@
                 const marcaStr = String(item.Marca || item.MARCA || "").toLowerCase();
                 const compStr = String(item.COMPATIBILIDAD || item.Compatibilidad || item.compatibilidad || "").toLowerCase();
 
-                return skuStr.includes(consulta) ||
-                       prodStr.includes(consulta) ||
-                       marcaStr.includes(consulta) ||
-                       compStr.includes(consulta);
+                return skuStr.includes(consulta) || prodStr.includes(consulta) || marcaStr.includes(consulta) || compStr.includes(consulta);
             });
 
             renderizarTarjetasProductos(filtrados);
