@@ -257,22 +257,17 @@ function optimizarEnlaceImagen(enlaceOriginal) {
         return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
     }
 
-    // 1. Si ya es un enlace directo de visualización, lo usamos tal cual
-    if (enlaceOriginal.includes('uc?export=view')) return enlaceOriginal;
-
-    // 2. Extraer el ID de cualquier formato de Google Drive
     let id = "";
-    if (enlaceOriginal.includes('open?id=')) {
-        id = enlaceOriginal.split('open?id=')[1].split('&')[0];
-    } else if (enlaceOriginal.includes('/d/')) {
+    // Extrae el ID del enlace
+    if (enlaceOriginal.includes('/d/')) {
         id = enlaceOriginal.split('/d/')[1].split('/')[0];
     } else if (enlaceOriginal.includes('id=')) {
         id = enlaceOriginal.split('id=')[1].split('&')[0];
     }
 
-    // 3. Retornar la URL de descarga/visualización directa oficial
+    // Usamos el servidor de imágenes de Google que SI permite cargar en <img>
     if (id) {
-        return `https://drive.google.com/uc?export=view&id=${id}`;
+        return `https://lh3.googleusercontent.com/d/${id}`;
     }
 
     return 'https://placehold.co/400x300/1e293b/94a3b8?text=Error';
