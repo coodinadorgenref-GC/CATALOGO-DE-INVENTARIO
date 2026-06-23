@@ -126,7 +126,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbye8JO_nU2ijHWExs0N7QHybZ3Wr0njTJmqO0QDizBC6N6Im9teEM3Ln0Z9LxfWAXMK/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbw-TgQxEgE7vwLO6gb2HF339aljQ8lm3PCxbRgdgiEOxkUZdBSls3NwLbDxE9JOPQ6C/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?usp=pp_url&entry.231242934=";
 
@@ -293,34 +293,25 @@
             }
         }
 
-function optimizarEnlaceImagen(enlaceOriginal) {
+        function optimizarEnlaceImagen(enlaceOriginal) {
             if (!enlaceOriginal || typeof enlaceOriginal !== 'string') {
                 return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
             }
             let linkClean = enlaceOriginal.trim();
             
-            // Si el backend ya le dio el formato correcto de visualización, lo dejamos pasar directo
-            if (linkClean.includes('docs.google.com/uc') || linkClean.includes('googleusercontent.com')) {
+            // Si ya contiene la estructura de miniatura de Drive o de perfiles, pasa directo
+            if (linkClean.includes('drive.google.com/thumbnail') || linkClean.includes('googleusercontent.com')) {
                 return linkClean;
             }
 
-            // Respaldo por si acaso llega un enlace crudo de Drive al HTML
             let match = linkClean.match(/([-\w]{25,})/);
             if (match && match[0]) {
-                return `https://docs.google.com/uc?export=view&id=${match[0]}`;
+                return `https://drive.google.com/thumbnail?id=${match[0]}&sz=w600`;
             }
             return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
         }
 
         function gestionarFalloImagenDrive(imgElement) {
-            let urlActual = imgElement.src;
-            if (urlActual.includes("googleusercontent.com")) {
-                let id = urlActual.split('/').pop();
-                if (id) {
-                    imgElement.src = `https://docs.google.com/uc?export=view&id=${id}`;
-                    return;
-                }
-            }
             imgElement.src = 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
         }
 
@@ -344,7 +335,6 @@ function optimizarEnlaceImagen(enlaceOriginal) {
                     abrirDetalleProducto(item);
                 };
 
-                // Corregido para usar exactamente las mayúsculas del backend
                 const rawImagen = item.Imagen || "";
                 const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
                 const htmlImagen = generarHtmlContenedorImagen(urlImagenOptimizada);
@@ -455,7 +445,6 @@ function optimizarEnlaceImagen(enlaceOriginal) {
             if (e.target.id === "modal-detalles") alternarModal();
         }
 
-        // Unificado el filtrado para leer las propiedades con mayúsculas del script
         function filtrarProductos() {
             actualizarTimestampSesion();
             const consulta = document.getElementById('buscador').value.toLowerCase().trim();
@@ -466,7 +455,7 @@ function optimizarEnlaceImagen(enlaceOriginal) {
             renderizarTarjetasProductos(filtrados);
         }
 
-        style= function manejarTecladoBuscador(e) {
+        function manejarTecladoBuscador(e) {
             if (e.key === "Enter") document.getElementById('buscador').blur();
         }
 
