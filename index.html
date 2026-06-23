@@ -38,7 +38,7 @@
             <h1 class="text-2xl font-black text-white tracking-tight uppercase">La Barata del Hogar</h1>
             <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-6">Catálogo de Refacciones</p>
             
-            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo autorizado para acceder.</p>
+            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo authorized para acceder.</p>
             
             <div class="text-left mb-4">
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico</label>
@@ -103,7 +103,7 @@
 
     <script>
         // Configuración de Servidor
-        const API_URL = "https://script.google.com/macros/s/AKfycbx8y-nhLczEkccZ1vkvNdkFSb_BvypIGVg_rQ_zJS6-DUIhqul6bQ94-8fLtlQMBq4-/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxQTDCIAvhn-lYKbJfQjJnqqVHbaBMS09Kd3p6Tgy9egVIldl1fA5Kxvm45dWsYfJ4p/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         
         // URL para formulario de actualización de admin
@@ -131,7 +131,6 @@
             const sesion = JSON.parse(sesionStr);
             const tiempoActual = new Date().getTime();
 
-            // Validación de tiempo de sesión (15 min)
             if (tiempoActual - sesion.timestamp > TIEMPO_EXPIRACION_MS) {
                 cerrarSesion();
             } else {
@@ -255,31 +254,36 @@
             }
         }
 
-        // --- UTILIDADES ---
+        // --- UTILIDADES DE IMAGEN (OPTIMIZACIÓN Y RESPALDO MÓVIL) ---
         function optimizarEnlaceImagen(enlaceOriginal) {
             if (!enlaceOriginal || typeof enlaceOriginal !== 'string') {
                 return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
             }
 
-            // 1. Si ya es un enlace directo de visualización, lo usamos tal cual
-            if (enlaceOriginal.includes('uc?export=view')) return enlaceOriginal;
+            let linkClean = enlaceOriginal.trim();
+            if (linkClean.includes('uc?export=view')) return linkClean;
 
-            // 2. Extraer el ID de cualquier formato de Google Drive
-            let id = "";
-            if (enlaceOriginal.includes('open?id=')) {
-                id = enlaceOriginal.split('open?id=')[1].split('&')[0];
-            } else if (enlaceOriginal.includes('/d/')) {
-                id = enlaceOriginal.split('/d/')[1].split('/')[0];
-            } else if (enlaceOriginal.includes('id=')) {
-                id = enlaceOriginal.split('id=')[1].split('&')[0];
+            // Extraer el ID limpio usando una Expresión Regular precisa
+            let match = linkClean.match(/([-\w]{25,})/);
+            if (match && match[0]) {
+                return `https://drive.google.com/uc?export=view&id=${match[0]}`;
             }
 
-            // 3. Retornar la URL de descarga/visualización directa oficial
-            if (id) {
-                return `https://drive.google.com/uc?export=view&id=${id}`;
-            }
+            return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
+        }
 
-            return 'https://placehold.co/400x300/1e293b/94a3b8?text=Error';
+        // Función de rescate automático para móviles/incógnito (CORS Bypass)
+        function gestionarFalloImagenDrive(imgElement) {
+            let urlActual = imgElement.src;
+            if (urlActual.includes("drive.google.com")) {
+                let match = urlActual.match(/id=([-\w]{25,})/);
+                if (match && match[1]) {
+                    // Si el renderizado directo falla, se conmuta al visor embebido público
+                    imgElement.src = `https://drive.google.com/file/d/${match[1]}/preview`;
+                }
+            } else {
+                imgElement.src = 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
+            }
         }
 
         // --- RENDERIZADO ---
@@ -308,7 +312,11 @@
 
                 tarjeta.innerHTML = `
                     <div class="relative pt-[75%] bg-slate-900 overflow-hidden">
-                        <img src="${urlImagenOptimizada}" alt="${item.Producto || item.PRODUCTO}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">
+                        <img src="${urlImagenOptimizada}" 
+                             alt="${item.Producto || item.PRODUCTO}" 
+                             referrerpolicy="no-referrer"
+                             onerror="gestionarFalloImagenDrive(this)"
+                             class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">
                         <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase">${item.Marca || item.MARCA || 'GENÉRICO'}</span>
                     </div>
                     <div class="p-4 flex flex-col flex-1 justify-between gap-3">
@@ -330,7 +338,6 @@
             const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
             const rawCompatibilidad = item.COMPATIBILIDAD || item.Compatibilidad || item.compatibilidad || "";
 
-            // Botón de Admin Condicional
             let htmlBotonAdmin = "";
             if (esAdmin) {
                 htmlBotonAdmin = `
@@ -380,7 +387,10 @@
 
             document.getElementById('modal-cuerpo').innerHTML = `
                 <div class="relative pt-[65%] bg-slate-900 overflow-hidden rounded-xl mb-4 border border-slate-700">
-                    <img src="${urlImagenOptimizada}" class="absolute inset-0 w-full h-full object-cover">
+                    <img src="${urlImagenOptimizada}" 
+                         referrerpolicy="no-referrer"
+                         onerror="gestionarFalloImagenDrive(this)"
+                         class="absolute inset-0 w-full h-full object-cover">
                 </div>
                 <div class="mb-4">
                     <span class="bg-emerald-950 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase inline-block mb-2">${marca}</span>
