@@ -257,18 +257,20 @@ function optimizarEnlaceImagen(enlaceOriginal) {
         return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
     }
 
-    // Si ya es un enlace de descarga directa, lo aceptamos
-    if (enlaceOriginal.includes('export=view')) return enlaceOriginal;
+    // 1. Si ya es un enlace directo de visualización, lo usamos tal cual
+    if (enlaceOriginal.includes('uc?export=view')) return enlaceOriginal;
 
+    // 2. Extraer el ID de cualquier formato de Google Drive
     let id = "";
-    // Extrae el ID de los formatos comunes de Google Drive
-    if (enlaceOriginal.includes('/d/')) {
+    if (enlaceOriginal.includes('open?id=')) {
+        id = enlaceOriginal.split('open?id=')[1].split('&')[0];
+    } else if (enlaceOriginal.includes('/d/')) {
         id = enlaceOriginal.split('/d/')[1].split('/')[0];
     } else if (enlaceOriginal.includes('id=')) {
         id = enlaceOriginal.split('id=')[1].split('&')[0];
     }
 
-    // Retorna la URL de visualización directa oficial
+    // 3. Retornar la URL de descarga/visualización directa oficial
     if (id) {
         return `https://drive.google.com/uc?export=view&id=${id}`;
     }
