@@ -10,275 +10,146 @@
         .accent-camejo { color: #22b14c; }
         .bg-camejo { background-color: #22b14c; }
         .border-camejo:hover { border-color: #22b14c; }
-        
         .lista-compatibilidad-modal { list-style: none; }
-        .lista-compatibilidad-modal li {
-            position: relative;
-            padding-left: 1.25rem;
-            margin-bottom: 0.25rem;
-        }
-        .lista-compatibilidad-modal li::before {
-            content: "•";
-            color: #22b14c;
-            font-weight: bold;
-            font-size: 1.1rem;
-            position: absolute;
-            left: 0;
-            top: -2px;
-        }
+        .lista-compatibilidad-modal li { position: relative; padding-left: 1.25rem; margin-bottom: 0.25rem; }
+        .lista-compatibilidad-modal li::before { content: "•"; color: #22b14c; font-weight: bold; font-size: 1.1rem; position: absolute; left: 0; top: -2px; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
     <div id="vista-login" class="flex items-center justify-center min-h-screen px-4">
         <div class="bg-slate-800 text-slate-100 p-8 rounded-2xl shadow-2xl max-w-md w-full text-center border border-slate-700">
-            <div class="text-4xl text-emerald-500 mb-3">
-                <i class="fa-solid fa-motorcycle"></i>
-            </div>
+            <div class="text-4xl text-emerald-500 mb-3"><i class="fa-solid fa-motorcycle"></i></div>
             <h1 class="text-2xl font-black text-white tracking-tight uppercase">La Barata del Hogar</h1>
-            <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-6">Catálogo Maestro de Refacciones</p>
-            
-            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo autorizado para desbloquear el buscador visual e identificar compatibilidades.</p>
-            
-            <div class="text-left mb-4">
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico</label>
-                <input type="email" id="input-correo" placeholder="ejemplo@labarata.com" 
-                       class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
-            </div>
-
-            <div id="error-login" class="hidden bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 text-center border border-red-900/50"></div>
-
-            <button id="btn-login" onclick="manejarInicioDeSesion()" 
-                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg shadow-emerald-900/20 cursor-pointer">
-                Acceder al Catálogo
-            </button>
+            <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-6">Catálogo Maestro</p>
+            <input type="email" id="input-correo" placeholder="correo@labarata.com" class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-slate-900 text-white mb-4">
+            <div id="error-login" class="hidden bg-red-950/50 text-red-400 text-xs p-3 rounded-xl mb-4 border border-red-900/50"></div>
+            <button id="btn-login" onclick="manejarInicioDeSesion()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl cursor-pointer">Acceder</button>
         </div>
     </div>
 
     <div id="vista-catalogo" class="hidden min-h-screen flex flex-col">
-        <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 sticky top-0 z-50 shadow-md">
+        <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 sticky top-0 z-50">
             <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
                 <div>
-                    <h2 class="text-lg font-black tracking-tight uppercase">La Barata del Hogar</h2>
-                    <p class="text-xs text-slate-400">Usuario Activo: <span id="nombre-usuario" class="text-emerald-400 font-bold">---</span></p>
+                    <h2 class="text-lg font-black uppercase">La Barata del Hogar</h2>
+                    <p class="text-xs text-slate-400">Usuario: <span id="nombre-usuario" class="text-emerald-400 font-bold">---</span></p>
                 </div>
-
-                <div class="relative w-full md:w-96">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                        <i class="fa-solid fa-magnifying-glass"></i>
-                    </span>
-                    <input type="text" id="buscador" oninput="filtrarProductos()" placeholder="Buscar por SKU, refacción, marca o moto..." 
-                           class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm">
-                </div>
-
-                <button onclick="cerrarSesion()" class="bg-slate-700 hover:bg-red-900 text-white text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer">
-                    <i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
-                </button>
+                <input type="text" id="buscador" oninput="filtrarProductos()" placeholder="Buscar SKU, producto, marca..." class="w-full md:w-96 px-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-sm">
+                <button onclick="cerrarSesion()" class="bg-slate-700 hover:bg-red-900 text-white text-xs px-3 py-2 rounded-xl">Salir</button>
             </div>
         </header>
 
         <div id="cargando-datos" class="flex-1 flex flex-col items-center justify-center p-8">
-            <div class="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent mb-4"></div>
-            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Cargando...</p>
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent"></div>
         </div>
 
         <main id="contenido-catalogo" class="hidden flex-1 max-w-7xl w-full mx-auto p-6">
             <div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
-
-            <div id="sin-resultados" class="hidden text-center py-16">
-                <div class="text-4xl text-slate-600 mb-3">
-                    <i class="fa-solid fa-box-open"></i>
-                </div>
-                <p class="text-base font-semibold text-slate-400">No encontramos refacciones que coincidan con tu búsqueda.</p>
-            </div>
         </main>
     </div>
 
     <div id="modal-detalles" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300" onclick="cerrarModalExterno(event)">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto transform translate-y-4 transition-transform duration-300 relative" id="modal-contenido">
-            <button onclick="alternarModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-900 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-xl z-10">&times;</button>
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto relative" id="modal-contenido">
+            <button onclick="alternarModal()" class="absolute top-4 right-4 text-slate-400 text-xl">&times;</button>
             <div id="modal-cuerpo" class="p-6"></div>
         </div>
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbxyZ804AEC6yNA9UPJttJj5PvEG451jRrf4IiZUYFtWsOyY8v6o1lZRntfPst7XwbiD/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxJraMcyzEUk_jEMEiQFsBAlhK3OHyv_hsHEL-ju4so79pFCoEKn9_0HHSY8oKL2JP6/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
-        const URL_BASE_FORM = "https://docs.google.com/forms/d/e/1DS8iC_xdaHDzWFlyFMyhTBx2vmVMU1ntSuapOVbXFn8/viewform?usp=pp_url&entry.231242934=";
+        const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?usp=pp_url&entry.231242934=";
 
         let inventarioMaestro = [];
-        let usuarioActual = "";
-        let tokenActual = "";
-        let esAdministrador = false;
+        let esAdminGlobal = false;
 
-        window.onload = function() {
-            verificarSesionGuardada();
-        };
+        window.onload = verificarSesionGuardada;
 
         function verificarSesionGuardada() {
-            const sesionStr = localStorage.getItem("sesion_catalogo");
-            if (!sesionStr) {
-                document.getElementById('cargando-datos').classList.add('hidden');
-                return;
-            }
-
-            const sesion = JSON.parse(sesionStr);
-            const tiempoActual = new Date().getTime();
-
-            if (tiempoActual - sesion.timestamp > TIEMPO_EXPIRACION_MS) {
-                cerrarSesion();
-            } else {
-                usuarioActual = sesion.correo;
-                tokenActual = sesion.token;
-                esAdministrador = sesion.esAdmin || false;
+            const sesion = JSON.parse(localStorage.getItem("sesion_catalogo"));
+            if (sesion && (new Date().getTime() - sesion.timestamp < TIEMPO_EXPIRACION_MS)) {
                 document.getElementById('nombre-usuario').innerText = sesion.nombre;
-                
+                esAdminGlobal = sesion.esAdmin || false;
                 document.getElementById('vista-login').classList.add('hidden');
                 document.getElementById('vista-catalogo').classList.remove('hidden');
-                
-                actualizarTimestampSesion();
                 obtenerInventarioDesdeServidor();
             }
         }
 
-        function guardarSesionEnDispositivo(correo, token, nombre, esAdmin) {
-            const tiempoActual = new Date().getTime();
-            localStorage.setItem("sesion_catalogo", JSON.stringify({
-                correo, token, nombre, esAdmin, timestamp: tiempoActual
-            }));
-        }
-
-        function actualizarTimestampSesion() {
-            const sesionStr = localStorage.getItem("sesion_catalogo");
-            if (sesionStr) {
-                const sesion = JSON.parse(sesionStr);
-                sesion.timestamp = new Date().getTime();
-                localStorage.setItem("sesion_catalogo", JSON.stringify(sesion));
-            }
-        }
-
-        function cerrarSesion() {
-            localStorage.removeItem("sesion_catalogo");
-            window.location.reload();
-        }
-
         async function manejarInicioDeSesion() {
-            const correoInput = document.getElementById('input-correo');
-            const errorEl = document.getElementById('error-login');
-            const btnLogin = document.getElementById('btn-login');
-            const correo = correoInput.value.trim();
-            if (!correo) return;
-
-            errorEl.classList.add('hidden');
-            btnLogin.disabled = true;
-            btnLogin.innerText = "Verificando...";
-
+            const correo = document.getElementById('input-correo').value.trim();
+            const btn = document.getElementById('btn-login');
+            btn.disabled = true; btn.innerText = "Verificando...";
+            
             try {
-                const respuesta = await fetch(API_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({ action: 'login', correo: correo })
-                });
-
-                const resultado = await respuesta.json();
-
-                if (resultado.success) {
-                    guardarSesionEnDispositivo(correo, resultado.token, resultado.nombre, resultado.esAdmin);
+                const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'login', correo }) });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem("sesion_catalogo", JSON.stringify({ ...data, timestamp: new Date().getTime() }));
                     window.location.reload();
                 } else {
-                    errorEl.innerText = resultado.message;
-                    errorEl.classList.remove('hidden');
-                    btnLogin.disabled = false;
-                    btnLogin.innerText = "Acceder al Catálogo";
+                    document.getElementById('error-login').innerText = data.message;
+                    document.getElementById('error-login').classList.remove('hidden');
+                    btn.disabled = false; btn.innerText = "Acceder";
                 }
-            } catch (err) {
-                errorEl.innerText = "Error de conexión con el servidor.";
-                errorEl.classList.remove('hidden');
-                btnLogin.disabled = false;
-            }
+            } catch(e) { btn.disabled = false; btn.innerText = "Acceder"; }
         }
 
         async function obtenerInventarioDesdeServidor() {
-            try {
-                const respuesta = await fetch(API_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({ action: 'obtenerInventario', token: tokenActual, correo: usuarioActual })
-                });
-
-                const resultado = await respuesta.json();
-                if (resultado.success) {
-                    inventarioMaestro = resultado.data;
-                    renderizarTarjetasProductos(inventarioMaestro);
-                    document.getElementById('cargando-datos').classList.add('hidden');
-                    document.getElementById('contenido-catalogo').classList.remove('hidden');
-                } else {
-                    cerrarSesion();
-                }
-            } catch (err) {
-                console.error(err);
+            const sesion = JSON.parse(localStorage.getItem("sesion_catalogo"));
+            const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'obtenerInventario', token: sesion.token, correo: sesion.correo }) });
+            const data = await res.json();
+            if (data.success) {
+                inventarioMaestro = data.data;
+                renderizarTarjetasProductos(inventarioMaestro);
+                document.getElementById('cargando-datos').classList.add('hidden');
+                document.getElementById('contenido-catalogo').classList.remove('hidden');
             }
         }
 
-        function optimizarEnlaceImagen(enlaceOriginal) {
-            if (!enlaceOriginal || typeof enlaceOriginal !== 'string' || !enlaceOriginal.startsWith('http')) {
-                return 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
-            }
-            if (enlaceOriginal.includes('drive.google.com')) {
-                let idDrive = enlaceOriginal.includes('id=') ? enlaceOriginal.split('id=')[1].split('&')[0] : enlaceOriginal.split('/file/d/')[1]?.split('/')[0]?.split('?')[0];
-                return idDrive ? `https://drive.google.com/uc?export=view&id=${idDrive}` : enlaceOriginal;
-            }
-            return enlaceOriginal;
-        }
-
-        function renderizarTarjetasProductos(listaProductos) {
+        function renderizarTarjetasProductos(lista) {
             const grid = document.getElementById('grid-productos');
-            const sinResultados = document.getElementById('sin-resultados');
             grid.innerHTML = "";
-            sinResultados.classList.toggle('hidden', listaProductos.length > 0);
-
-            listaProductos.forEach((item) => {
-                const tarjeta = document.createElement('div');
-                tarjeta.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col transition duration-200 group cursor-pointer border-camejo";
-                tarjeta.onclick = () => { actualizarTimestampSesion(); abrirDetalleProducto(item); };
-                const urlImagen = optimizarEnlaceImagen(item.IMAGEN_REFERENCIA || item.Imagen || item.imagen || "");
-
-                tarjeta.innerHTML = `
-                    <div class="relative pt-[75%] bg-slate-900 overflow-hidden">
-                        <img src="${urlImagen}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">
-                        <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase">${item.Marca || item.MARCA || 'GENÉRICO'}</span>
+            lista.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "bg-slate-800 rounded-2xl p-4 border border-slate-700 cursor-pointer hover:border-emerald-500";
+                card.onclick = () => abrirDetalleProducto(item);
+                const img = (item.IMAGEN_REFERENCIA || "").replace('drive.google.com/file/d/', 'drive.google.com/uc?export=view&id=').split('/view')[0];
+                card.innerHTML = `
+                    <div class="h-40 bg-slate-900 rounded-lg mb-3 overflow-hidden">
+                        <img src="${img}" class="w-full h-full object-cover">
                     </div>
-                    <div class="p-4 flex flex-col flex-1">
-                        <span class="text-[11px] font-mono font-bold text-slate-400">SKU: ${item.SKU || item.sku}</span>
-                        <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400">${item.Producto || item.PRODUCTO}</h3>
-                    </div>
+                    <span class="text-xs text-slate-400">SKU: ${item.SKU}</span>
+                    <h3 class="font-bold text-sm">${item.PRODUCTO}</h3>
                 `;
-                grid.appendChild(tarjeta);
+                grid.appendChild(card);
             });
         }
 
         function abrirDetalleProducto(item) {
-            const sku = item.SKU || item.sku || "---";
-            const botonAdmin = esAdministrador ? `<a href="${URL_BASE_FORM}${encodeURIComponent(sku)}" target="_blank" class="mt-4 block w-full bg-blue-600 text-white text-center font-bold py-3 rounded-xl">Actualizar Foto</a>` : "";
-            
-            // ... (Lógica de renderizado de detalles igual a la del código 1)
-            document.getElementById('modal-cuerpo').innerHTML = `...`; 
+            document.getElementById('modal-cuerpo').innerHTML = `
+                <h2 class="text-xl font-bold mb-2">${item.PRODUCTO}</h2>
+                <p class="text-emerald-400 mb-4">SKU: ${item.SKU}</p>
+                <div class="bg-slate-900 p-4 rounded-xl mb-4">
+                    <h4 class="text-xs uppercase text-slate-500 mb-2">Compatibilidad</h4>
+                    <p class="text-sm">${item.COMPATIBILIDAD || "No especificada"}</p>
+                </div>
+                ${esAdminGlobal ? `<a href="${URL_FORM_ADMIN}${item.SKU}" target="_blank" class="block bg-blue-600 text-center py-2 rounded-xl font-bold">Actualizar Datos</a>` : ''}
+            `;
             alternarModal();
         }
 
-        function alternarModal() {
-            const modal = document.getElementById('modal-detalles');
-            modal.classList.toggle('opacity-0');
-            modal.classList.toggle('pointer-events-none');
-        }
-
-        function cerrarModalExterno(e) { if (e.target.id === "modal-detalles") alternarModal(); }
-
+        function alternarModal() { document.getElementById('modal-detalles').classList.toggle('opacity-0'); document.getElementById('modal-detalles').classList.toggle('pointer-events-none'); }
+        function cerrarModalExterno(e) { if (e.target.id === 'modal-detalles') alternarModal(); }
+        function cerrarSesion() { localStorage.removeItem("sesion_catalogo"); window.location.reload(); }
         function filtrarProductos() {
-            const consulta = document.getElementById('buscador').value.toLowerCase();
-            renderizarTarjetasProductos(inventarioMaestro.filter(i => JSON.stringify(i).toLowerCase().includes(consulta)));
+            const val = document.getElementById('buscador').value.toLowerCase();
+            renderizarTarjetasProductos(inventarioMaestro.filter(i => (i.SKU+i.PRODUCTO+i.COMPATIBILIDAD).toLowerCase().includes(val)));
+        }
+        function actualizarTimestampSesion() {
+            const s = JSON.parse(localStorage.getItem("sesion_catalogo"));
+            if(s) { s.timestamp = new Date().getTime(); localStorage.setItem("sesion_catalogo", JSON.stringify(s)); }
         }
     </script>
 </body>
