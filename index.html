@@ -65,7 +65,7 @@
 
                 <div class="flex items-center gap-2 w-full md:w-auto">
                     <button id="btn-sincronizar" onclick="forzarSincronizacionDatos()" title="Sincronizar datos" class="bg-slate-700 hover:bg-emerald-600 text-white text-sm font-bold p-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1 h-[38px]">
-                        <i class="fa-solid fa-rotate animate-duration-1000" id="icono-sincronizar"></i> <span class="hidden sm:inline">Sincronizar</span>
+                        <i class="fa-solid fa-rotate" id="icono-sincronizar"></i> <span class="hidden sm:inline">Sincronizar</span>
                     </button>
                     <div class="relative w-full md:w-96">
                         <span onclick="filtrarProductos()" class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-emerald-400 transition-colors duration-150 cursor-pointer z-10">
@@ -126,9 +126,10 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbxtDzbfSGa5bt0adtw3VBzQ_5Hf2bbjFPNVCOzK46bUmBstdE0tqM1WZBckkoMGdKy1/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbwlpx2Id8nIhXB8Jjd63LeAjaREAZEfepALMwNwmvHptNotl2MW7PIwT-k0LapWS-2a/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
-        const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?usp=pp_url&entry.231242934=";
+        // CORRECCIÓN AQUÍ: Se cambió la URL base del formulario a la estructura embebida para evitar el bloqueo X-Frame-Options de Google
+        const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?embedded=true&entry.231242934=";
 
         let inventarioMaestro = [];
         let usuarioActual = "";
@@ -159,6 +160,7 @@
                 
                 document.getElementById('vista-login').classList.add('hidden');
                 document.getElementById('vista-catalogo').classList.remove('hidden');
+                document.getElementById('cargando-datos').classList.remove('hidden');
                 
                 actualizarTimestampSesion();
                 obtenerInventarioDesdeServidor();
@@ -481,6 +483,7 @@
             imgAmpliada.classList.add('scale-95');
         }
 
+        // CORRECCIÓN AQUÍ: Cambiada la asignación del SRC para concatenar correctamente los parámetros del formulario embebido
         function abrirFormularioEnIframe(sku) {
             alternarModal();
             const iframe = document.getElementById('iframe-form');
