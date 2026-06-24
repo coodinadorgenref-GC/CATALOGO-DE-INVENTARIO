@@ -1,255 +1,488 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>La Barata del Hogar - Catálogo Maestro</title>
-<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<style>
-.accent-camejo { color: #22b14c; }
-.bg-camejo { background-color: #22b14c; }
-.border-camejo:hover { border-color: #22b14c; }
-.lista-compatibilidad-modal { list-style: none; }
-.lista-compatibilidad-modal li {
-position: relative;
-padding-left: 1.25rem;
-margin-bottom: 0.25rem;
-}
-.lista-compatibilidad-modal li::before {
-content: "•";
-color: #22b14c;
-font-weight: bold;
-font-size: 1.1rem;
-position: absolute;
-left: 0;
-top: -2px;
-}
-/* Ocultar barra de desplazamiento por defecto para los filtros horizontales */
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>La Barata del Hogar - Catálogo Maestro</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .accent-camejo { color: #22b14c; }
+    .bg-camejo { background-color: #22b14c; }
+    .border-camejo:hover { border-color: #22b14c; }
+    .lista-compatibilidad-modal { list-style: none; }
+    .lista-compatibilidad-modal li {
+      position: relative;
+      padding-left: 1.25rem;
+      margin-bottom: 0.25rem;
+    }
+    .lista-compatibilidad-modal li::before {
+      content: "•";
+      color: #22b14c;
+      font-weight: bold;
+      font-size: 1.1rem;
+      position: absolute;
+      left: 0;
+      top: -2px;
+    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
-<div id="vista-login" class="flex items-center justify-center min-h-screen px-4">
-<div class="bg-slate-800 text-slate-100 p-8 rounded-2xl shadow-2xl max-w-md w-full text-center border border-slate-700">
-<div class="text-4xl text-emerald-500 mb-3">
-<i class="fa-solid fa-motorcycle"></i>
-</div>
-<h1 class="text-2xl font-black text-white tracking-tight uppercase">La Barata del Hogar</h1>
-<p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-6">Catálogo de Refacciones</p>
-<p class="text-sm text-slate-400 mb-6">Ingresa tu correo autorizado para acceder.</p>
-<div class="text-left mb-4">
-<label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico</label>
-<input type="email" id="input-correo" onkeydown="manejarTecladoLogin(event)" placeholder="ejemplo@gmail.com"
-class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
-</div>
+  <div id="vista-login" class="flex items-center justify-center min-h-screen px-4">
+    <div class="bg-slate-800 text-slate-100 p-8 rounded-2xl shadow-2xl max-w-md w-full text-center border border-slate-700">
+      <div class="text-4xl text-emerald-500 mb-3">
+        <i class="fa-solid fa-motorcycle"></i>
+      </div>
+      <h1 class="text-2xl font-black text-white tracking-tight uppercase">La Barata del Hogar</h1>
+      <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-6">Catálogo de Refacciones</p>
+      <p class="text-sm text-slate-400 mb-6">Ingresa tu correo autorizado para acceder.</p>
+      <div class="text-left mb-4">
+        <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico</label>
+        <input type="email" id="input-correo" onkeydown="manejarTecladoLogin(event)" placeholder="ejemplo@gmail.com"
+          class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+      </div>
 
-<div id="error-login" class="hidden bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 text-center border border-red-900/50"></div>
+      <div id="error-login" class="hidden bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 text-center border border-red-900/50"></div>
 
-<button id="btn-login" onclick="manejarInicioDeSesion()"
-class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg shadow-emerald-900/20 cursor-pointer">
-Acceder al Catálogo
-</button>
-</div>
-</div>
+      <button id="btn-login" onclick="manejarInicioDeSesion()"
+        class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg shadow-emerald-900/20 cursor-pointer">
+        Acceder al Catálogo
+      </button>
+    </div>
+  </div>
 
-<div id="vista-catalogo" class="hidden min-h-screen flex flex-col">
-<header class="bg-slate-800 border-b border-slate-700 px-6 py-4 sticky top-0 z-50 shadow-md">
-<div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-<div>
-<h2 class="text-lg font-black tracking-tight uppercase">La Barata del Hogar</h2>
-<p class="text-xs text-slate-400">Usuario Activo: <span id="nombre-usuario" class="text-emerald-400 font-bold">---</span></p>
-</div>
+  <div id="vista-catalogo" class="hidden min-h-screen flex flex-col">
+    <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 sticky top-0 z-50 shadow-md">
+      <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-black tracking-tight uppercase">La Barata del Hogar</h2>
+          <p class="text-xs text-slate-400">Usuario Activo: <span id="nombre-usuario" class="text-emerald-400 font-bold">---</span></p>
+        </div>
 
-<div class="flex items-center gap-2 w-full md:w-auto">
-<button id="btn-sincronizar" onclick="forzarSincronizacionDatos()" title="Sincronizar datos" class="bg-slate-700 hover:bg-emerald-600 text-white text-sm font-bold p-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1 h-[38px]">
-<i class="fa-solid fa-rotate" id="icono-sincronizar"></i> <span class="hidden sm:inline">Sincronizar</span>
-</button>
-<div class="relative w-full md:w-96">
-<span onclick="filtrarProductos()" class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-emerald-400 transition-colors duration-150 cursor-pointer z-10">
-<i class="fa-solid fa-magnifying-glass"></i>
-</span>
-<input type="text" id="buscador" oninput="evaluarBotonLimpiar(); filtrarProductos();" onkeydown="manejarTecladoBuscador(event)" placeholder="Buscar por SKU, refacción, marca o moto..."
-class="w-full pl-10 pr-10 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm h-[38px]">
-<span id="btn-limpiar" onclick="limpiarBuscador()" class="hidden absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-red-400 transition-colors duration-150 cursor-pointer z-10">
-<i class="fa-solid fa-circle-xmark text-base"></i>
-</span>
-</div>
-</div>
+        <div class="flex items-center gap-2 w-full md:w-auto">
+          <button id="btn-sincronizar" onclick="forzarSincronizacionDatos()" title="Sincronizar datos" class="bg-slate-700 hover:bg-emerald-600 text-white text-sm font-bold p-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1 h-[38px]">
+            <i class="fa-solid fa-rotate" id="icono-sincronizar"></i> <span class="hidden sm:inline">Sincronizar</span>
+          </button>
+          <div class="relative w-full md:w-96">
+            <span onclick="filtrarProductos()" class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-emerald-400 transition-colors duration-150 cursor-pointer z-10">
+              <i class="fa-solid fa-magnifying-glass"></i>
+            </span>
+            <input type="text" id="buscador" oninput="evaluarBotonLimpiar(); filtrarProductos();" onkeydown="manejarTecladoBuscador(event)" placeholder="Buscar por SKU, refacción, marca o moto..."
+              class="w-full pl-10 pr-10 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm h-[38px]">
+            <span id="btn-limpiar" onclick="limpiarBuscador()" class="hidden absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-red-400 transition-colors duration-150 cursor-pointer z-10">
+              <i class="fa-solid fa-circle-xmark text-base"></i>
+            </span>
+          </div>
+        </div>
 
-<button onclick="cerrarSesion()" class="bg-slate-700 hover:bg-red-900 text-white text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer">
-<i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
-</button>
-</div>
-</header>
+        <button onclick="cerrarSesion()" class="bg-slate-700 hover:bg-red-900 text-white text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer">
+          <i class="fa-solid fa-right-from-bracket mr-1"></i> Salir
+        </button>
+      </div>
+    </header>
 
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
-<div id="barra-filtros" class="hidden bg-slate-900/90 border-b border-slate-800/60 px-6 py-2.5 sticky top-[71px] z-40 backdrop-blur-sm">
-<div class="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar" id="contenedor-botones-marcas"></div>
-</div>
---------------------------------------------------------------------------------
+    <div id="barra-filtros" class="hidden bg-slate-900/90 border-b border-slate-800/60 px-6 py-2.5 sticky top-[71px] z-40 backdrop-blur-sm">
+      <div class="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar" id="contenedor-botones-marcas"></div>
+    </div>
 
-<div id="cargando-datos" class="flex-1 flex flex-col items-center justify-center p-8">
-<div class="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent mb-4"></div>
-<p class="text-xs font-bold uppercase tracking-widest text-slate-400">Cargando...</p>
-</div>
+    <div id="cargando-datos" class="flex-1 flex flex-col items-center justify-center p-8">
+      <div class="animate-spin rounded-full h-12 w-12 border-4 border-emerald-500 border-t-transparent mb-4"></div>
+      <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Cargando catálogo...</p>
+    </div>
 
-<main id="contenido-catalogo" class="hidden flex-1 max-w-7xl w-full mx-auto p-6">
-<div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+    <main id="contenido-catalogo" class="hidden flex-1 max-w-7xl w-full mx-auto p-6">
+      <div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
 
-<div id="sin-resultados" class="hidden text-center py-16">
-<div class="text-4xl text-slate-600 mb-3">
-<i class="fa-solid fa-box-open"></i>
-</div>
-<p class="text-base font-semibold text-slate-400">No encontramos refacciones que coincidan con tu búsqueda.</p>
-</div>
-</main>
-</div>
+      <div id="sin-resultados" class="hidden text-center py-16">
+        <div class="text-4xl text-slate-600 mb-3">
+          <i class="fa-solid fa-box-open"></i>
+        </div>
+        <p class="text-base font-semibold text-slate-400">No encontramos refacciones que coincidan con tu búsqueda.</p>
+      </div>
+    </main>
+  </div>
 
-<div id="modal-detalles" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300" onclick="cerrarModalExterno(event)">
-<div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto transform translate-y-4 transition-transform duration-300 relative" id="modal-contenido">
-<button onclick="alternarModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-900 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-xl z-10">×</button>
-<div id="modal-cuerpo" class="p-6"></div>
-</div>
-</div>
+  <div id="modal-detalles" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300" onclick="cerrarModalExterno(event)">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto transform translate-y-4 transition-transform duration-300 relative" id="modal-contenido">
+      <button onclick="alternarModal(false)" class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-900 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-xl z-10">×</button>
+      <div id="modal-cuerpo" class="p-6"></div>
+    </div>
+  </div>
 
-<div id="modal-zoom-imagen" class="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300 select-none cursor-zoom-out" onclick="cerrarZoomImagen()">
-<button onclick="cerrarZoomImagen()" class="absolute top-6 right-6 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer text-2xl z-[70] shadow-xl border border-slate-700">×</button>
-<img id="img-ampliada" src="" alt="Vista ampliada" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl transform scale-95 transition-transform duration-300">
-</div>
+  <div id="modal-zoom-imagen" class="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300 select-none cursor-zoom-out" onclick="cerrarZoomImagen()">
+    <button onclick="cerrarZoomImagen()" class="absolute top-6 right-6 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer text-2xl z-[70] shadow-xl border border-slate-700">×</button>
+    <img id="img-ampliada" src="" alt="Vista ampliada" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl transform scale-95 transition-transform duration-300">
+  </div>
 
-<script>
-const API_URL = "https://script.google.com/macros/s/AKfycbykp01ZOgUtwNUbvRPeJWlBvntk16UJLVOY06mz4rTGQ93pQaUs9bx396Y1zVW5bzU0/exec";
-const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
-const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbyEWWWaxo3UOIwmUNAZQluZ5W_u4Qy7yYl9ws5b9655D93amrVfaocArft-GbLhC84J/exec";
+    const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
+    const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
-let inventarioMaestro = [];
-let usuarioActual = "";
-let tokenActual = "";
-let esAdmin = false;
-let marcaSeleccionada = "TODAS";
+    let inventarioMaestro = [];
+    let usuarioActual = "";
+    let tokenActual = "";
+    let esAdmin = false;
+    let marcaSeleccionada = "TODAS";
 
-window.onload = function() {
-verificarSesionGuardada();
-};
+    window.onload = function() {
+      verificarSesionGuardada();
+    };
 
-function verificarSesionGuardada() {
-const sesionStr = localStorage.getItem("sesion_catalogo");
-if (!sesionStr) {
-document.getElementById('cargando-datos').classList.add('hidden');
-return;
-}
+    function verificarSesionGuardada() {
+      const sesionStr = localStorage.getItem("sesion_catalogo");
+      if (!sesionStr) {
+        document.getElementById('cargando-datos').classList.add('hidden');
+        return;
+      }
 
-const sesion = JSON.parse(sesionStr);
-const tiempoActual = new Date().getTime();
+      const sesion = JSON.parse(sesionStr);
+      const tiempoActual = new Date().getTime();
 
-if (tiempoActual - sesion.timestamp > TIEMPO_EXPIRACION_MS) {
-cerrarSesion();
-} else {
-usuarioActual = sesion.correo;
-tokenActual = sesion.token;
-esAdmin = sesion.esAdmin || false;
-document.getElementById('nombre-usuario').innerText = sesion.nombre;
-document.getElementById('vista-login').classList.add('hidden');
-document.getElementById('vista-catalogo').classList.remove('hidden');
-document.getElementById('cargando-datos').classList.remove('hidden');
-actualizarTimestampSesion();
-obtenerInventarioDesdeServidor();
-}
-}
+      if (tiempoActual - sesion.timestamp > TIEMPO_EXPIRACION_MS) {
+        cerrarSesion();
+      } else {
+        usuarioActual = sesion.correo;
+        tokenActual = sesion.token;
+        esAdmin = sesion.esAdmin || false;
+        document.getElementById('nombre-usuario').innerText = sesion.nombre;
+        document.getElementById('vista-login').classList.add('hidden');
+        document.getElementById('vista-catalogo').classList.remove('hidden');
+        document.getElementById('cargando-datos').classList.remove('hidden');
+        actualizarTimestampSesion();
+        obtenerInventarioDesdeServidor();
+      }
+    }
 
-function generarHtmlContenedorImagen(url) {
-return `<img src="${url}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">`;
-}
+    function manejarTecladoLogin(e) {
+      if (e.key === 'Enter') manejarInicioDeSesion();
+    }
 
-function forzarSincronizacionDatos() {
-actualizarTimestampSesion();
-const icono = document.getElementById('icono-sincronizar');
-if (icono) icono.classList.add('animate-spin');
-document.getElementById('contenido-catalogo').classList.add('hidden');
-document.getElementById('barra-filtros').classList.add('hidden');
-document.getElementById('cargando-datos').classList.remove('hidden');
-obtenerInventarioDesdeServidor().then(() => {
-if (icono) icono.classList.remove('animate-spin');
-const buscador = document.getElementById('buscador');
-if (buscador && buscador.value.trim() !== "") {
-filtrarProductos();
-}
-}).catch(() => {
-if (icono) icono.classList.remove('animate-spin');
-});
-}
+    function manejarTecladoBuscador(e) {
+      if (e.key === 'Enter') filtrarProductos();
+    }
 
-function guardarSesionEnDispositivo(correo, token, nombre, esAdmin) {
-const tiempoActual = new Date().getTime();
-const datosSesion = {
-correo: correo,
-token: token,
-nombre: nombre,
-esAdmin: esAdmin,
-timestamp: tiempoActual
-};
-localStorage.setItem("sesion_catalogo", JSON.stringify(datosSesion));
-}
+    async function manejarInicioDeSesion() {
+      const correoInput = document.getElementById('input-correo');
+      const errorEl = document.getElementById('error-login');
+      const btnLogin = document.getElementById('btn-login');
+      const correo = correoInput.value.trim();
 
-function actualizarTimestampSesion() {
-const sesionStr = localStorage.getItem("sesion_catalogo");
-if (sesionStr) {
-const sesion = JSON.parse(sesionStr);
-sesion.timestamp = new Date().getTime();
-localStorage.setItem("sesion_catalogo", JSON.stringify(sesion));
-}
-}
+      if (!correo) {
+        errorEl.innerText = "Por favor, ingresa tu correo electrónico.";
+        errorEl.className = "bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 text-center border border-red-900/50 block";
+        return;
+      }
 
-function cerrarSesion() {
-localStorage.removeItem("sesion_catalogo");
-location.reload();
-}
+      errorEl.className = "hidden";
+      btnLogin.disabled = true;
+      btnLogin.innerText = "Verificando...";
 
-async function manejarInicioDeSesion() {
-const correoInput = document.getElementById('input-correo');
-const errorEl = document.getElementById('error-login');
-const btnLogin = document.getElementById('btn-login');
-const correo = correoInput.value.trim();
-if (!correo) {
-errorEl.innerText = "Por favor, ingresa tu correo electrónico.";
-errorEl.className = "bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 text-center border border-red-900/50 block";
-return;
-}
+      try {
+        const respuesta = await fetch(API_URL, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'login', correo: correo })
+        });
 
-errorEl.className = "hidden";
-btnLogin.disabled = true;
-btnLogin.innerText = "Verificando...";
+        const resultado = await respuesta.json();
 
-try {
-const respuesta = await fetch(API_URL, {
-method: 'POST',
-mode: 'cors',
-headers: { 'Content-Type': 'text/plain' },
-body: JSON.stringify({ action: 'login', correo: correo })
-});
+        if (resultado.success) {
+          usuarioActual = correo;
+          tokenActual = resultado.token;
+          esAdmin = resultado.esAdmin || false;
+          document.getElementById('nombre-usuario').innerText = resultado.nombre;
+          guardarSesionEnDispositivo(correo, resultado.token, resultado.nombre, esAdmin);
 
-const resultado = await respuesta.json();
+          document.getElementById('vista-login').classList.add('hidden');
+          document.getElementById('vista-catalogo').classList.remove('hidden');
+          document.getElementById('cargando-datos').classList.remove('hidden');
+          await obtenerInventarioDesdeServidor();
+        } else {
+          errorEl.innerText = resultado.message;
+          errorEl.className = "bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 text-center border border-red-900/50 block";
+          btnLogin.disabled = false;
+          btnLogin.innerText = "Acceder al Catálogo";
+        }
+      } catch (err) {
+        errorEl.innerText = "Error de red o servidor no disponible. Intenta de nuevo.";
+        errorEl.className = "bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 text-center border border-red-900/50 block";
+        btnLogin.disabled = false;
+        btnLogin.innerText = "Acceder al Catálogo";
+      }
+    }
 
-if (resultado.success) {
-usuarioActual = correo;
-tokenActual = resultado.token;
-esAdmin = resultado.esAdmin || false;
-document.getElementById('nombre-usuario').innerText = resultado.nombre;
-guardarSesionEnDispositivo(correo, resultado.token, resultado.nombre, esAdmin);
+    async function obtenerInventarioDesdeServidor() {
+      try {
+        const respuesta = await fetch(API_URL, {
+          method: 'POST',
+          mode: 'cors',
+          headers: { 'Content-Type': 'text/plain' },
+          body: JSON.stringify({ action: 'obtenerInventario', token: tokenActual, correo: usuarioActual })
+        });
 
-document.getElementById('vista-login').classList.add('hidden');
-document.getElementById('vista-catalogo').classList.remove('hidden');
-document.getElementById('cargando-datos').classList.remove('hidden');
-await obtenerInventarioDesdeServidor();
-} else {
-errorEl.innerText = resultado.message;
-errorEl.className = "bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 text-center border border-red-900/50 block";
-btnLogin.disabled = false;
-btnLogin.innerText = "Acceder al Catálogo";
-}
-} catch (err) {
-errorEl.
+        const resultado = await respuesta.json();
+
+        if (resultado.success) {
+          inventarioMaestro = resultado.data;
+          generarFiltrosDeMarcas();
+          renderizarProductos(inventarioMaestro);
+          
+          document.getElementById('cargando-datos').classList.add('hidden');
+          document.getElementById('barra-filtros').classList.remove('hidden');
+          document.getElementById('contenido-catalogo').classList.remove('hidden');
+        } else {
+          alert(resultado.message || "Error crítico al cargar el inventario.");
+          cerrarSesion();
+        }
+      } catch (e) {
+        alert("Error crítico al conectar con el servidor de inventarios.");
+        console.error(e);
+      }
+    }
+
+    function generarFiltrosDeMarcas() {
+      const contenedor = document.getElementById('contenedor-botones-marcas');
+      if (!contenedor) return;
+
+      const marcasSet = new Set();
+      inventarioMaestro.forEach(p => {
+        if (p.Marca) marcasSet.add(p.Marca.trim().toUpperCase());
+      });
+
+      const marcasOrdenadas = Array.from(marcasSet).sort();
+      
+      let html = `<button onclick="seleccionarMarcaFiltro('TODAS')" id="btn-marca-TODAS" class="px-4 py-1.5 rounded-full text-xs font-bold transition duration-150 cursor-pointer whitespace-nowrap bg-emerald-600 text-white shadow-md shadow-emerald-900/20">TODAS</button>`;
+      
+      marcasOrdenadas.forEach(marca => {
+        if (!marca) return;
+        html += `<button onclick="seleccionarMarcaFiltro('${marca}')" id="btn-marca-${marca.replace(/\s+/g, '_')}" class="px-4 py-1.5 rounded-full text-xs font-bold transition duration-150 cursor-pointer whitespace-nowrap bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700/50">${marca}</button>`;
+      });
+
+      contenedor.innerHTML = html;
+    }
+
+    function seleccionarMarcaFiltro(marca) {
+      marcaSeleccionada = marca;
+      
+      // Actualizar estilos de los botones
+      const botones = document.getElementById('contenedor-botones-marcas').getElementsByTagName('button');
+      for (let btn of botones) {
+        btn.className = "px-4 py-1.5 rounded-full text-xs font-bold transition duration-150 cursor-pointer whitespace-nowrap bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700/50";
+      }
+
+      const idActivo = marca === 'TODAS' ? 'btn-marca-TODAS' : `btn-marca-${marca.replace(/\s+/g, '_')}`;
+      const btnActivo = document.getElementById(idActivo);
+      if (btnActivo) {
+        btnActivo.className = "px-4 py-1.5 rounded-full text-xs font-bold transition duration-150 cursor-pointer whitespace-nowrap bg-emerald-600 text-white shadow-md shadow-emerald-900/20";
+      }
+
+      filtrarProductos();
+    }
+
+    function renderizarProductos(lista) {
+      const grid = document.getElementById('grid-productos');
+      const sinResultados = document.getElementById('sin-resultados');
+      grid.innerHTML = "";
+
+      if (lista.length === 0) {
+        sinResultados.classList.remove('hidden');
+        return;
+      }
+      sinResultados.classList.add('hidden');
+
+      lista.forEach((prod, index) => {
+        const tarjeta = document.createElement('div');
+        tarjeta.className = "bg-slate-800 border border-slate-700/70 rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition duration-200 flex flex-col group";
+        
+        const tieneFoto = prod.Imagen && prod.Imagen.trim() !== "";
+        const htmlImagen = tieneFoto 
+          ? `<img src="${prod.Imagen}" referrerpolicy="no-referrer" onerror="this.onerror=null; this.src=''; this.parentElement.innerHTML=htmlImagenAlternativa();" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">`
+          : htmlImagenAlternativa();
+
+        tarjeta.innerHTML = `
+          <div class="relative w-full pt-[75%] bg-slate-950 border-b border-slate-700/40 overflow-hidden cursor-pointer" onclick="verDetallesProducto(${index})">
+            ${htmlImagen}
+            <span class="absolute top-3 right-3 bg-slate-900/80 backdrop-blur-sm text-[10px] font-black px-2.5 py-1 rounded-md text-emerald-400 tracking-wider uppercase border border-slate-700/40">${prod.Marca || 'GENÉRICO'}</span>
+          </div>
+          <div class="p-4 flex flex-col flex-1 justify-between gap-3">
+            <div class="cursor-pointer" onclick="verDetallesProducto(${index})">
+              <p class="text-[11px] font-bold text-slate-400 tracking-wide mb-0.5">SKU: ${prod.SKU}</p>
+              <h3 class="text-sm font-bold text-white leading-snug tracking-tight uppercase line-clamp-2 group-hover:text-emerald-400 transition-colors">${prod.Producto}</h3>
+            </div>
+          </div>
+        `;
+        grid.appendChild(tarjeta);
+      });
+    }
+
+    function htmlImagenAlternativa() {
+      return `
+        <div class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 bg-slate-900/50 select-none">
+          <span class="text-4xl font-black tracking-tight text-slate-700/80 uppercase">Sin Foto</span>
+        </div>
+      `;
+    }
+
+    function filtrarProductos() {
+      const busqueda = document.getElementById('buscador').value.toLowerCase().trim();
+      
+      const productosFiltrados = inventarioMaestro.filter(p => {
+        const cumpleMarca = (marcaSeleccionada === "TODAS" || p.Marca.trim().toUpperCase() === marcaSeleccionada);
+        
+        const cumpleBusqueda = !busqueda || 
+          p.SKU.toLowerCase().includes(busqueda) ||
+          p.Producto.toLowerCase().includes(busqueda) ||
+          p.Marca.toLowerCase().includes(busqueda) ||
+          p.Compatibilidad.toLowerCase().includes(busqueda);
+
+        return cumpleMarca && cumpleBusqueda;
+      });
+
+      renderizarProductos(productosFiltrados);
+    }
+
+    function verDetallesProducto(index) {
+      const prod = inventarioMaestro[index];
+      const cuerpo = document.getElementById('modal-cuerpo');
+      
+      const tieneFoto = prod.Imagen && prod.Imagen.trim() !== "";
+      const srcImagen = tieneFoto ? prod.Imagen : "";
+      
+      let bloqueFoto = tieneFoto 
+        ? `<div class="relative w-full pt-[70%] bg-slate-950 rounded-xl overflow-hidden border border-slate-700/60 mb-5 shadow-inner cursor-zoom-in" onclick="abrirZoomImagen('${srcImagen}')">
+             <img src="${srcImagen}" referrerpolicy="no-referrer" class="absolute inset-0 w-full h-full object-cover">
+           </div>`
+        : `<div class="w-full py-12 bg-slate-900 rounded-xl border border-slate-700/40 text-center mb-5 select-none">
+             <span class="text-4xl font-black text-slate-700 uppercase tracking-wider block">Sin Foto</span>
+           </div>`;
+
+      let lineasCompatibilidad = "<p class='text-xs italic text-slate-500'>No se ha capturado información de compatibilidad.</p>";
+      if (prod.Compatibilidad && prod.Compatibilidad.trim() !== "") {
+        lineasCompatibilidad = `<ul class="lista-compatibilidad-modal text-xs font-medium text-slate-300 space-y-1">`;
+        prod.Compatibilidad.split(',').forEach(item => {
+          if (item.trim()) lineasCompatibilidad += `<li>${item.trim().toUpperCase()}</li>`;
+        });
+        lineasCompatibilidad += `</ul>`;
+      }
+
+      cuerpo.innerHTML = `
+        ${bloqueFoto}
+        <div class="mb-4">
+          <span class="inline-block bg-emerald-950 text-emerald-400 text-[10px] font-black px-2.5 py-1 rounded-md tracking-wider uppercase border border-emerald-800/60 mb-2">${prod.Marca || 'GENÉRICO'}</span>
+          <h3 class="text-base font-black text-white leading-tight uppercase tracking-tight">${prod.Producto}</h3>
+          <p class="text-xs font-bold text-slate-400 mt-1">SKU: <span class="text-slate-200 font-mono">${prod.SKU}</span></p>
+        </div>
+        <div class="bg-slate-900/60 rounded-xl p-4 border border-slate-700/30 mb-5">
+          <h4 class="text-[11px] font-black uppercase text-slate-400 tracking-widest mb-2"><i class="fa-solid fa-code-fork mr-1 text-emerald-500"></i> Compatibilidad</h4>
+          ${lineasCompatibilidad}
+        </div>
+        <button onclick="abrirFormularioExterno('${prod.SKU}')" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer text-sm shadow-lg shadow-blue-900/20">
+          <i class="fa-solid fa-pen-to-square"></i> Actualizar Info / Foto
+        </button>
+      `;
+
+      alternarModal(true);
+    }
+
+    /* SOLUCIÓN AL ERROR DE GOOGLE FORMS: ABRE EN PESTAÑA NUEVA PARA EVITAR EL RECHAZO DE CONEXIÓN */
+    function abrirFormularioExterno(sku) {
+      const urlCompleta = URL_FORM_ADMIN + encodeURIComponent(sku);
+      window.open(urlCompleta, '_blank');
+    }
+
+    function alternarModal(abrir) {
+      const modal = document.getElementById('modal-detalles');
+      const contenido = document.getElementById('modal-contenido');
+      if (abrir) {
+        modal.classList.remove('opacity-0', 'pointer-events-none');
+        contenido.classList.remove('translate-y-4');
+      } else {
+        modal.classList.add('opacity-0', 'pointer-events-none');
+        contenido.classList.add('translate-y-4');
+      }
+    }
+
+    function cerrarModalExterno(e) {
+      if (e.target.id === 'modal-detalles') alternarModal(false);
+    }
+
+    function abrirZoomImagen(src) {
+      const zoom = document.getElementById('modal-zoom-imagen');
+      const img = document.getElementById('img-ampliada');
+      img.src = src;
+      zoom.classList.remove('opacity-0', 'pointer-events-none');
+      img.classList.remove('scale-95');
+    }
+
+    function cerrarZoomImagen() {
+      const zoom = document.getElementById('modal-zoom-imagen');
+      const img = document.getElementById('img-ampliada');
+      zoom.classList.add('opacity-0', 'pointer-events-none');
+      img.classList.add('scale-95');
+    }
+
+    function evaluarBotonLimpiar() {
+      const busqueda = document.getElementById('buscador').value;
+      const btnLimpiar = document.getElementById('btn-limpiar');
+      if (busqueda.length > 0) {
+        btnLimpiar.classList.remove('hidden');
+      } else {
+        btnLimpiar.classList.add('hidden');
+      }
+    }
+
+    function limpiarBuscador() {
+      document.getElementById('buscador').value = "";
+      evaluarBotonLimpiar();
+      filtrarProductos();
+    }
+
+    function forzarSincronizacionDatos() {
+      actualizarTimestampSesion();
+      const icono = document.getElementById('icono-sincronizar');
+      if (icono) icono.classList.add('animate-spin');
+      document.getElementById('contenido-catalogo').classList.add('hidden');
+      document.getElementById('barra-filtros').classList.add('hidden');
+      document.getElementById('cargando-datos').classList.remove('hidden');
+      
+      obtenerInventarioDesdeServidor().then(() => {
+        if (icono) icono.classList.remove('animate-spin');
+        filtrarProductos();
+      }).catch(() => {
+        if (icono) icono.classList.remove('animate-spin');
+      });
+    }
+
+    function guardarSesionEnDispositivo(correo, token, nombre, esAdmin) {
+      const tiempoActual = new Date().getTime();
+      const datosSesion = {
+        correo: correo,
+        token: token,
+        nombre: nombre,
+        esAdmin: esAdmin,
+        timestamp: tiempoActual
+      };
+      localStorage.setItem("sesion_catalogo", JSON.stringify(datosSesion));
+    }
+
+    function actualizarTimestampSesion() {
+      const sesionStr = localStorage.getItem("sesion_catalogo");
+      if (sesionStr) {
+        const sesion = JSON.parse(sesionStr);
+        sesion.timestamp = new Date().getTime();
+        localStorage.setItem("sesion_catalogo", JSON.stringify(sesion));
+      }
+    }
+
+    function cerrarSesion() {
+      localStorage.removeItem("sesion_catalogo");
+      location.reload();
+    }
+  </script>
+</body>
+</html>
