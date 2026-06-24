@@ -38,7 +38,7 @@
             <h1 class="text-2xl font-black text-white tracking-tight uppercase">La Barata del Hogar</h1>
             <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-6">Catálogo de Refacciones</p>
             
-            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo autorizado para acceder.</p>
+            <p class="text-sm text-slate-400 mb-6">Ingresa tu correo authorized para acceder.</p>
             
             <div class="text-left mb-4">
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico</label>
@@ -67,12 +67,18 @@
                     <button id="btn-sincronizar" onclick="forzarSincronizacionDatos()" title="Sincronizar datos" class="bg-slate-700 hover:bg-emerald-600 text-white text-sm font-bold p-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1 h-[38px]">
                         <i class="fa-solid fa-rotate" id="icono-sincronizar"></i> <span class="hidden sm:inline">Sincronizar</span>
                     </button>
-                    <div class="relative w-full md:w-96">
+                    
+                    <div class="relative w-full md:w-96 flex items-center">
                         <span onclick="filtrarProductos()" class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-emerald-400 transition-colors duration-150 cursor-pointer z-10">
                             <i class="fa-solid fa-magnifying-glass"></i>
                         </span>
-                        <input type="text" id="buscador" oninput="filtrarProductos()" onkeydown="manejarTecladoBuscador(event)" placeholder="Buscar por SKU, refacción, marca o moto..." 
-                               class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm h-[38px]">
+                        
+                        <input type="text" id="buscador" oninput="alEscribirBuscador()" onkeydown="manejarTecladoBuscador(event)" placeholder="Buscar por SKU, refacción, marca o moto..." 
+                               class="w-full pl-10 pr-10 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm h-[38px]">
+                        
+                        <span id="clear-search" onclick="limpiarBuscador()" class="absolute right-3 text-slate-400 hover:text-white cursor-pointer hidden text-lg font-bold select-none z-10 h-full flex items-center">
+                            &times;
+                        </span>
                     </div>
                 </div>
 
@@ -112,7 +118,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbw-EJXIog8jqin_GN26Q6yNuQftSuTQ_I2xctA1KEqV3uNX36CHBYymd_WqczS84ZEy/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxVOs8p6YnbZ1n_WA9LvSA0bL4_29nX1UDiY0Ymmu7IOBhwIJNlfwNVSg-kSu_lu8-9/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         
         // CORREGIDO: Se restauró el enlace limpio del formulario para su apertura directa
@@ -439,6 +445,29 @@
 
         function cerrarModalExterno(e) {
             if (e.target.id === "modal-detalles") alternarModal();
+        }
+
+        // FUNCIONES NUEVAS AGREGADAS AL FINAL PARA CONTROLAR LA "X" EN EL BUSCADOR
+        function alEscribirBuscador() {
+            const buscador = document.getElementById('buscador');
+            const btnLimpiar = document.getElementById('clear-search');
+            
+            if (buscador.value.trim().length > 0) {
+                btnLimpiar.classList.remove('hidden');
+            } else {
+                btnLimpiar.classList.add('hidden');
+            }
+            filtrarProductos();
+        }
+
+        function limpiarBuscador() {
+            const buscador = document.getElementById('buscador');
+            const btnLimpiar = document.getElementById('clear-search');
+            
+            buscador.value = '';
+            btnLimpiar.classList.add('hidden');
+            buscador.focus();
+            filtrarProductos();
         }
 
         function filtrarProductos() {
