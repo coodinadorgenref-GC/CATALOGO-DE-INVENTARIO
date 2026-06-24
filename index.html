@@ -111,25 +111,12 @@
         <img id="img-ampliada" src="" alt="Vista ampliada" class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl transform scale-95 transition-transform duration-300">
     </div>
 
-    <div id="modal-formulario-admin" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300" onclick="cerrarModalFormularioExterno(event)">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-xl w-full h-[85vh] flex flex-col transform translate-y-4 transition-transform duration-300 relative">
-            <div class="px-6 py-4 border-b border-slate-700 flex justify-between items-center bg-slate-800/50 rounded-t-2xl">
-                <h3 class="text-sm font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
-                    <i class="fa-solid fa-pen-to-square"></i> Panel de Actualización
-                </h3>
-                <button onclick="alternarModalFormulario()" class="text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-900 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-xl">×</button>
-            </div>
-            <div class="flex-1 bg-slate-900 relative">
-                <iframe id="iframe-form" src="" class="w-full h-full border-0 rounded-b-2xl"></iframe>
-            </div>
-        </div>
-    </div>
-
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbwlpx2Id8nIhXB8Jjd63LeAjaREAZEfepALMwNwmvHptNotl2MW7PIwT-k0LapWS-2a/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbyR_aRMdI-mUwC8RX7qLyHhbM0-LYxtBtREMrHPvTCMcMsfr78L8dsCtvM2eXQEV0A/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
-        // CORRECCIÓN AQUÍ: Se cambió la URL base del formulario a la estructura embebida para evitar el bloqueo X-Frame-Options de Google
-        const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?embedded=true&entry.231242934=";
+        
+        // CORREGIDO: Se restauró el enlace limpio del formulario para su apertura directa
+        const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
         let inventarioMaestro = [];
         let usuarioActual = "";
@@ -372,13 +359,15 @@
             const htmlImagenModal = `<img src="${urlImagenOptimizada}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" onclick="abrirZoomImagen('${urlImagenOptimizada}')" class="absolute inset-0 w-full h-full object-cover cursor-zoom-in group-hover:scale-105 transition duration-300">`;
             const rawCompatibilidad = item.Compatibilidad || "";
 
+            // CORREGIDO: El botón ahora es un enlace directo <a> con target="_blank"
             let htmlBotonAdmin = "";
             if (esAdmin) {
+                const urlCompletaForm = `${URL_FORM_ADMIN}${encodeURIComponent(sku)}`;
                 htmlBotonAdmin = `
-                <button onclick="abrirFormularioEnIframe('${sku}')" 
+                <a href="${urlCompletaForm}" target="_blank" rel="noopener noreferrer" onclick="alternarModal()"
                    class="mt-6 block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg cursor-pointer">
                      <i class="fa-solid fa-pen-to-square mr-2"></i> Actualizar Info / Foto
-                </button>`;
+                </a>`;
             }
 
             let bloquesHTML = "";
@@ -481,28 +470,6 @@
             modalZoom.classList.add('opacity-0', 'pointer-events-none');
             imgAmpliada.classList.remove('scale-100');
             imgAmpliada.classList.add('scale-95');
-        }
-
-        // CORRECCIÓN AQUÍ: Cambiada la asignación del SRC para concatenar correctamente los parámetros del formulario embebido
-        function abrirFormularioEnIframe(sku) {
-            alternarModal();
-            const iframe = document.getElementById('iframe-form');
-            iframe.src = `${URL_FORM_ADMIN}${encodeURIComponent(sku)}`;
-            alternarModalFormulario();
-        }
-
-        function alternarModalFormulario() {
-            const modalForm = document.getElementById('modal-formulario-admin');
-            if (modalForm.classList.contains('opacity-0')) {
-                modalForm.classList.remove('opacity-0', 'pointer-events-none');
-            } else {
-                modalForm.classList.add('opacity-0', 'pointer-events-none');
-                document.getElementById('iframe-form').src = "";
-            }
-        }
-
-        function cerrarModalFormularioExterno(e) {
-            if (e.target.id === "modal-formulario-admin") alternarModalFormulario();
         }
     </script>
 </body>
