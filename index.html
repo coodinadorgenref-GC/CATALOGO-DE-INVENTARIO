@@ -11,19 +11,79 @@
         .bg-camejo { background-color: #22b14c; }
         .border-camejo:hover { border-color: #22b14c; }
         
-        .lista-compatibilidad-modal { list-style: none; }
+        /* Estilos del Dropdown de Marcas */
+        .dropdown-marcas {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #1e293b;
+            min-width: 220px;
+            max-height: 350px;
+            overflow-y: auto;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.5);
+            z-index: 1000;
+            border-radius: 12px;
+            margin-top: 6px;
+            border: 1px solid #334155;
+        }
+        .dropdown-content a {
+            color: #cbd5e1;
+            padding: 10px 16px;
+            text-decoration: none;
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .dropdown-content a:hover {
+            background-color: #059669;
+            color: white;
+        }
+        .dropdown-content .active {
+            background-color: #059669;
+            color: white;
+        }
+        .dropdown-content.show {
+            display: block;
+        }
+
+        /* Estilo de Compatibilidad tipo Imagen solicitada */
+        .compatibilidad-container {
+            background-color: #151f32;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #1e293b;
+        }
+        .compatibilidad-marca {
+            color: #22b14c;
+            font-size: 13px;
+            text-transform: uppercase;
+            font-weight: 800;
+            margin: 0 0 10px 0;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #23324d;
+            padding-bottom: 6px;
+        }
+        .lista-compatibilidad-modal { list-style: none; padding: 0; margin: 0; }
         .lista-compatibilidad-modal li {
             position: relative;
             padding-left: 1.25rem;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.35rem;
+            color: #cbd5e1;
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1.4;
         }
         .lista-compatibilidad-modal li::before {
             content: "•";
             color: #22b14c;
             font-weight: bold;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             position: absolute;
-            left: 0;
+            left: 2px;
             top: -2px;
         }
     </style>
@@ -67,11 +127,20 @@
                     <button id="btn-sincronizar" onclick="forzarSincronizacionDatos()" title="Sincronizar datos" class="bg-slate-700 hover:bg-emerald-600 text-white text-sm font-bold p-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1 h-[38px]">
                         <i class="fa-solid fa-rotate" id="icono-sincronizar"></i> <span class="hidden sm:inline">Sincronizar</span>
                     </button>
-                    <div class="relative w-full md:w-96">
+
+                    <div class="dropdown-marcas">
+                        <button id="btn-dropdown-marcas" onclick="alternarDropdownMarcas(event)" class="bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white text-sm font-bold p-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-2 h-[38px]">
+                            <i class="fa-solid fa-motorcycle text-emerald-400"></i> <span id="texto-marca-seleccionada">Marca: TODAS</span> <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                        </button>
+                        <div id="lista-marcas-dropdown" class="dropdown-content no-scrollbar">
+                            </div>
+                    </div>
+
+                    <div class="relative w-full md:w-80">
                         <span onclick="filtrarProductos()" class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-emerald-400 transition-colors duration-150 cursor-pointer z-10">
                             <i class="fa-solid fa-magnifying-glass"></i>
                         </span>
-                        <input type="text" id="buscador" oninput="filtrarProductos()" onkeydown="manejarTecladoBuscador(event)" placeholder="Buscar por SKU, refacción, marca o moto..." 
+                        <input type="text" id="buscador" oninput="filtrarProductos()" onkeydown="manejarTecladoBuscador(event)" placeholder="Buscar por SKU, refacción..." 
                                class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm h-[38px]">
                     </div>
                 </div>
@@ -112,19 +181,24 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyN5Uj2dGhgNHRLQaqxJwbg3MAdTTpJrBhx11NQJ80rwMSSrrw98014mQGfFEct6cpE/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbyXMsJzq6rUXnAu9sEf00G4k68I_nhH7dPh4iWcmPhVyTh2zrhXsKWOocSsTVQzW_Om/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
-        
-        // CORREGIDO: Se restauró el enlace limpio del formulario para su apertura directa
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
         let inventarioMaestro = [];
         let usuarioActual = "";
         let tokenActual = "";
         let esAdmin = false;
+        let marcaSeleccionadaActual = "TODAS"; // Estado global para controlar el filtro desplegable
 
         window.onload = function() {
             verificarSesionGuardada();
+            
+            // Cerrar el menú dropdown si se hace clic en cualquier otra parte de la pantalla
+            document.addEventListener('click', function() {
+                const dropdown = document.getElementById('lista-marcas-dropdown');
+                if(dropdown) dropdown.classList.remove('show');
+            });
         };
 
         function verificarSesionGuardada() {
@@ -168,10 +242,7 @@
             
             obtenerInventarioDesdeServidor().then(() => {
                 if (icono) icono.classList.remove('animate-spin');
-                const buscador = document.getElementById('buscador');
-                if (buscador && buscador.value.trim() !== "") {
-                    filtrarProductos();
-                }
+                filtrarProductos();
             }).catch(() => {
                 if (icono) icono.classList.remove('animate-spin');
             });
@@ -275,7 +346,11 @@
 
                 if (resultado.success) {
                     inventarioMaestro = resultado.data;
-                    renderizarTarjetasProductos(inventarioMaestro);
+                    
+                    // Inicializar el Menú Desplegable con las Marcas de la BD
+                    construirDropdownMarcas();
+                    
+                    filtrarProductos();
                     
                     document.getElementById('cargando-datos').classList.add('hidden');
                     document.getElementById('contenido-catalogo').classList.remove('hidden');
@@ -286,6 +361,50 @@
             } catch (err) {
                 alert("Error crítico al cargar el inventario.");
             }
+        }
+
+        /* NUEVO: Genera las opciones del botón desplegable analizando el inventario */
+        function construirDropdownMarcas() {
+            const contenedor = document.getElementById('lista-marcas-dropdown');
+            if (!contenedor) return;
+
+            // Extraer marcas únicas
+            const marcasSet = new Set();
+            inventarioMaestro.forEach(item => {
+                if (item.Marca && item.Marca.trim() !== "") {
+                    marcasSet.add(item.Marca.trim().toUpperCase());
+                }
+            });
+
+            const marcasOrdenadas = Array.from(marcasSet).sort();
+            
+            let htmlDropdown = `<a href="#" onclick="seleccionarMarcaDropdown(event, 'TODAS')" class="item-marca-option ${marcaSeleccionadaActual === 'TODAS' ? 'active' : ''}">TODAS</a>`;
+            
+            marcasOrdenadas.forEach(marca => {
+                htmlDropdown += `<a href="#" onclick="seleccionarMarcaDropdown(event, '${marca}')" class="item-marca-option ${marcaSeleccionadaActual === marca ? 'active' : ''}">${marca}</a>`;
+            });
+
+            contenedor.innerHTML = htmlDropdown;
+        }
+
+        function alternarDropdownMarcas(e) {
+            e.stopPropagation(); // Evita que se cierre por el event listener global de window
+            document.getElementById('lista-marcas-dropdown').classList.toggle('show');
+        }
+
+        function seleccionarMarcaDropdown(e, marca) {
+            e.preventDefault();
+            marcaSeleccionadaActual = marca;
+            
+            // Actualizar la etiqueta visual del botón principal
+            document.getElementById('texto-marca-seleccionada').innerText = `Marca: ${marca}`;
+            
+            // Refrescar estilos activos de la lista
+            document.querySelectorAll('.item-marca-option').forEach(el => el.classList.remove('active'));
+            e.target.classList.add('active');
+            
+            // Aplicar filtros combinados (Buscador + Dropdown)
+            filtrarProductos();
         }
 
         function optimizarEnlaceImagen(enlaceOriginal) {
@@ -359,7 +478,6 @@
             const htmlImagenModal = `<img src="${urlImagenOptimizada}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" onclick="abrirZoomImagen('${urlImagenOptimizada}')" class="absolute inset-0 w-full h-full object-cover cursor-zoom-in group-hover:scale-105 transition duration-300">`;
             const rawCompatibilidad = item.Compatibilidad || "";
 
-            // CORREGIDO: El botón ahora es un enlace directo <a> con target="_blank"
             let htmlBotonAdmin = "";
             if (esAdmin) {
                 const urlCompletaForm = `${URL_FORM_ADMIN}${encodeURIComponent(sku)}`;
@@ -370,6 +488,7 @@
                 </a>`;
             }
 
+            /* ACTUALIZADO: Formato estructurado idéntico a la imagen provista */
             let bloquesHTML = "";
             if (rawCompatibilidad && rawCompatibilidad.trim() !== "") {
                 const lineas = rawCompatibilidad.split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 0);
@@ -379,11 +498,11 @@
                 function cerrarBloque() {
                     if (modelosDeMarca.length > 0) {
                         bloquesHTML += `
-                            <div class="mb-4 last:mb-0">
-                                <div class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider border-b border-slate-700/60 pb-1 mb-2">
+                            <div class="compatibilidad-container mb-4 last:mb-0">
+                                <div class="compatibilidad-marca">
                                     ${marcaActual || 'MODELOS'}
                                 </div>
-                                <ul class="lista-compatibilidad-modal text-xs text-slate-300 font-medium space-y-1">
+                                <ul class="lista-compatibilidad-modal">
                                     ${modelosDeMarca.map(m => `<li>${m}</li>`).join('')}
                                 </ul>
                             </div>
@@ -404,7 +523,7 @@
                 });
                 cerrarBloque();
             } else {
-                bloquesHTML = `<p class="text-xs text-slate-500 italic py-2">No se ha capturado información de compatibilidad.</p>`;
+                bloquesHTML = `<div class="compatibilidad-container"><p class="text-xs text-slate-500 italic py-1 text-center">No se ha capturado información de compatibilidad.</p></div>`;
             }
 
             document.getElementById('modal-cuerpo').innerHTML = `
@@ -419,7 +538,7 @@
                     <h2 class="text-lg font-bold text-white leading-snug">${titulo}</h2>
                     <span class="text-xs font-mono text-slate-400 block mt-1">SKU: ${sku}</span>
                 </div>
-                <div class="bg-slate-900 rounded-xl p-4 border border-slate-700/50">${bloquesHTML}</div>
+                <div class="space-y-3">${bloquesHTML}</div>
                 ${htmlBotonAdmin}
             `;
             alternarModal();
@@ -441,13 +560,25 @@
             if (e.target.id === "modal-detalles") alternarModal();
         }
 
+        /* ACTUALIZADO: Filtrado combinado inteligente (Buscador por texto + Filtro de Marca de la Lista Desplegable) */
         function filtrarProductos() {
             actualizarTimestampSesion();
             const consulta = document.getElementById('buscador').value.toLowerCase().trim();
+            
             const filtrados = inventarioMaestro.filter(item => {
+                // 1. Validar el filtro de la Lista Desplegable de Marcas
+                if (marcaSeleccionadaActual !== "TODAS") {
+                    const marcaItem = (item.Marca || '').toLowerCase().trim();
+                    if (marcaItem !== marcaSeleccionadaActual.toLowerCase().trim()) {
+                        return false; 
+                    }
+                }
+                
+                // 2. Validar los términos ingresados en el Buscador de texto
                 const s = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
                 return s.includes(consulta);
             });
+            
             renderizarTarjetasProductos(filtrados);
         }
 
