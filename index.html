@@ -118,7 +118,7 @@
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbyEWWWaxo3UOIwmUNAZQluZ5W_u4Qy7yYl9ws5b9655D93amrVfaocArft-GbLhC84J/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbyno2SOSGUFYBNE2F9S3zr6ltx4LtEhJjGmHu1Vq8QuGjf6GNoMCXKbH8ua-Q9UeNGl/exec";
     const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
     const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -269,7 +269,6 @@
     function seleccionarMarcaFiltro(marca) {
       marcaSeleccionada = marca;
       
-      // Actualizar estilos de los botones
       const botones = document.getElementById('contenedor-botones-marcas').getElementsByTagName('button');
       for (let btn of botones) {
         btn.className = "px-4 py-1.5 rounded-full text-xs font-bold transition duration-150 cursor-pointer whitespace-nowrap bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700/50";
@@ -389,7 +388,6 @@
       alternarModal(true);
     }
 
-    /* SOLUCIÓN AL ERROR DE GOOGLE FORMS: ABRE EN PESTAÑA NUEVA PARA EVITAR EL RECHAZO DE CONEXIÓN */
     function abrirFormularioExterno(sku) {
       const urlCompleta = URL_FORM_ADMIN + encodeURIComponent(sku);
       window.open(urlCompleta, '_blank');
@@ -440,22 +438,6 @@
       document.getElementById('buscador').value = "";
       evaluarBotonLimpiar();
       filtrarProductos();
-    }
-
-    function forzarSincronizacionDatos() {
-      actualizarTimestampSesion();
-      const icono = document.getElementById('icono-sincronizar');
-      if (icono) icono.classList.add('animate-spin');
-      document.getElementById('contenido-catalogo').classList.add('hidden');
-      document.getElementById('barra-filtros').classList.add('hidden');
-      document.getElementById('cargando-datos').classList.remove('hidden');
-      
-      obtenerInventarioDesdeServidor().then(() => {
-        if (icono) icono.classList.remove('animate-spin');
-        filtrarProductos();
-      }).catch(() => {
-        if (icono) icono.classList.remove('animate-spin');
-      });
     }
 
     function guardarSesionEnDispositivo(correo, token, nombre, esAdmin) {
