@@ -42,7 +42,7 @@
             
             <div class="text-left mb-4">
                 <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico</label>
-                <input type="email" id="input-correo" placeholder="ejemplo@gmail.com" 
+                <input type="email" id="input-correo" onkeydown="manejarTecladoLogin(event)" placeholder="ejemplo@gmail.com" 
                        class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
             </div>
 
@@ -126,7 +126,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbw-TgQxEgE7vwLO6gb2HF339aljQ8lm3PCxbRgdgiEOxkUZdBSls3NwLbDxE9JOPQ6C/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxtDzbfSGa5bt0adtw3VBzQ_5Hf2bbjFPNVCOzK46bUmBstdE0tqM1WZBckkoMGdKy1/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?usp=pp_url&entry.231242934=";
 
@@ -267,6 +267,12 @@
             }
         }
 
+        function manejarTecladoLogin(e) {
+            if (e.key === "Enter") {
+                manejarInicioDeSesion();
+            }
+        }
+
         async function obtenerInventarioDesdeServidor() {
             try {
                 const respuesta = await fetch(API_URL, {
@@ -299,7 +305,6 @@
             }
             let linkClean = enlaceOriginal.trim();
             
-            // Si ya contiene la estructura de miniatura de Drive o de perfiles, pasa directo
             if (linkClean.includes('drive.google.com/thumbnail') || linkClean.includes('googleusercontent.com')) {
                 return linkClean;
             }
