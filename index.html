@@ -124,24 +124,26 @@
                 </div>
 
                 <div class="flex items-center gap-2 w-full md:w-auto">
-                    <button id="btn-sincronizar" onclick="forzarSincronizacionDatos()" title="Sincronizar datos" class="bg-slate-700 hover:bg-emerald-600 text-white text-sm font-bold p-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1 h-[38px]">
-                        <i class="fa-solid fa-rotate" id="icono-sincronizar"></i> <span class="hidden sm:inline">Sincronizar</span>
+                    <button id="btn-sincronizar" onclick="forzarSincronizacionDatos()" title="Actualizar datos" class="bg-slate-700 hover:bg-emerald-600 text-white text-sm font-bold p-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1 h-[38px]">
+                        <i class="fa-solid fa-rotate" id="icono-sincronizar"></i> <span class="hidden sm:inline">Actualizar</span>
                     </button>
 
                     <div class="dropdown-marcas">
                         <button id="btn-dropdown-marcas" onclick="alternarDropdownMarcas(event)" class="bg-slate-700 hover:bg-slate-600 border border-slate-600 text-white text-sm font-bold p-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-2 h-[38px]">
                             <i class="fa-solid fa-motorcycle text-emerald-400"></i> <span id="texto-marca-seleccionada">Marca: TODAS</span> <i class="fa-solid fa-chevron-down text-[10px]"></i>
                         </button>
-                        <div id="lista-marcas-dropdown" class="dropdown-content no-scrollbar">
-                            </div>
+                        <div id="lista-marcas-dropdown" class="dropdown-content no-scrollbar"></div>
                     </div>
 
                     <div class="relative w-full md:w-80">
                         <span onclick="filtrarProductos()" class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-emerald-400 transition-colors duration-150 cursor-pointer z-10">
                             <i class="fa-solid fa-magnifying-glass"></i>
                         </span>
-                        <input type="text" id="buscador" oninput="filtrarProductos()" onkeydown="manejarTecladoBuscador(event)" placeholder="Buscar por SKU, refacción..." 
-                               class="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm h-[38px]">
+                        <input type="text" id="buscador" oninput="ejecutarBusquedaCombinada()" onkeydown="manejarTecladoBuscador(event)" placeholder="Buscar por SKU, refacción..." 
+                               class="w-full pl-10 pr-10 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm h-[38px]">
+                        <span id="btn-limpiar-buscador" onclick="limpiarBuscadorTexto()" class="hidden absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-red-400 transition-colors duration-150 cursor-pointer z-10 text-base">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                        </span>
                     </div>
                 </div>
 
@@ -181,7 +183,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyXMsJzq6rUXnAu9sEf00G4k68I_nhH7dPh4iWcmPhVyTh2zrhXsKWOocSsTVQzW_Om/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxNeUnKj7-rkVqv2mqN2tCc4iZ0QPBCS8SnMcZVT8-zZGSmBqDfATT50qPUsKGX_H7l/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -189,12 +191,11 @@
         let usuarioActual = "";
         let tokenActual = "";
         let esAdmin = false;
-        let marcaSeleccionadaActual = "TODAS"; // Estado global para controlar el filtro desplegable
+        let marcaSeleccionadaActual = "TODAS"; 
 
         window.onload = function() {
             verificarSesionGuardada();
             
-            // Cerrar el menú dropdown si se hace clic en cualquier otra parte de la pantalla
             document.addEventListener('click', function() {
                 const dropdown = document.getElementById('lista-marcas-dropdown');
                 if(dropdown) dropdown.classList.remove('show');
@@ -347,9 +348,7 @@
                 if (resultado.success) {
                     inventarioMaestro = resultado.data;
                     
-                    // Inicializar el Menú Desplegable con las Marcas de la BD
                     construirDropdownMarcas();
-                    
                     filtrarProductos();
                     
                     document.getElementById('cargando-datos').classList.add('hidden');
@@ -363,15 +362,19 @@
             }
         }
 
-        /* NUEVO: Genera las opciones del botón desplegable analizando el inventario */
+        /* ACTUALIZADO: Construye las marcas filtrándolas dinámicamente con lo escrito en el buscador */
         function construirDropdownMarcas() {
             const contenedor = document.getElementById('lista-marcas-dropdown');
             if (!contenedor) return;
 
-            // Extraer marcas únicas
+            const consulta = document.getElementById('buscador').value.toLowerCase().trim();
+
+            // Extraer marcas únicas cuyos productos coincidan con los términos del buscador
             const marcasSet = new Set();
             inventarioMaestro.forEach(item => {
-                if (item.Marca && item.Marca.trim() !== "") {
+                const coincideTexto = !consulta || (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase().includes(consulta);
+                
+                if (coincideTexto && item.Marca && item.Marca.trim() !== "") {
                     marcasSet.add(item.Marca.trim().toUpperCase());
                 }
             });
@@ -388,7 +391,7 @@
         }
 
         function alternarDropdownMarcas(e) {
-            e.stopPropagation(); // Evita que se cierre por el event listener global de window
+            e.stopPropagation(); 
             document.getElementById('lista-marcas-dropdown').classList.toggle('show');
         }
 
@@ -396,14 +399,11 @@
             e.preventDefault();
             marcaSeleccionadaActual = marca;
             
-            // Actualizar la etiqueta visual del botón principal
             document.getElementById('texto-marca-seleccionada').innerText = `Marca: ${marca}`;
             
-            // Refrescar estilos activos de la lista
             document.querySelectorAll('.item-marca-option').forEach(el => el.classList.remove('active'));
             e.target.classList.add('active');
             
-            // Aplicar filtros combinados (Buscador + Dropdown)
             filtrarProductos();
         }
 
@@ -488,7 +488,6 @@
                 </a>`;
             }
 
-            /* ACTUALIZADO: Formato estructurado idéntico a la imagen provista */
             let bloquesHTML = "";
             if (rawCompatibilidad && rawCompatibilidad.trim() !== "") {
                 const lineas = rawCompatibilidad.split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 0);
@@ -560,13 +559,38 @@
             if (e.target.id === "modal-detalles") alternarModal();
         }
 
-        /* ACTUALIZADO: Filtrado combinado inteligente (Buscador por texto + Filtro de Marca de la Lista Desplegable) */
+        /* NUEVA: Controla el flujo cuando escribes en la barra para refrescar también las marcas */
+        function ejecutarBusquedaCombinada() {
+            const buscador = document.getElementById('buscador');
+            const btnLimpiar = document.getElementById('btn-limpiar-buscador');
+            
+            // Mostrar u ocultar la 'X' según tenga texto
+            if (buscador.value.length > 0) {
+                btnLimpiar.classList.remove('hidden');
+            } else {
+                btnLimpiar.classList.add('hidden');
+            }
+            
+            construirDropdownMarcas(); // Filtra marcas interactivamente
+            filtrarProductos();        // Filtra productos en tarjetas
+        }
+
+        /* NUEVA: Borra el texto de búsqueda y reajusta la interfaz limpia */
+        function limpiarBuscadorTexto() {
+            const buscador = document.getElementById('buscador');
+            buscador.value = "";
+            document.getElementById('btn-limpiar-buscador').classList.add('hidden');
+            buscador.focus();
+            
+            construirDropdownMarcas();
+            filtrarProductos();
+        }
+
         function filtrarProductos() {
             actualizarTimestampSesion();
             const consulta = document.getElementById('buscador').value.toLowerCase().trim();
             
             const filtrados = inventarioMaestro.filter(item => {
-                // 1. Validar el filtro de la Lista Desplegable de Marcas
                 if (marcaSeleccionadaActual !== "TODAS") {
                     const marcaItem = (item.Marca || '').toLowerCase().trim();
                     if (marcaItem !== marcaSeleccionadaActual.toLowerCase().trim()) {
@@ -574,7 +598,6 @@
                     }
                 }
                 
-                // 2. Validar los términos ingresados en el Buscador de texto
                 const s = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
                 return s.includes(consulta);
             });
