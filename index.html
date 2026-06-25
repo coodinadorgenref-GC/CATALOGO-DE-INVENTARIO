@@ -858,13 +858,13 @@ function guardarCompatibilidad(sku) {
     const nuevoTexto = document.getElementById('edit-compat').value;
     const btn = document.getElementById('btn-edicion');
     
+    // Cambiamos el texto para que el usuario sepa que está trabajando
     btn.innerText = "Guardando...";
     btn.disabled = true;
 
-    // Usamos fetch en lugar de google.script.run
     fetch(API_URL, {
         method: 'POST',
-        mode: 'no-cors', // Necesario para evitar bloqueos de seguridad
+        mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
             action: 'actualizarCompatibilidad', 
@@ -875,11 +875,13 @@ function guardarCompatibilidad(sku) {
         })
     })
     .then(() => {
-        alert("¡Solicitud enviada! Los cambios se verán reflejados al recargar.");
-        location.reload();
+        // En lugar de alert, simplemente recargamos la página
+        // Esto hará que el usuario vea sus cambios reflejados al abrir de nuevo
+        location.reload(); 
     })
     .catch(err => {
-        alert("Error de conexión: " + err);
+        console.error("Error:", err);
+        alert("Hubo un problema al guardar. Por favor, intenta de nuevo.");
         btn.innerText = "Guardar Cambios";
         btn.disabled = false;
     });
