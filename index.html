@@ -242,7 +242,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzewQY-dBJEDKGJeWjNDdwpni7CH2qpq7ccq2RrXI4NjnVQQEVQUwNDhpYRX-drtIY7/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbzsT-dm_cCUiIp5odTduHofQFf7KulMy62Pu4AVYZA-ySHEKcU2UkWskz2-1Q4CgurD/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -438,6 +438,7 @@
 
             const marcasSet = new Set();
             inventarioMaestro.forEach(item => {
+                // Actualizado: Incluye Pr_Numero_Parte en la búsqueda si es admin
                 const busquedaBase = String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '');
                 const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '')) : busquedaBase;
                 const coincideTexto = !consulta || busquedaAdmin.toLowerCase().includes(consulta);
@@ -691,6 +692,7 @@
                     }
                 }
                 
+                // Actualizado: Incluye Pr_Numero_Parte en el filtro si es admin
                 const busquedaBase = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
                 const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '').toLowerCase()) : busquedaBase;
                 
@@ -707,6 +709,7 @@
             const rawImagen = item.Imagen || "";
             const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
             
+            // Lógica actualizada: visualización del Pr_Numero_Parte para Admin
             let htmlInfoAdmin = "";
             if (esAdmin && item.Pr_Numero_Parte && item.Pr_Numero_Parte !== "") {
                 htmlInfoAdmin = `<p class="text-xs font-mono text-emerald-400 font-bold bg-emerald-950/30 p-2 rounded-lg border border-emerald-900/50 mb-3">
@@ -742,6 +745,22 @@
                         </div>
                     </div>
                 `;
+            } else {
+                htmlInventariosModal = `
+                    <div class="mt-4 p-3 text-center bg-slate-900/30 rounded-xl border border-slate-700/40 mb-4">
+                        <p class="text-xs italic text-slate-500">Sin existencias en agencias</p>
+                    </div>
+                `;
+            }
+
+            let htmlBotonAdmin = "";
+            if (esAdmin) {
+                const urlCompletaForm = `${URL_FORM_ADMIN}${encodeURIComponent(sku)}`;
+                htmlBotonAdmin = `
+                <a href="${urlCompletaForm}" target="_blank" rel="noopener noreferrer" onclick="alternarModal()"
+                   class="mt-6 block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg cursor-pointer text-xs uppercase tracking-wider">
+                     <i class="fa-solid fa-pen-to-square mr-2"></i> Actualizar Info / Foto
+                </a>`;
             }
 
             let bloquesHTML = "";
@@ -755,7 +774,7 @@
                     if (modelosDeMarca.length > 0) {
                         contador++;
                         bloquesHTML += `
-                            <div class="compatibilidad-container mb-4">
+                            <div class="compatibilidad-container mb-4 last:mb-0">
                                 <div class="compatibilidad-marca" onclick="alternarCompatibilidad(${contador})">
                                     ${marcaActual || 'MODELOS'}
                                     <i id="icono-compat-${contador}" class="fa-solid fa-chevron-down text-[10px]"></i>
@@ -787,18 +806,32 @@
             document.getElementById('modal-cuerpo').innerHTML = `
                 <div class="relative pt-[65%] bg-slate-900 overflow-hidden rounded-xl mb-4 border border-slate-700 group">
                     ${htmlImagenModal}
+                    <div class="absolute bottom-2 right-2 bg-black/60 backdrop-blur-xs text-slate-300 text-[10px] font-bold py-1 px-2 rounded-md pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> Clic para ampliar
+                    </div>
                 </div>
                 <div class="mb-4">
+                    <span class="bg-emerald-950 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase inline-block mb-2">${marca}</span>
                     <h2 class="text-lg font-bold text-white leading-snug">${titulo}</h2>
                     <span class="text-xs font-mono text-slate-400 block mt-1">SKU: ${sku}</span>
                     ${htmlInfoAdmin}
                 </div>
+                
                 ${htmlInventariosModal}
+                
                 <div class="space-y-3">
                     <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1"><i class="fa-solid fa-wrench mr-1.5"></i> Compatibilidad:</p>
                     <div id="contenedor-compatibilidad">${bloquesHTML}</div>
                 </div>
-                ${esAdmin ? `<button id="btn-edicion" onclick="habilitarEdicion('${sku}', \`${rawCompatibilidad.replace(/'/g, "\\'")}\`)" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl mt-4 text-xs uppercase"><i class="fa-solid fa-pen-to-square mr-2"></i> Editar Compatibilidad</button>` : ""}
+                
+                ${esAdmin ? `
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        ${htmlBotonAdmin.replace('mt-6', '')}
+                        <button id="btn-edicion" onclick="habilitarEdicion('${sku}', \`${rawCompatibilidad.replace(/'/g, "\\'")}\`)" class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg cursor-pointer text-xs uppercase tracking-wider flex items-center justify-center">
+                            <i class="fa-solid fa-pen-to-square mr-2"></i> Editar Texto
+                        </button>
+                    </div>
+                ` : ""}
             `;
             alternarModal();
         }
@@ -816,6 +849,8 @@
             contenedor.innerHTML = `<textarea id="edit-compat" class="w-full h-40 bg-slate-900 border border-slate-700 p-3 text-xs text-white rounded-xl">${contenidoActual}</textarea>`;
             const btn = document.getElementById('btn-edicion');
             btn.innerHTML = "Guardar Cambios";
+            btn.classList.remove('bg-slate-600', 'hover:bg-slate-700');
+            btn.classList.add('bg-emerald-600', 'hover:bg-emerald-700');
             btn.onclick = () => guardarCompatibilidad(sku);
         }
 
