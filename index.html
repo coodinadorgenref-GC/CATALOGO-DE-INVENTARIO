@@ -242,7 +242,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyxhqjhWv5aN131Yy2jndBVpxdN_B25PXRXQMBnuLy-NiEqLO5SwzdxswWDJ0MHN2Fm/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbzjgij1tmlBPDnudadS2zvhpRZ4NbRZJLFcomnMPAYuA2UE_e_dNTuklsyPPsVCAoo/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -854,23 +854,32 @@
             btn.onclick = () => guardarCompatibilidad(sku);
         }
 
-function actualizarCompatibilidad(token, correo, sku, nuevaCompatibilidad) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName("Inventario");
-  var data = sheet.getDataRange().getValues();
-  
-  for (var i = 1; i < data.length; i++) {
-    if (String(data[i][0]).trim() === String(sku).trim()) {
-      sheet.getRange(i + 1, 4).setValue(nuevaCompatibilidad);
-      // Registrar en bitácora
-      registrarEnBitacora(correo, token, "EDICIÓN", "Actualizó compatibilidad SKU: " + sku);
-      
-      return { success: true }; // <--- IMPORTANTE: Esto le avisa al HTML que terminó
-    }
-  }
-  return { success: false, message: "SKU no encontrado" };
-}
+function guardarCompatibilidad(sku) {
+    const nuevoTexto = document.getElementById('edit-compat').value;
+    const btn = document.getElementById('btn-edicion');
+    
+    btn.innerText = "Guardando...";
+    btn.disabled = true;
 
+    // Aquí llamamos a la función del servidor
+    google.script.run
+        .withSuccessHandler(function(res) {
+            if (res.success) {
+                alert("¡Guardado exitoso!");
+                location.reload(); // Recarga para asegurar que todo se refresque
+            } else {
+                alert("Error del servidor: " + res.message);
+                btn.innerText = "Guardar Cambios";
+                btn.disabled = false;
+            }
+        })
+        .withFailureHandler(function(err) {
+            alert("Error crítico de conexión: " + err);
+            btn.innerText = "Guardar Cambios";
+            btn.disabled = false;
+        })
+        .actualizarCompatibilidad(tokenActual, usuarioActual, sku, nuevoTexto);
+}
         function alternarModal() {
             const modal = document.getElementById('modal-detalles');
             const contenido = document.getElementById('modal-contenido');
