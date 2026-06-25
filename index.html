@@ -50,6 +50,32 @@
             display: block;
         }
 
+        /* Estilo de Paginación Interactiva */
+        .paginacion-btn {
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: bold;
+            background-color: #0f172a;
+            border: 1px solid #334155;
+            color: #cbd5e1;
+            border-radius: 8px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .paginacion-btn:hover:not(:disabled) {
+            background-color: #334155;
+            color: white;
+        }
+        .paginacion-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .paginacion-btn.activa {
+            background-color: #059669;
+            border-color: #059669;
+            color: white;
+        }
+
         /* Estilo de Compatibilidad tipo Imagen solicitada */
         .compatibilidad-container {
             background-color: #151f32;
@@ -87,19 +113,6 @@
             top: -2px;
         }
 
-        /* Ajustes adicionales para scroll de inventarios de sucursal */
-        .lista-sucursales-scroll {
-            max-height: 120px;
-            overflow-y: auto;
-        }
-        .lista-sucursales-scroll::-webkit-scrollbar {
-            width: 4px;
-        }
-        .lista-sucursales-scroll::-webkit-scrollbar-thumb {
-            background: #475569;
-            border-radius: 4px;
-        }
-        
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -195,7 +208,7 @@
             </aside>
 
             <main id="contenido-catalogo" class="flex-1 flex flex-col gap-4">
-                <div id="paginacion-superior" class="flex justify-center items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5"></div>
+                <div id="paginacion-superior" class="flex justify-center items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 overflow-x-auto gap-2"></div>
 
                 <div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
 
@@ -206,7 +219,7 @@
                     <p class="text-base font-semibold text-slate-400">No encontramos refacciones que coincidan con tu búsqueda.</p>
                 </div>
 
-                <div id="paginacion-inferior" class="flex justify-center items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5"></div>
+                <div id="paginacion-inferior" class="flex justify-center items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 overflow-x-auto gap-2"></div>
             </main>
         </div>
     </div>
@@ -224,7 +237,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbxnBfP5a1i4ERSZsPiA_fymzuMFUbnl28216Lm7Drkf11z5HsifQHYHJdyL_goFBbGt/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbyW0kia3kT91XWrKiSjryJLw_n0kQe6j68CGIVKyFVG5ouDN1I0xLHA5I-tyXWfZzXE/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -237,7 +250,7 @@
         let criterioOrdenacionActual = "AZ";
 
         let paginaActual = 1;
-        const tarjetasPorPagina = 10;
+        const tarjetasPorPagina = 9;
 
         window.onload = function() {
             verificarSesionGuardada();
@@ -508,39 +521,16 @@
 
                 const inventarios = item.Existencias || item.Inventarios || [];
 
-                let htmlInventarios = "";
-                if (inventarios.length > 0) {
-                    htmlInventarios = `
-                        <div class="mt-2 pt-2 border-t border-slate-700/60">
-                            <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-1">📍 Disponibilidad:</p>
-                            <div class="lista-sucursales-scroll flex flex-col gap-1 pr-1">
-                                ${inventarios.map(inv => `
-                                    <div class="flex justify-between items-center text-[11px] bg-slate-900/40 p-1.5 rounded-lg border border-slate-700/40">
-                                        <span class="text-slate-300 font-medium truncate max-w-[130px]">${inv.sucursal}</span>
-                                        <span class="font-mono bg-emerald-950 text-emerald-400 px-1.5 py-0.5 rounded-md font-bold text-[10px]">${inv.cantidad} pzas</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    htmlInventarios = `
-                        <div class="mt-2 pt-2 border-t border-slate-700/60 text-center py-1 bg-slate-900/20 rounded-lg">
-                            <p class="text-[11px] italic text-slate-500">Sin existencias en sucursales</p>
-                        </div>
-                    `;
-                }
-
                 let htmlSeccionWhatsApp = "";
                 if (!esAdmin && inventarios.length > 0) {
                     htmlSeccionWhatsApp = `
                         <div class="mt-3 pt-2 border-t border-slate-700 flex flex-col gap-1.5" onclick="event.stopPropagation();">
-                            <label class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Cotizar con:</label>
-                            <select id="select-wh-${item.SKU}" class="w-full p-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-[11px] focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer">
-                                ${inventarios.map(inv => `<option value="${inv.telefono || inv.whatsapp || ''}">${inv.sucursal}</option>`).join('')}
+                            <label class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Seleccionar Agencia:</label>
+                            <select id="select-wh-${item.SKU}" class="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-[11px] focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer">
+                                ${inventarios.map(inv => `<option value="${inv.telefono || inv.whatsapp || ''}">${inv.sucursal} (${inv.cantidad} pzas)</option>`).join('')}
                             </select>
                             <button onclick="enviarMensajeCotizacion('${item.SKU}', '${item.Producto?.replace(/'/g, "\\'")}')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1.5 px-3 rounded-xl transition duration-150 text-xs flex items-center justify-center gap-1.5 shadow-md shadow-green-950/20 cursor-pointer">
-                                <i class="fa-brands fa-whatsapp text-sm"></i> Enviar Cotización
+                                <i class="fa-brands fa-whatsapp text-sm"></i> Solicitar Cotización
                             </button>
                         </div>
                     `;
@@ -556,7 +546,6 @@
                             <div class="p-4 flex flex-col gap-1">
                                 <span class="text-[11px] font-mono font-bold text-slate-400 tracking-wide block">SKU: ${item.SKU || '---'}</span>
                                 <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition duration-150">${item.Producto || 'Sin Nombre'}</h3>
-                                ${htmlInventarios}
                             </div>
                         </div>
                         <div class="p-4 pt-0">
@@ -581,7 +570,7 @@
             
             const numeroWhatsapp = selectEl.value;
             if (!numeroWhatsapp || numeroWhatsapp.trim() === "") {
-                alert("Esta sucursal no tiene asignado un número de WhatsApp en la pestaña Agencias.");
+                alert("Esta sucursal no tiene asignado un número de WhatsApp.");
                 return;
             }
 
@@ -591,7 +580,17 @@
             window.open(urlFinal, '_blank');
         }
 
-        // DISEÑO COMPACTO Y EXACTO BASADO EN LA CAPTURA DE FOTO DE REFERENCIA
+        function enviarMensajeCotizacionModal(sku, descripcion, numeroWhatsapp) {
+            if (!numeroWhatsapp || numeroWhatsapp.trim() === "") {
+                alert("Esta sucursal no tiene asignado un número de WhatsApp.");
+                return;
+            }
+            const plantilla = `Hola, me interesa cotizar la siguiente refacción:\n\n*SKU:* ${sku}\n*Descripción:* ${descripcion}\n\n¿Tienen disponibilidad para entrega o envío? Quedo atento.`;
+            const urlFinal = `https://api.whatsapp.com/send?phone=${encodeURIComponent(numeroWhatsapp)}&text=${encodeURIComponent(plantilla)}`;
+            window.open(urlFinal, '_blank');
+        }
+
+        // REQUERIMIENTO 1: PAGINACIÓN COMPLETA E INTERACTIVA CON NÚMEROS Y CLICS DIRECTOS
         function construirControlesVisualesPaginacion(totalElementos) {
             const contenedorSuperior = document.getElementById('paginacion-superior');
             const contenedorInferior = document.getElementById('paginacion-inferior');
@@ -600,44 +599,66 @@
 
             if (totalElementos === 0) {
                 const vacio = `<span class="text-slate-500 font-bold text-xs uppercase">Sin registros</span>`;
-                contenedorSuperior.innerHTML = vacio;
+                contenedorSuperior.innerHTML = vácio;
                 contenedorInferior.innerHTML = vacio;
                 return;
             }
 
-            const crearEstructuraControles = () => {
-                return `
-                <div class="flex items-center gap-1.5 select-none text-slate-200">
-                    <button onclick="cambiarPagina(1)" ${paginaActual === 1 ? 'disabled' : ''} 
-                            class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-700 font-bold text-xs transition enabled:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
-                        «
-                    </button>
-                    
-                    <button onclick="cambiarPagina(${paginaActual - 1})" ${paginaActual === 1 ? 'disabled' : ''} 
-                            class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-700 font-bold text-xs transition enabled:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
-                        ‹
-                    </button>
-                    
-                    <div class="bg-slate-900 border border-slate-700 px-4 h-8 flex items-center rounded-lg text-xs font-bold tracking-wide">
-                        Página ${paginaActual} de ${totalPaginas} <span class="text-emerald-400 ml-1.5">(${totalElementos} Refacciones)</span>
-                    </div>
-                    
-                    <button onclick="cambiarPagina(${paginaActual + 1})" ${paginaActual >= totalPaginas ? 'disabled' : ''} 
-                            class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-700 font-bold text-xs transition enabled:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
-                        ›
-                    </button>
-                    
-                    <button onclick="cambiarPagina(${totalPaginas})" ${paginaActual >= totalPaginas ? 'disabled' : ''} 
-                            class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-700 font-bold text-xs transition enabled:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
-                        »
-                    </button>
-                </div>
-                `;
+            const generarBloqueControles = () => {
+                const fragmento = document.createElement('div');
+                fragmento.className = "flex items-center gap-1.5 flex-wrap";
+
+                // Botón Primera
+                const btnPrimera = document.createElement('button');
+                btnPrimera.className = "paginacion-btn";
+                btnPrimera.innerText = "Primera";
+                btnPrimera.disabled = paginaActual === 1;
+                btnPrimera.onclick = () => cambiarPagina(1);
+                fragmento.appendChild(btnPrimera);
+
+                // Botón Anterior
+                const btnAnterior = document.createElement('button');
+                btnAnterior.className = "paginacion-btn";
+                btnAnterior.innerText = "Anterior";
+                btnAnterior.disabled = paginaActual === 1;
+                btnAnterior.onclick = () => cambiarPagina(paginaActual - 1);
+                fragmento.appendChild(btnAnterior);
+
+                // Páginas Numéricas Interactivas
+                let inicioRango = Math.max(1, paginaActual - 2);
+                let finRango = Math.min(totalPaginas, paginaActual + 2);
+
+                for (let i = inicioRango; i <= finRango; i++) {
+                    const btnNum = document.createElement('button');
+                    btnNum.className = `paginacion-btn ${paginaActual === i ? 'activa' : ''}`;
+                    btnNum.innerText = i;
+                    btnNum.onclick = () => cambiarPagina(i);
+                    fragmento.appendChild(btnNum);
+                }
+
+                // Botón Siguiente
+                const btnSiguiente = document.createElement('button');
+                btnSiguiente.className = "paginacion-btn";
+                btnSiguiente.innerText = "Siguiente";
+                btnSiguiente.disabled = paginaActual >= totalPaginas;
+                btnSiguiente.onclick = () => cambiarPagina(paginaActual + 1);
+                fragmento.appendChild(btnSiguiente);
+
+                // Botón Última
+                const btnUltima = document.createElement('button');
+                btnUltima.className = "paginacion-btn";
+                btnUltima.innerText = "Última";
+                btnUltima.disabled = paginaActual >= totalPaginas;
+                btnUltima.onclick = () => cambiarPagina(totalPaginas);
+                fragmento.appendChild(btnUltima);
+
+                return fragmento;
             };
 
-            const htmlFinal = crearEstructuraControles();
-            contenedorSuperior.innerHTML = htmlFinal;
-            contenedorInferior.innerHTML = htmlFinal;
+            contenedorSuperior.innerHTML = "";
+            contenedorInferior.innerHTML = "";
+            contenedorSuperior.appendChild(generarBloqueControles());
+            contenedorInferior.appendChild(generarBloqueControles());
         }
 
         function cambiarPagina(nuevaPagina) {
@@ -692,6 +713,7 @@
             renderizarTarjetasProductos(filtrados);
         }
 
+        // REQUERIMIENTO 4: DETALLE INTERNO COMPLETO (AGENCIA, CANTIDAD, BOTÓN WHATSAPP)
         function abrirDetalleProducto(item) {
             const sku = item.SKU || "---";
             const titulo = item.Producto || "Sin Nombre";
@@ -708,12 +730,20 @@
             if (inventarios.length > 0) {
                 htmlInventariosModal = `
                     <div class="mt-4 p-4 bg-slate-900/60 rounded-xl border border-slate-700/50 mb-4">
-                        <p class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-layer-group mr-1.5"></i> Stock Disponible por Sucursal:</p>
-                        <div class="max-h-[160px] overflow-y-auto flex flex-col gap-1.5 pr-1">
+                        <p class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-layer-group mr-1.5"></i> Agencias y Disponibilidad:</p>
+                        <div class="max-h-[220px] overflow-y-auto flex flex-col gap-2 pr-1">
                             ${inventarios.map(inv => `
-                                <div class="flex justify-between items-center text-xs bg-slate-900 p-2 rounded-lg border border-slate-700/40">
-                                    <span class="text-slate-300 font-semibold">${inv.sucursal}</span>
-                                    <span class="font-mono bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded-md font-bold">${inv.cantidad} pzas</span>
+                                <div class="flex flex-col gap-2 bg-slate-900 p-3 rounded-lg border border-slate-700/40">
+                                    <div class="flex justify-between items-center text-xs">
+                                        <span class="text-slate-300 font-bold"><i class="fa-solid fa-location-dot text-emerald-500 mr-1"></i> ${inv.sucursal}</span>
+                                        <span class="font-mono bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded-md font-bold">${inv.cantidad} disponibles</span>
+                                    </div>
+                                    ${!esAdmin ? `
+                                    <button onclick="enviarMensajeCotizacionModal('${sku}', '${titulo.replace(/'/g, "\\'")}', '${inv.telefono || inv.whatsapp || ''}')" 
+                                            class="w-full mt-1 bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-lg transition duration-150 text-[11px] flex items-center justify-center gap-1 shadow-xs cursor-pointer">
+                                        <i class="fa-brands fa-whatsapp"></i> Solicitar Cotización
+                                    </button>
+                                    ` : ''}
                                 </div>
                             `).join('')}
                         </div>
@@ -722,7 +752,7 @@
             } else {
                 htmlInventariosModal = `
                     <div class="mt-4 p-3 text-center bg-slate-900/30 rounded-xl border border-slate-700/40 mb-4">
-                        <p class="text-xs italic text-slate-500">Sin existencias en sucursales físicas</p>
+                        <p class="text-xs italic text-slate-500">Sin existencias en agencias</p>
                     </div>
                 `;
             }
