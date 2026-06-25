@@ -86,6 +86,32 @@
             left: 2px;
             top: -2px;
         }
+
+        /* Estilos Personalizados para Controles de Paginación */
+        .paginacion-btn {
+            background-color: #1e293b;
+            color: #cbd5e1;
+            border: 1px solid #334155;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .paginacion-btn:hover:not(:disabled) {
+            background-color: #334155;
+            color: white;
+        }
+        .paginacion-btn.activa {
+            background-color: #22b14c;
+            color: white;
+            border-color: #22b14c;
+        }
+        .paginacion-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
@@ -159,13 +185,35 @@
         </div>
 
         <main id="contenido-catalogo" class="hidden flex-1 max-w-7xl w-full mx-auto p-6">
-            <div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+            <div class="flex flex-col md:flex-row gap-6">
+                <aside class="w-full md:w-64 shrink-0 bg-slate-800 border border-slate-700 p-5 rounded-2xl h-fit sticky top-[90px] z-30">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-arrow-down-a-z"></i> Ordenar Descripción
+                    </h3>
+                    <div class="flex flex-col gap-2">
+                        <button id="btn-orden-az" onclick="establecerOrdenacion('A-Z')" class="w-full text-left bg-emerald-600 font-bold text-white text-sm py-2 px-4 rounded-xl transition cursor-pointer flex items-center justify-between">
+                            <span>Alfabético (A-Z)</span> <i class="fa-solid fa-check check-orden"></i>
+                        </button>
+                        <button id="btn-orden-za" onclick="establecerOrdenacion('Z-A')" class="w-full text-left bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold text-sm py-2 px-4 rounded-xl transition cursor-pointer flex items-center justify-between">
+                            <span>Alfabético (Z-A)</span> <i class="fa-solid fa-check check-orden hidden"></i>
+                        </button>
+                    </div>
+                </aside>
 
-            <div id="sin-resultados" class="hidden text-center py-16">
-                <div class="text-4xl text-slate-600 mb-3">
-                    <i class="fa-solid fa-box-open"></i>
+                <div class="flex-1 flex flex-col gap-4">
+                    <div id="paginacion-superior" class="flex items-center justify-center gap-1 flex-wrap py-2"></div>
+
+                    <div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+                    <div id="sin-resultados" class="hidden text-center py-16">
+                        <div class="text-4xl text-slate-600 mb-3">
+                            <i class="fa-solid fa-box-open"></i>
+                        </div>
+                        <p class="text-base font-semibold text-slate-400">No encontramos refacciones que coincidan con tu búsqueda.</p>
+                    </div>
+
+                    <div id="paginacion-inferior" class="flex items-center justify-center gap-1 flex-wrap py-2 mt-4"></div>
                 </div>
-                <p class="text-base font-semibold text-slate-400">No encontramos refacciones que coincidan con tu búsqueda.</p>
             </div>
         </main>
     </div>
@@ -192,6 +240,12 @@
         let tokenActual = "";
         let esAdmin = false;
         let marcaSeleccionadaActual = "TODAS"; 
+
+        // VARIABLES DE CONTROL ADICIONADAS PARA PAGINACIÓN Y ORDENACIÓN
+        let paginaActual = 1;
+        const tarjetasPorPagina = 10;
+        let productosFiltradosGlobal = [];
+        let criterioOrdenacionActual = "A-Z";
 
         window.onload = function() {
             verificarSesionGuardada();
@@ -366,14 +420,12 @@
             }
         }
 
-        /* ACTUALIZADO: Construye las marcas filtrándolas dinámicamente con lo escrito en el buscador */
         function construirDropdownMarcas() {
             const contenedor = document.getElementById('lista-marcas-dropdown');
             if (!contenedor) return;
 
             const consulta = document.getElementById('buscador').value.toLowerCase().trim();
 
-            // Extraer marcas únicas cuyos productos coincidan con los términos del buscador
             const marcasSet = new Set();
             inventarioMaestro.forEach(item => {
                 const coincideTexto = !consulta || (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase().includes(consulta);
@@ -432,18 +484,53 @@
             imgElement.src = 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
         }
 
-        function renderizarTarjetasProductos(listaProductos) {
+        // FUNCIÓN NUEVA ADICIONAL PARA ENLAZAR LA ASIDE DE ORDENACIÓN IZQUIERDA
+        function establecerOrdenacion(criterio) {
+            criterioOrdenacionActual = criterion = criterio;
+            paginaActual = 1;
+
+            const btnAZ = document.getElementById('btn-orden-az');
+            const btnZA = document.getElementById('btn-orden-za');
+
+            if (criterio === 'A-Z') {
+                btnAZ.className = "w-full text-left bg-emerald-600 font-bold text-white text-sm py-2 px-4 rounded-xl transition cursor-pointer flex items-center justify-between";
+                btnAZ.querySelector('.check-orden').classList.remove('hidden');
+                btnZA.className = "w-full text-left bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold text-sm py-2 px-4 rounded-xl transition cursor-pointer flex items-center justify-between";
+                btnZA.querySelector('.check-orden').classList.add('hidden');
+            } else {
+                btnZA.className = "w-full text-left bg-emerald-600 font-bold text-white text-sm py-2 px-4 rounded-xl transition cursor-pointer flex items-center justify-between";
+                btnZA.querySelector('.check-orden').classList.remove('hidden');
+                btnAZ.className = "w-full text-left bg-slate-700 hover:bg-slate-600 text-slate-200 font-semibold text-sm py-2 px-4 rounded-xl transition cursor-pointer flex items-center justify-between";
+                btnAZ.querySelector('.check-orden').classList.add('hidden');
+            }
+
+            ejecutarOrdenacionYRenderizado();
+        }
+
+        // FUNCIÓN NUEVA ADICIONAL QUE MANEJA EL CÓMPUTO INTERNO DE ORDENAMIENTO Y CORTE DE PAGINACIÓN
+        function ejecutarOrdenacionYRenderizado() {
+            if (criterioOrdenacionActual === 'A-Z') {
+                productosFiltradosGlobal.sort((a, b) => (a.Producto || '').localeCompare(b.Producto || ''));
+            } else if (criterioOrdenacionActual === 'Z-A') {
+                productosFiltradosGlobal.sort((a, b) => (b.Producto || '').localeCompare(a.Producto || ''));
+            }
+
             const grid = document.getElementById('grid-productos');
             const sinResultados = document.getElementById('sin-resultados');
             grid.innerHTML = "";
 
-            if (listaProductos.length === 0) {
+            if (productosFiltradosGlobal.length === 0) {
                 sinResultados.classList.remove('hidden');
+                construirControlesVisualesPaginacion(0);
                 return;
             }
             sinResultados.classList.add('hidden');
 
-            listaProductos.forEach((item) => {
+            const indiceInicio = (paginaActual - 1) * tarjetasPorPagina;
+            const indiceFin = indiceInicio + tarjetasPorPagina;
+            const sublistaPagina = productosFiltradosGlobal.slice(indiceInicio, indiceFin);
+
+            sublistaPagina.forEach((item) => {
                 const tarjeta = document.createElement('div');
                 tarjeta.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col transition duration-200 group cursor-pointer border-camejo";
                 
@@ -470,6 +557,86 @@
                 `;
                 grid.appendChild(tarjeta);
             });
+
+            construirControlesVisualesPaginacion(productosFiltradosGlobal.length);
+        }
+
+        // FUNCIÓN NUEVA ADICIONAL PARA DIBUJAR LOS ELEMENTOS EN AMBAS BARRAS DE PAGINACIÓN SIMULTÁNEAMENTE
+        function construirControlesVisualesPaginacion(totalElementos) {
+            const contenedorSuperior = document.getElementById('paginacion-superior');
+            const contenedorInferior = document.getElementById('paginacion-inferior');
+            
+            contenedorSuperior.innerHTML = "";
+            contenedorInferior.innerHTML = "";
+
+            const totalPaginas = Math.ceil(totalElementos / tarjetasPorPagina);
+            if (totalPaginas <= 1) return;
+
+            const crearEstructuraParaContenedor = (contenedorTarget) => {
+                const btnAnterior = document.createElement('button');
+                btnAnterior.className = "paginacion-btn";
+                btnAnterior.innerHTML = `<i class="fa-solid fa-chevron-left"></i> Anterior`;
+                btnAnterior.disabled = paginaActual === 1;
+                btnAnterior.onclick = () => { paginaActual--; ejecutarOrdenacionYRenderizado(); window.scrollTo({top: 0, behavior: 'smooth'}); };
+                contenedorTarget.appendChild(btnAnterior);
+
+                let inicioRango = Math.max(1, paginaActual - 2);
+                let finRango = Math.min(totalPaginas, paginaActual + 2);
+
+                if (inicioRango > 1) {
+                    const btnPrimera = document.createElement('button');
+                    btnPrimera.className = `paginacion-btn ${paginaActual === 1 ? 'activa' : ''}`;
+                    btnPrimera.innerText = "1";
+                    btnPrimera.onclick = () => { paginaActual = 1; ejecutarOrdenacionYRenderizado(); window.scrollTo({top: 0, behavior: 'smooth'}); };
+                    contenedorTarget.appendChild(btnPrimera);
+
+                    if (inicioRango > 2) {
+                        const separador = document.createElement('span');
+                        separador.className = "px-2 text-slate-500 text-sm align-middle self-center";
+                        separador.innerText = "...";
+                        contenedorTarget.appendChild(separador);
+                    }
+                }
+
+                for (let i = inicioRango; i <= finRango; i++) {
+                    const btnPagina = document.createElement('button');
+                    btnPagina.className = `paginacion-btn ${paginaActual === i ? 'activa' : ''}`;
+                    btnPagina.innerText = i;
+                    btnPagina.onclick = () => { paginaActual = i; ejecutarOrdenacionYRenderizado(); window.scrollTo({top: 0, behavior: 'smooth'}); };
+                    contenedorTarget.appendChild(btnPagina);
+                }
+
+                if (finRango < totalPaginas) {
+                    if (finRango < totalPaginas - 1) {
+                        const separador = document.createElement('span');
+                        separador.className = "px-2 text-slate-500 text-sm align-middle self-center";
+                        separador.innerText = "...";
+                        contenedorTarget.appendChild(separador);
+                    }
+
+                    const btnUltima = document.createElement('button');
+                    btnUltima.className = `paginacion-btn ${paginaActual === totalPaginas ? 'activa' : ''}`;
+                    btnUltima.innerText = totalPaginas;
+                    btnUltima.onclick = () => { paginaActual = totalPaginas; ejecutarOrdenacionYRenderizado(); window.scrollTo({top: 0, behavior: 'smooth'}); };
+                    contenedorTarget.appendChild(btnUltima);
+                }
+
+                const btnSiguiente = document.createElement('button');
+                btnSiguiente.className = "paginacion-btn";
+                btnSiguiente.innerHTML = `Siguiente <i class="fa-solid fa-chevron-right"></i>`;
+                btnSiguiente.disabled = paginaActual === totalPaginas;
+                btnSiguiente.onclick = () => { paginaActual++; ejecutarOrdenacionYRenderizado(); window.scrollTo({top: 0, behavior: 'smooth'}); };
+                contenedorTarget.appendChild(btnSiguiente);
+            };
+
+            crearEstructuraParaContenedor(contenedorSuperior);
+            crearEstructuraParaContenedor(contenedorInferior);
+        }
+
+        // ACTUALIZADO: REEMPLAZA EL RENDERIZADO COMPLETO ANTERIOR POR LA INVOCACIÓN DEL ENRUTADOR PAGINADO
+        function renderizarTarjetasProductos(listaProductos) {
+            productosFiltradosGlobal = listaProductos;
+            ejecutarOrdenacionYRenderizado();
         }
 
         function abrirDetalleProducto(item) {
@@ -563,33 +730,35 @@
             if (e.target.id === "modal-detalles") alternarModal();
         }
 
-        /* NUEVA: Controla el flujo cuando escribes en la barra para refrescar también las marcas */
+        // ACTUALIZADO: Setea la página a 1 ante una nueva búsqueda para evitar desbordes de rango
         function ejecutarBusquedaCombinada() {
             const buscador = document.getElementById('buscador');
             const btnLimpiar = document.getElementById('btn-limpiar-buscador');
             
-            // Mostrar u ocultar la 'X' según tenga texto
             if (buscador.value.length > 0) {
                 btnLimpiar.classList.remove('hidden');
             } else {
                 btnLimpiar.classList.add('hidden');
             }
             
-            construirDropdownMarcas(); // Filtra marcas interactivamente
-            filtrarProductos();        // Filtra productos en tarjetas
+            paginaActual = 1;
+            construirDropdownMarcas(); 
+            filtrarProductos();        
         }
 
-        /* NUEVA: Borra el texto de búsqueda y reajusta la interfaz limpia */
+        // ACTUALIZADO: Setea la página a 1 al limpiar el texto
         function limpiarBuscadorTexto() {
             const buscador = document.getElementById('buscador');
             buscador.value = "";
             document.getElementById('btn-limpiar-buscador').classList.add('hidden');
             buscador.focus();
             
+            paginaActual = 1;
             construirDropdownMarcas();
             filtrarProductos();
         }
 
+        // ACTUALIZADO: Setea la página a 1 cuando cambia un filtro de marca
         function filtrarProductos() {
             actualizarTimestampSesion();
             const consulta = document.getElementById('buscador').value.toLowerCase().trim();
@@ -606,6 +775,7 @@
                 return s.includes(consulta);
             });
             
+            paginaActual = 1;
             renderizarTarjetasProductos(filtrados);
         }
 
