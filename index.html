@@ -100,7 +100,6 @@
             border-radius: 4px;
         }
         
-        /* Ocultar barra de scroll en paginadores numéricos pequeños */
         .no-scrollbar::-webkit-scrollbar {
             display: none;
         }
@@ -196,7 +195,7 @@
             </aside>
 
             <main id="contenido-catalogo" class="flex-1 flex flex-col gap-4">
-                <div id="paginacion-superior" class="flex justify-between items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs font-medium"></div>
+                <div id="paginacion-superior" class="flex justify-center items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5"></div>
 
                 <div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
 
@@ -207,7 +206,7 @@
                     <p class="text-base font-semibold text-slate-400">No encontramos refacciones que coincidan con tu búsqueda.</p>
                 </div>
 
-                <div id="paginacion-inferior" class="flex justify-between items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs font-medium"></div>
+                <div id="paginacion-inferior" class="flex justify-center items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5"></div>
             </main>
         </div>
     </div>
@@ -225,17 +224,18 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycby_B55F1lJvAnIq8UsbRI5sI2v1Gq7xKSnv6Vojw3aliQVESJEsSkmbRhqnQWTbLOBa/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxnBfP5a1i4ERSZsPiA_fymzuMFUbnl28216Lm7Drkf11z5HsifQHYHJdyL_goFBbGt/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
         let inventarioMaestro = [];
+        let productosFiltradosGlobal = [];
         let usuarioActual = "";
         let tokenActual = "";
         let esAdmin = false;
         let marcaSeleccionadaActual = "TODAS"; 
+        let criterioOrdenacionActual = "AZ";
 
-        // Variables añadidas para la Paginación
         let paginaActual = 1;
         const tarjetasPorPagina = 10;
 
@@ -446,13 +446,12 @@
         function seleccionarMarcaDropdown(event, marca) {
             event.preventDefault();
             marcaSeleccionadaActual = marca;
-            
             document.getElementById('texto-marca-seleccionada').innerText = `Marca: ${marca}`;
             
             document.querySelectorAll('.item-marca-option').forEach(el => el.classList.remove('active'));
             event.target.classList.add('active');
             
-            paginaActual = 1; // Reiniciar página al cambiar filtro
+            paginaActual = 1; 
             filtrarProductos();
         }
 
@@ -477,24 +476,29 @@
             imgElement.src = 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
         }
 
-        function renderizarTarjetasProductos(listaProductos) {
+        function ejecutarOrdenacionYRenderizado() {
+            if (criterioOrdenacionActual === 'AZ') {
+                productosFiltradosGlobal.sort((a, b) => (a.Producto || '').localeCompare(b.Producto || ''));
+            } else if (criterioOrdenacionActual === 'ZA') {
+                productosFiltradosGlobal.sort((a, b) => (b.Producto || '').localeCompare(a.Producto || ''));
+            }
+
             const grid = document.getElementById('grid-productos');
             const sinResultados = document.getElementById('sin-resultados');
             grid.innerHTML = "";
 
-            if (listaProductos.length === 0) {
+            if (productosFiltradosGlobal.length === 0) {
                 sinResultados.classList.remove('hidden');
-                actualizarPaginacion(0);
+                construirControlesVisualesPaginacion(0);
                 return;
             }
             sinResultados.classList.add('hidden');
 
-            // Segmentar lista por Paginación de 10 tarjetas
-            const inicio = (paginaActual - 1) * tarjetasPorPagina;
-            const fin = inicio + tarjetasPorPagina;
-            const productosPagina = listaProductos.slice(inicio, fin);
+            const indiceInicio = (paginaActual - 1) * tarjetasPorPagina;
+            const indiceFin = indiceInicio + tarjetasPorPagina;
+            const sublistaPagina = productosFiltradosGlobal.slice(indiceInicio, indiceFin);
 
-            productosPagina.forEach((item) => {
+            sublistaPagina.forEach((item) => {
                 const tarjeta = document.createElement('div');
                 tarjeta.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col justify-between transition duration-200 group border-camejo";
                 
@@ -502,10 +506,8 @@
                 const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
                 const htmlImagen = generarHtmlContenedorImagen(urlImagenOptimizada);
 
-                // Soporte unificado para propiedad 'Existencias' o 'Inventarios'
                 const inventarios = item.Existencias || item.Inventarios || [];
 
-                // REQUISITO 2 y 4: Ambos roles ven disponibilidad en tarjetas
                 let htmlInventarios = "";
                 if (inventarios.length > 0) {
                     htmlInventarios = `
@@ -529,7 +531,6 @@
                     `;
                 }
 
-                // REQUISITO 3: Solo se dibuja el botón de WhatsApp si NO es Admin
                 let htmlSeccionWhatsApp = "";
                 if (!esAdmin && inventarios.length > 0) {
                     htmlSeccionWhatsApp = `
@@ -566,7 +567,12 @@
                 grid.appendChild(tarjeta);
             });
 
-            actualizarPaginacion(listaProductos.length);
+            construirControlesVisualesPaginacion(productosFiltradosGlobal.length);
+        }
+
+        function renderizarTarjetasProductos(listaProductos) {
+            productosFiltradosGlobal = listaProductos;
+            ejecutarOrdenacionYRenderizado();
         }
 
         function enviarMensajeCotizacion(sku, descripcion) {
@@ -585,51 +591,105 @@
             window.open(urlFinal, '_blank');
         }
 
-        // REQUISITO 1: Paginación con números interactivos clicables aplicada a contenedores arriba y abajo
-        function actualizarPaginacion(totalElementos) {
-            const sup = document.getElementById('paginacion-superior');
-            const inf = document.getElementById('paginacion-inferior');
+        // DISEÑO COMPACTO Y EXACTO BASADO EN LA CAPTURA DE FOTO DE REFERENCIA
+        function construirControlesVisualesPaginacion(totalElementos) {
+            const contenedorSuperior = document.getElementById('paginacion-superior');
+            const contenedorInferior = document.getElementById('paginacion-inferior');
             
-            const totalPaginas = Math.ceil(totalElementos / tarjetasPorPagina);
+            const totalPaginas = Math.ceil(totalElementos / tarjetasPorPagina) || 1;
 
             if (totalElementos === 0) {
-                sup.innerHTML = "";
-                inf.innerHTML = "";
+                const vacio = `<span class="text-slate-500 font-bold text-xs uppercase">Sin registros</span>`;
+                contenedorSuperior.innerHTML = vacio;
+                contenedorInferior.innerHTML = vacio;
                 return;
             }
 
-            // Construir bloque de botones numéricos
-            let htmlNumeros = "";
-            for (let i = 1; i <= totalPaginas; i++) {
-                if (i === paginaActual) {
-                    htmlNumeros += `<button class="bg-emerald-600 text-white px-2.5 py-1 rounded-lg font-bold text-xs mx-0.5">${i}</button>`;
-                } else {
-                    htmlNumeros += `<button onclick="cambiarPagina(${i})" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded-lg text-xs font-semibold mx-0.5 transition cursor-pointer">${i}</button>`;
-                }
-            }
-
-            const htmlControles = `
-                <button onclick="cambiarPagina(${paginaActual - 1})" ${paginaActual === 1 ? 'disabled' : ''} class="bg-slate-700 hover:bg-slate-600 disabled:bg-slate-900 disabled:text-slate-600 text-slate-200 px-3 py-1.5 rounded-lg transition font-bold disabled:cursor-not-allowed cursor-pointer flex items-center gap-1">
-                    <i class="fa-solid fa-chevron-left text-[10px]"></i> Ant.
-                </button>
-                
-                <div class="flex items-center gap-1 overflow-x-auto max-w-[45%] sm:max-w-none no-scrollbar py-1">
-                    ${htmlNumeros}
+            const crearEstructuraControles = () => {
+                return `
+                <div class="flex items-center gap-1.5 select-none text-slate-200">
+                    <button onclick="cambiarPagina(1)" ${paginaActual === 1 ? 'disabled' : ''} 
+                            class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-700 font-bold text-xs transition enabled:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                        «
+                    </button>
+                    
+                    <button onclick="cambiarPagina(${paginaActual - 1})" ${paginaActual === 1 ? 'disabled' : ''} 
+                            class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-700 font-bold text-xs transition enabled:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                        ‹
+                    </button>
+                    
+                    <div class="bg-slate-900 border border-slate-700 px-4 h-8 flex items-center rounded-lg text-xs font-bold tracking-wide">
+                        Página ${paginaActual} de ${totalPaginas} <span class="text-emerald-400 ml-1.5">(${totalElementos} Refacciones)</span>
+                    </div>
+                    
+                    <button onclick="cambiarPagina(${paginaActual + 1})" ${paginaActual >= totalPaginas ? 'disabled' : ''} 
+                            class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-700 font-bold text-xs transition enabled:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                        ›
+                    </button>
+                    
+                    <button onclick="cambiarPagina(${totalPaginas})" ${paginaActual >= totalPaginas ? 'disabled' : ''} 
+                            class="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-700 font-bold text-xs transition enabled:hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer">
+                        »
+                    </button>
                 </div>
-                
-                <button onclick="cambiarPagina(${paginaActual + 1})" ${paginaActual >= totalPaginas ? 'disabled' : ''} class="bg-slate-700 hover:bg-slate-600 disabled:bg-slate-900 disabled:text-slate-600 text-slate-200 px-3 py-1.5 rounded-lg transition font-bold disabled:cursor-not-allowed cursor-pointer flex items-center gap-1">
-                    Sig. <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                </button>
-            `;
+                `;
+            };
 
-            sup.innerHTML = htmlControles;
-            inf.innerHTML = htmlControles;
+            const htmlFinal = crearEstructuraControles();
+            contenedorSuperior.innerHTML = htmlFinal;
+            contenedorInferior.innerHTML = htmlFinal;
         }
 
         function cambiarPagina(nuevaPagina) {
             paginaActual = nuevaPagina;
-            filtrarProductos();
+            ejecutarOrdenacionYRenderizado();
             document.getElementById('contenedor-principal-catalogo').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function ejecutarBusquedaCombinada() {
+            const buscador = document.getElementById('buscador');
+            const btnLimpiar = document.getElementById('btn-limpiar-buscador');
+            
+            if (buscador.value.length > 0) {
+                btnLimpiar.classList.remove('hidden');
+            } else {
+                btnLimpiar.classList.add('hidden');
+            }
+            
+            paginaActual = 1;
+            construirDropdownMarcas(); 
+            filtrarProductos();        
+        }
+
+        function limpiarBuscadorTexto() {
+            const buscador = document.getElementById('buscador');
+            buscador.value = "";
+            document.getElementById('btn-limpiar-buscador').classList.add('hidden');
+            buscador.focus();
+            
+            paginaActual = 1;
+            construirDropdownMarcas();
+            filtrarProductos();
+        }
+
+        function filtrarProductos() {
+            actualizarTimestampSesion();
+            const consulta = document.getElementById('buscador').value.toLowerCase().trim();
+            criterioOrdenacionActual = document.getElementById('orden-alfabetico').value;
+            
+            const filtrados = inventarioMaestro.filter(item => {
+                if (marcaSeleccionadaActual !== "TODAS") {
+                    const marcaItem = (item.Marca || '').toLowerCase().trim();
+                    if (marcaItem !== marcaSeleccionadaActual.toLowerCase().trim()) {
+                        return false; 
+                    }
+                }
+                
+                const s = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
+                return s.includes(consulta);
+            });
+            
+            renderizarTarjetasProductos(filtrados);
         }
 
         function abrirDetalleProducto(item) {
@@ -642,7 +702,6 @@
             const htmlImagenModal = `<img src="${urlImagenOptimizada}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" onclick="abrirZoomImagen('${urlImagenOptimizada}')" class="absolute inset-0 w-full h-full object-cover cursor-zoom-in group-hover:scale-105 transition duration-300">`;
             const rawCompatibilidad = item.Compatibilidad || "";
 
-            // REQUISITO 2 y 4: Inyectar disponibilidad completa y estructurada dentro del modal
             const inventarios = item.Existencias || item.Inventarios || [];
             let htmlInventariosModal = "";
             
@@ -753,63 +812,6 @@
 
         function cerrarModalExterno(event) {
             if (event.target.id === "modal-detalles") alternarModal();
-        }
-
-        function ejecutarBusquedaCombinada() {
-            const buscador = document.getElementById('buscador');
-            const btnLimpiar = document.getElementById('btn-limpiar-buscador');
-            
-            if (buscador.value.length > 0) {
-                btnLimpiar.classList.remove('hidden');
-            } else {
-                btnLimpiar.classList.add('hidden');
-            }
-            
-            paginaActual = 1; // Resetear página cuando escriben filtros
-            construirDropdownMarcas(); 
-            filtrarProductos();        
-        }
-
-        function limpiarBuscadorTexto() {
-            const buscador = document.getElementById('buscador');
-            buscador.value = "";
-            document.getElementById('btn-limpiar-buscador').classList.add('hidden');
-            buscador.focus();
-            
-            paginaActual = 1;
-            construirDropdownMarcas();
-            filtrarProductos();
-        }
-
-        function filtrarProductos() {
-            actualizarTimestampSesion();
-            const consulta = document.getElementById('buscador').value.toLowerCase().trim();
-            const orden = document.getElementById('orden-alfabetico').value;
-            
-            let filtrados = inventarioMaestro.filter(item => {
-                if (marcaSeleccionadaActual !== "TODAS") {
-                    const marcaItem = (item.Marca || '').toLowerCase().trim();
-                    if (marcaItem !== marcaSeleccionadaActual.toLowerCase().trim()) {
-                        return false; 
-                    }
-                }
-                
-                const s = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
-                return s.includes(consulta);
-            });
-            
-            filtrados.sort((a, b) => {
-                const nombreA = (a.Producto || "").toLowerCase();
-                const nombreB = (b.Producto || "").toLowerCase();
-                
-                if (orden === "AZ") {
-                    return nombreA.localeCompare(nombreB);
-                } else {
-                    return nombreB.localeCompare(nombreA);
-                }
-            });
-
-            renderizarTarjetasProductos(filtrados);
         }
 
         function manejarTecladoBuscador(event) {
