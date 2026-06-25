@@ -419,7 +419,7 @@
                 return linkClean;
             }
 
-            let match = linkClean.match(/([-\w]{25,}/);
+            let match = linkClean.match(/([-\w]{25,})/);
             if (match && match[0]) {
                 return `https://drive.google.com/thumbnail?id=${match[0]}&sz=w600`;
             }
