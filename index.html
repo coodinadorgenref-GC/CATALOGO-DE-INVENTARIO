@@ -237,7 +237,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzChv3S8Wsr_6cOpooQlG5EXfo_fbCefo79QMNbD0VcqTPrMkrPxco-ojbKpE8uZ_PS/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycby7w-q46ehXgg8Qi61rJaWAMLLagXzXF0bL4lgBENCApIghyJydt5bJFBwZIsby6Id_/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -433,7 +433,7 @@
 
             const marcasSet = new Set();
             inventarioMaestro.forEach(item => {
-                // Se agregó lógica de búsqueda de Num Parte para admin en el dropdown
+                // Actualizado: Incluye Pr_Numero_Parte en la búsqueda si es admin
                 const busquedaBase = String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '');
                 const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '')) : busquedaBase;
                 const coincideTexto = !consulta || busquedaAdmin.toLowerCase().includes(consulta);
@@ -687,6 +687,7 @@
                     }
                 }
                 
+                // Actualizado: Incluye Pr_Numero_Parte en el filtro si es admin
                 const busquedaBase = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
                 const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '').toLowerCase()) : busquedaBase;
                 
@@ -703,9 +704,9 @@
             const rawImagen = item.Imagen || "";
             const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
             
-            // Lógica de visualización para Admin
+            // Lógica actualizada: visualización del Pr_Numero_Parte para Admin
             let htmlInfoAdmin = "";
-            if (esAdmin && item.Pr_Numero_Parte) {
+            if (esAdmin && item.Pr_Numero_Parte && item.Pr_Numero_Parte !== "") {
                 htmlInfoAdmin = `<p class="text-xs font-mono text-emerald-400 font-bold bg-emerald-950/30 p-2 rounded-lg border border-emerald-900/50 mb-3">
                                    <i class="fa-solid fa-barcode mr-2"></i> Num. Parte: ${item.Pr_Numero_Parte}
                                  </p>`;
