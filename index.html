@@ -86,9 +86,19 @@
             left: 2px;
             top: -2px;
         }
-        /* Ocultar barra de scroll secundaria */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Ajustes adicionales para scroll de inventarios de sucursal */
+        .lista-sucursales-scroll {
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        .lista-sucursales-scroll::-webkit-scrollbar {
+            width: 4px;
+        }
+        .lista-sucursales-scroll::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
@@ -161,58 +171,34 @@
             <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Cargando...</p>
         </div>
 
-        <div id="interfaz-principal" class="hidden flex-1 max-w-7xl w-full mx-auto p-6 flex flex-col lg:flex-row gap-6">
+        <div id="contenedor-principal-catalogo" class="hidden flex-1 max-w-7xl w-full mx-auto flex flex-col lg:flex-row gap-6 p-6">
             
-            <aside class="w-full lg:w-64 bg-slate-800 border border-slate-700 rounded-2xl p-4 h-fit flex flex-col gap-5">
-                <div>
-                    <h3 class="text-xs font-black tracking-wider uppercase text-slate-400 mb-3"><i class="fa-solid fa-sliders mr-1 text-emerald-400"></i> Ordenar Por</h3>
-                    <select id="select-ordenamiento" onchange="filtrarProductos()" class="w-full p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                        <option value="nombre-asc">Nombre (A - Z)</option>
-                        <option value="nombre-desc">Nombre (Z - A)</option>
-                        <option value="sku-asc">SKU (Menor a Mayor)</option>
+            <aside class="w-full lg:w-64 shrink-0 bg-slate-800 border border-slate-700 rounded-2xl p-4 h-fit sticky lg:top-24">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 pb-2 border-b border-slate-700">
+                    <i class="fa-solid fa-sliders mr-2 text-emerald-500"></i> Ordenar Catálogo
+                </h3>
+                <div class="flex flex-col gap-2">
+                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Dirección Alfabética</label>
+                    <select id="orden-alfabetico" onchange="filtrarProductos()" class="w-full p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer">
+                        <option value="AZ">Nombre: A - Z</option>
+                        <option value="ZA">Nombre: Z - A</option>
                     </select>
-                </div>
-                <hr class="border-slate-700">
-                <div>
-                    <h3 class="text-xs font-black tracking-wider uppercase text-slate-400 mb-2"><i class="fa-solid fa-filter mr-1 text-emerald-400"></i> Disponibilidad</h3>
-                    <div class="flex flex-col gap-2 mt-2">
-                        <label class="flex items-center gap-2 text-xs font-bold text-slate-300 cursor-pointer select-none">
-                            <input type="checkbox" id="filtro-con-foto" onchange="filtrarProductos()" class="w-4 h-4 rounded text-emerald-600 bg-slate-900 border-slate-700 focus:ring-emerald-500 accent-emerald-500">
-                            Solo con Imagen
-                        </label>
-                    </div>
                 </div>
             </aside>
 
-            <main class="flex-1 flex flex-col gap-4">
-                
-                <div class="flex items-center justify-between bg-slate-800 border border-slate-700 rounded-xl p-3 px-4">
-                    <span class="text-xs font-bold text-slate-400" id="info-paginacion-top">Mostrando 0 - 0 de 0</span>
-                    <div class="flex items-center gap-2">
-                        <button onclick="cambiarPagina(-1)" id="btn-prev-top" class="bg-slate-900 hover:bg-slate-700 border border-slate-700 disabled:opacity-40 text-white text-xs font-bold p-1.5 px-3 rounded-lg cursor-pointer transition">Anterior</button>
-                        <button onclick="cambiarPagina(1)" id="btn-next-top" class="bg-slate-900 hover:bg-slate-700 border border-slate-700 disabled:opacity-40 text-white text-xs font-bold p-1.5 px-3 rounded-lg cursor-pointer transition">Siguiente</button>
+            <main id="contenido-catalogo" class="flex-1 flex flex-col gap-4">
+                <div id="paginacion-superior" class="flex justify-between items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs font-medium"></div>
+
+                <div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+                <div id="sin-resultados" class="hidden text-center py-16">
+                    <div class="text-4xl text-slate-600 mb-3">
+                        <i class="fa-solid fa-box-open"></i>
                     </div>
+                    <p class="text-base font-semibold text-slate-400">No encontramos refacciones que coincidan con tu búsqueda.</p>
                 </div>
 
-                <div id="contenido-catalogo" class="flex-1">
-                    <div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6"></div>
-
-                    <div id="sin-resultados" class="hidden text-center py-16">
-                        <div class="text-4xl text-slate-600 mb-3">
-                            <i class="fa-solid fa-box-open"></i>
-                        </div>
-                        <p class="text-base font-semibold text-slate-400">No encontramos refacciones que coincidan con tu búsqueda.</p>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-between bg-slate-800 border border-slate-700 rounded-xl p-3 px-4 mt-2">
-                    <span class="text-xs font-bold text-slate-400" id="info-paginacion-bottom">Mostrando 0 - 0 de 0</span>
-                    <div class="flex items-center gap-2">
-                        <button onclick="cambiarPagina(-1)" id="btn-prev-bottom" class="bg-slate-900 hover:bg-slate-700 border border-slate-700 disabled:opacity-40 text-white text-xs font-bold p-1.5 px-3 rounded-lg cursor-pointer transition">Anterior</button>
-                        <button onclick="cambiarPagina(1)" id="btn-next-bottom" class="bg-slate-900 hover:bg-slate-700 border border-slate-700 disabled:opacity-40 text-white text-xs font-bold p-1.5 px-3 rounded-lg cursor-pointer transition">Siguiente</button>
-                    </div>
-                </div>
-
+                <div id="paginacion-inferior" class="flex justify-between items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-xs font-medium"></div>
             </main>
         </div>
     </div>
@@ -230,22 +216,19 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbw50q_uVhM1A4TbdNB4cv3VSgqCv8tQWwKzTsY2MITdGcjQ0KbYymZkvTrXiOOi0hUV/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbwh-WRgg_1lgIzg-v5efm73GCX37lJwZwH9tmkRLtZVHn0hDOA2Vi4_MTWfOzjwKrL7/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
-        const NUMERO_WHATSAPP = "5219851139702"; // Modifica si es necesario
 
         let inventarioMaestro = [];
-        let productosFiltradosConfeccion = [];
         let usuarioActual = "";
         let tokenActual = "";
         let esAdmin = false;
-        let rolUsuario = "usuario";
         let marcaSeleccionadaActual = "TODAS"; 
-        
-        // Paginación fija de 10 tarjetas
+
+        // Variables añadidas para la Paginación
         let paginaActual = 1;
-        const TARJETAS_POR_PAGINA = 10;
+        const tarjetasPorPagina = 10;
 
         window.onload = function() {
             verificarSesionGuardada();
@@ -272,7 +255,6 @@
                 usuarioActual = sesion.correo;
                 tokenActual = sesion.token;
                 esAdmin = sesion.esAdmin || false;
-                rolUsuario = sesion.rol || "usuario";
                 document.getElementById('nombre-usuario').innerText = sesion.nombre;
                 
                 document.getElementById('vista-login').classList.add('hidden');
@@ -295,7 +277,7 @@
             if (icono) icono.classList.add('animate-spin');
             if (textoSincronizar) textoSincronizar.innerText = "Cargando...";
             
-            document.getElementById('interfaz-principal').classList.add('hidden');
+            document.getElementById('contenedor-principal-catalogo').classList.add('hidden');
             document.getElementById('cargando-datos').classList.remove('hidden');
             
             obtenerInventarioDesdeServidor().then(() => {
@@ -308,14 +290,13 @@
             });
         }
 
-        function guardarSesionEnDispositivo(correo, token, nombre, esAdmin, rol) {
+        function guardarSesionEnDispositivo(correo, token, nombre, esAdmin) {
             const tiempoActual = new Date().getTime();
             const datosSesion = {
                 correo: correo,
                 token: token,
                 nombre: nombre,
                 esAdmin: esAdmin,
-                rol: rol || "usuario",
                 timestamp: tiempoActual
             };
             localStorage.setItem("sesion_catalogo", JSON.stringify(datosSesion));
@@ -365,10 +346,9 @@
                     usuarioActual = correo;
                     tokenActual = resultado.token;
                     esAdmin = resultado.esAdmin || false;
-                    rolUsuario = resultado.rol || "usuario";
                     document.getElementById('nombre-usuario').innerText = resultado.nombre;
                     
-                    guardarSesionEnDispositivo(correo, resultado.token, resultado.nombre, esAdmin, rolUsuario);
+                    guardarSesionEnDispositivo(correo, resultado.token, resultado.nombre, esAdmin);
 
                     document.getElementById('vista-login').classList.add('hidden');
                     document.getElementById('vista-catalogo').classList.remove('hidden');
@@ -413,7 +393,7 @@
                     filtrarProductos();
                     
                     document.getElementById('cargando-datos').classList.add('hidden');
-                    document.getElementById('interfaz-principal').classList.remove('hidden');
+                    document.getElementById('contenedor-principal-catalogo').classList.remove('hidden');
                 } else {
                     alert("Error: " + resultado.message);
                     cerrarSesion();
@@ -457,13 +437,13 @@
         function seleccionarMarcaDropdown(e, marca) {
             e.preventDefault();
             marcaSeleccionadaActual = marca;
-            paginaActual = 1;
             
             document.getElementById('texto-marca-seleccionada').innerText = `Marca: ${marca}`;
             
             document.querySelectorAll('.item-marca-option').forEach(el => el.classList.remove('active'));
             e.target.classList.add('active');
             
+            paginaActual = 1; // Reiniciar página al cambiar filtro
             filtrarProductos();
         }
 
@@ -488,6 +468,7 @@
             imgElement.src = 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
         }
 
+        // REQUISITO 4, 5, 6 y 7: Renderizado de tarjetas con existencias y botón WhatsApp condicionado
         function renderizarTarjetasProductos(listaProductos) {
             const grid = document.getElementById('grid-productos');
             const sinResultados = document.getElementById('sin-resultados');
@@ -495,72 +476,137 @@
 
             if (listaProductos.length === 0) {
                 sinResultados.classList.remove('hidden');
-                actualizarControlesPaginacion(0);
+                actualizarPaginacion(0);
                 return;
             }
             sinResultados.classList.add('hidden');
 
-            // Lógica de Segmentación por Paginación de 10 unidades
-            const indiceInicio = (paginaActual - 1) * TARJETAS_POR_PAGINA;
-            const indiceFin = Math.min(indiceInicio + TARJETAS_POR_PAGINA, listaProductos.length);
-            const productosPagina = listaProductos.slice(indiceInicio, indiceFin);
+            // Segmentar lista por Paginación de 10 tarjetas
+            const inicio = (paginaActual - 1) * tarjetasPorPagina;
+            const fin = inicio + tarjetasPorPagina;
+            const productosPagina = listaProductos.slice(inicio, fin);
 
             productosPagina.forEach((item) => {
                 const tarjeta = document.createElement('div');
-                tarjeta.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col transition duration-200 group cursor-pointer border-camejo";
+                tarjeta.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col justify-between transition duration-200 group border-camejo";
                 
-                tarjeta.onclick = () => {
-                    actualizarTimestampSesion();
-                    abrirDetalleProducto(item);
-                };
-
                 const rawImagen = item.Imagen || "";
                 const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
                 const htmlImagen = generarHtmlContenedorImagen(urlImagenOptimizada);
 
+                // REQUISITO 4 Y 7: Extraer e identificar qué sucursal lo tiene y cuántos disponibles (Visible para todos)
+                let htmlInventarios = "";
+                if (item.Inventarios && Array.isArray(item.Inventarios) && item.Inventarios.length > 0) {
+                    htmlInventarios = `
+                        <div class="mt-2 pt-2 border-t border-slate-700/60">
+                            <p class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider mb-1">📍 Disponibilidad:</p>
+                            <div class="lista-sucursales-scroll flex flex-col gap-1 pr-1">
+                                ${item.Inventarios.map(inv => `
+                                    <div class="flex justify-between items-center text-[11px] bg-slate-900/40 p-1.5 rounded-lg border border-slate-700/40">
+                                        <span class="text-slate-300 font-medium truncate max-w-[130px]">${inv.sucursal}</span>
+                                        <span class="font-mono bg-emerald-950 text-emerald-400 px-1.5 py-0.5 rounded-md font-bold text-[10px]">${inv.cantidad} pzas</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    htmlInventarios = `
+                        <div class="mt-2 pt-2 border-t border-slate-700/60 text-center py-1 bg-slate-900/20 rounded-lg">
+                            <p class="text-[11px] italic text-slate-500">Sin existencias en sucursales</p>
+                        </div>
+                    `;
+                }
+
+                // REQUISITO 5 Y 6: Integrar botón WhatsApp con plantilla solo si NO es Admin (es decir, rol general / "usuario")
+                let htmlSeccionWhatsApp = "";
+                if (!esAdmin && item.Inventarios && Array.isArray(item.Inventarios) && item.Inventarios.length > 0) {
+                    htmlSeccionWhatsApp = `
+                        <div class="mt-3 pt-2 border-t border-slate-700 flex flex-col gap-1.5" onclick="event.stopPropagation();">
+                            <label class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Cotizar con:</label>
+                            <select id="select-wh-${item.SKU}" class="w-full p-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-[11px] focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer">
+                                ${item.Inventarios.map(inv => `<option value="${inv.whatsapp || ''}">${inv.sucursal}</option>`).join('')}
+                            </select>
+                            <button onclick="enviarMensajeCotizacion('${item.SKU}', '${item.Producto?.replace(/'/g, "\\'")}')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1.5 px-3 rounded-xl transition duration-150 text-xs flex items-center justify-center gap-1.5 shadow-md shadow-green-950/20 cursor-pointer">
+                                <i class="fa-brands fa-whatsapp text-sm"></i> Enviar Cotización
+                            </button>
+                        </div>
+                    `;
+                }
+
                 tarjeta.innerHTML = `
-                    <div class="relative pt-[75%] bg-slate-900 overflow-hidden">
-                        ${htmlImagen}
-                        <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase z-10">${item.Marca || 'GENÉRICO'}</span>
-                    </div>
-                    <div class="p-4 flex flex-col flex-1 justify-between gap-3">
+                    <div onclick="actualizarTimestampSesion(); abrirDetalleProducto(${JSON.stringify(item).replace(/"/g, '&quot;')});" class="cursor-pointer flex flex-col h-full justify-between">
                         <div>
-                            <span class="text-[11px] font-mono font-bold text-slate-400 tracking-wide block mb-1">SKU: ${item.SKU || '---'}</span>
-                            <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition duration-150">${item.Producto || 'Sin Nombre'}</h3>
+                            <div class="relative pt-[75%] bg-slate-900 overflow-hidden">
+                                ${htmlImagen}
+                                <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase z-10">${item.Marca || 'GENÉRICO'}</span>
+                            </div>
+                            <div class="p-4 flex flex-col gap-1">
+                                <span class="text-[11px] font-mono font-bold text-slate-400 tracking-wide block">SKU: ${item.SKU || '---'}</span>
+                                <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition duration-150">${item.Producto || 'Sin Nombre'}</h3>
+                                ${htmlInventarios}
+                            </div>
+                        </div>
+                        <div class="p-4 pt-0">
+                            ${htmlSeccionWhatsApp}
                         </div>
                     </div>
                 `;
                 grid.appendChild(tarjeta);
             });
 
-            actualizarControlesPaginacion(listaProductos.length);
+            actualizarPaginacion(listaProductos.length);
         }
 
-        function actualizarControlesPaginacion(totalItems) {
-            const totalPaginas = Math.ceil(totalItems / TARJETAS_POR_PAGINA) || 1;
+        // REQUISITO 5: Enviar mensaje automático a WhatsApp con plantilla predeterminada rellenando SKU y Descripción
+        function enviarMensajeCotizacion(sku, descripcion) {
+            const selectEl = document.getElementById(`select-wh-${sku}`);
+            if (!selectEl) return;
             
-            const inicio = totalItems === 0 ? 0 : (paginaActual - 1) * TARJETAS_POR_PAGINA + 1;
-            const fin = Math.min(paginaActual * TARJETAS_POR_PAGINA, totalItems);
+            const numeroWhatsapp = selectEl.value;
+            if (!numeroWhatsapp || numeroWhatsapp.trim() === "") {
+                alert("Esta sucursal no tiene asignado un número de WhatsApp en la pestaña Agencias.");
+                return;
+            }
 
-            const textoPaginacion = `Mostrando ${inicio} - ${fin} de ${totalItems}`;
+            const plantilla = `Hola, me interesa cotizar la siguiente refacción:\n\n*SKU:* ${sku}\n*Descripción:* ${descripcion}\n\n¿Tienen disponibilidad para entrega o envío? Quedo atento.`;
+            const urlFinal = `https://api.whatsapp.com/send?phone=${encodeURIComponent(numeroWhatsapp)}&text=${encodeURIComponent(plantilla)}`;
             
-            // Actualizar Textos
-            document.getElementById('info-paginacion-top').innerText = textoPaginacion;
-            document.getElementById('info-paginacion-bottom').innerText = textoPaginacion;
-
-            // Habilitar / Deshabilitar Botones Superiores
-            document.getElementById('btn-prev-top').disabled = paginaActual === 1;
-            document.getElementById('btn-next-top').disabled = paginaActual === totalPaginas;
-
-            // Habilitar / Deshabilitar Botones Inferiores
-            document.getElementById('btn-prev-bottom').disabled = paginaActual === 1;
-            document.getElementById('btn-next-bottom').disabled = paginaActual === totalPaginas;
+            window.open(urlFinal, '_blank');
         }
 
-        function cambiarPagina(direccion) {
-            paginaActual += direccion;
-            renderizarTarjetasProductos(productosFiltradosConfeccion);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+        // REQUISITO 3: Paginación de 10 tarjetas (Renderizadores superiores e inferiores)
+        function actualizarPaginacion(totalElementos) {
+            const sup = document.getElementById('paginacion-superior');
+            const inf = document.getElementById('paginacion-inferior');
+            
+            const totalPaginas = Math.ceil(totalElementos / tarjetasPorPagina);
+
+            if (totalElementos === 0) {
+                sup.innerHTML = "";
+                inf.innerHTML = "";
+                return;
+            }
+
+            const htmlControles = `
+                <button onclick="cambiarPagina(${paginaActual - 1})" ${paginaActual === 1 ? 'disabled' : ''} class="bg-slate-700 hover:bg-slate-600 disabled:bg-slate-900 disabled:text-slate-600 text-slate-200 px-3 py-1.5 rounded-lg transition font-bold disabled:cursor-not-allowed cursor-pointer flex items-center gap-1">
+                    <i class="fa-solid fa-chevron-left text-[10px]"></i> Ant.
+                </button>
+                <span class="text-slate-400">Página <strong class="text-white">${paginaActual}</strong> de <strong class="text-white">${totalPaginas || 1}</strong> (${totalElementos} refacciones)</span>
+                <button onclick="cambiarPagina(${paginaActual + 1})" ${paginaActual >= totalPaginas ? 'disabled' : ''} class="bg-slate-700 hover:bg-slate-600 disabled:bg-slate-900 disabled:text-slate-600 text-slate-200 px-3 py-1.5 rounded-lg transition font-bold disabled:cursor-not-allowed cursor-pointer flex items-center gap-1">
+                    Sig. <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
+            `;
+
+            sup.innerHTML = htmlControles;
+            inf.innerHTML = htmlControles;
+        }
+
+        function cambiarPagina(nuevaPagina) {
+            paginaActual = nuevaPagina;
+            filtrarProductos();
+            // Scroll suave hacia la parte superior del catálogo
+            document.getElementById('contenedor-principal-catalogo').scrollIntoView({ behavior: 'smooth' });
         }
 
         function abrirDetalleProducto(item) {
@@ -573,21 +619,10 @@
             const htmlImagenModal = `<img src="${urlImagenOptimizada}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" onclick="abrirZoomImagen('${urlImagenOptimizada}')" class="absolute inset-0 w-full h-full object-cover cursor-zoom-in group-hover:scale-105 transition duration-300">`;
             const rawCompatibilidad = item.Compatibilidad || "";
 
-            let htmlAccionAdicional = "";
-            
-            // Regla: si el rol es "usuario" sale el botón de enviar mensaje de WhatsApp
-            if (rolUsuario === "usuario") {
-                const mensajeWa = `Hola, me interesa cotizar la refacción con SKU: ${sku}, Producto: ${titulo}, Marca: ${marca}.`;
-                const urlWhatsappWeb = `https://web.whatsapp.com/send?phone=${NUMERO_WHATSAPP}&text=${encodeURIComponent(mensajeWa)}`;
-                
-                htmlAccionAdicional = `
-                <a href="${urlWhatsappWeb}" target="_blank" rel="noopener noreferrer"
-                   class="mt-6 block w-full bg-emerald-600 hover:bg-emerald-700 text-white text-center font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg cursor-pointer">
-                     <i class="fa-brands fa-whatsapp mr-2 text-base"></i> Cotizar por WhatsApp
-                </a>`;
-            } else if (esAdmin) {
+            let htmlBotonAdmin = "";
+            if (esAdmin) {
                 const urlCompletaForm = `${URL_FORM_ADMIN}${encodeURIComponent(sku)}`;
-                htmlAccionAdicional = `
+                htmlBotonAdmin = `
                 <a href="${urlCompletaForm}" target="_blank" rel="noopener noreferrer" onclick="alternarModal()"
                    class="mt-6 block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg cursor-pointer">
                      <i class="fa-solid fa-pen-to-square mr-2"></i> Actualizar Info / Foto
@@ -644,7 +679,7 @@
                     <span class="text-xs font-mono text-slate-400 block mt-1">SKU: ${sku}</span>
                 </div>
                 <div class="space-y-3">${bloquesHTML}</div>
-                ${htmlAccionAdicional}
+                ${htmlBotonAdmin}
             `;
             alternarModal();
         }
@@ -675,7 +710,7 @@
                 btnLimpiar.classList.add('hidden');
             }
             
-            paginaActual = 1; // Resetea página al buscar texto
+            paginaActual = 1; // Resetear página cuando escriben filtros
             construirDropdownMarcas(); 
             filtrarProductos();        
         }
@@ -691,14 +726,13 @@
             filtrarProductos();
         }
 
+        // REQUISITO 1 y 2: Lógica de Filtrado combinando texto, marcas y Ordenamiento Alfabético estricto por Descripción (Producto)
         function filtrarProductos() {
             actualizarTimestampSesion();
             const consulta = document.getElementById('buscador').value.toLowerCase().trim();
-            const soloConFoto = document.getElementById('filtro-con-foto').checked;
-            const criterioOrden = document.getElementById('select-ordenamiento').value;
+            const orden = document.getElementById('orden-alfabetico').value;
             
             let filtrados = inventarioMaestro.filter(item => {
-                // Filtro de Marca Seleccionada
                 if (marcaSeleccionadaActual !== "TODAS") {
                     const marcaItem = (item.Marca || '').toLowerCase().trim();
                     if (marcaItem !== marcaSeleccionadaActual.toLowerCase().trim()) {
@@ -706,28 +740,22 @@
                     }
                 }
                 
-                // Filtro "Solo con Imagen" de la barra lateral
-                if (soloConFoto) {
-                    const rawImg = item.Imagen || "";
-                    if (rawImg.trim() === "" || rawImg.includes('Sin+Foto')) {
-                        return false;
-                    }
-                }
-                
                 const s = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
                 return s.includes(consulta);
             });
-
-            // Ordenamiento Dinámico de la barra lateral
-            if (criterioOrden === "nombre-asc") {
-                filtrados.sort((a, b) => String(a.Producto || '').localeCompare(String(b.Producto || '')));
-            } else if (criterioOrden === "nombre-desc") {
-                filtrados.sort((a, b) => String(b.Producto || '').localeCompare(String(a.Producto || '')));
-            } else if (criterioOrden === "sku-asc") {
-                filtrados.sort((a, b) => String(a.SKU || '').localeCompare(String(b.SKU || ''), undefined, {numeric: true, sensitivity: 'base'}));
-            }
             
-            productosFiltradosConfeccion = filtrados;
+            // Requisito estricto: Descartar SKU y ordenar exclusivamente Alfabético por nombre (Producto)
+            filtrados.sort((a, b) => {
+                const nombreA = (a.Producto || "").toLowerCase();
+                const nombreB = (b.Producto || "").toLowerCase();
+                
+                if (orden === "AZ") {
+                    return nombreA.localeCompare(nombreB);
+                } else {
+                    return nombreB.localeCompare(nombreA);
+                }
+            });
+
             renderizarTarjetasProductos(filtrados);
         }
 
