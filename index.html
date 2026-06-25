@@ -76,7 +76,7 @@
             color: white;
         }
 
-        /* Estilo de Compatibilidad tipo Imagen solicitada */
+        /* Estilo de Compatibilidad */
         .compatibilidad-container {
             background-color: #151f32;
             border-radius: 12px;
@@ -237,7 +237,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyW0kia3kT91XWrKiSjryJLw_n0kQe6j68CGIVKyFVG5ouDN1I0xLHA5I-tyXWfZzXE/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbx7s8NP3UF5kTjaPP4bJGHtVEGCaoniNSmvUO6SykBNyCARDH6ML_Oa6ywmBaDv7Yyq/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -489,6 +489,7 @@
             imgElement.src = 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
         }
 
+        // REQUERIMIENTO 1 Y 3: SE ELIMINARON AGENCIAS Y BOTÓN DE LA TARJETA PRINCIPAL
         function ejecutarOrdenacionYRenderizado() {
             if (criterioOrdenacionActual === 'AZ') {
                 productosFiltradosGlobal.sort((a, b) => (a.Producto || '').localeCompare(b.Producto || ''));
@@ -513,31 +514,18 @@
 
             sublistaPagina.forEach((item) => {
                 const tarjeta = document.createElement('div');
-                tarjeta.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col justify-between transition duration-200 group border-camejo";
+                tarjeta.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col justify-between transition duration-200 group border-camejo cursor-pointer";
+                tarjeta.onclick = () => {
+                    actualizarTimestampSesion();
+                    abrirDetalleProducto(item);
+                };
                 
                 const rawImagen = item.Imagen || "";
                 const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
                 const htmlImagen = generarHtmlContenedorImagen(urlImagenOptimizada);
 
-                const inventarios = item.Existencias || item.Inventarios || [];
-
-                let htmlSeccionWhatsApp = "";
-                if (!esAdmin && inventarios.length > 0) {
-                    htmlSeccionWhatsApp = `
-                        <div class="mt-3 pt-2 border-t border-slate-700 flex flex-col gap-1.5" onclick="event.stopPropagation();">
-                            <label class="text-[9px] font-bold uppercase tracking-wider text-slate-400">Seleccionar Agencia:</label>
-                            <select id="select-wh-${item.SKU}" class="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-[11px] focus:outline-none focus:ring-1 focus:ring-emerald-500 cursor-pointer">
-                                ${inventarios.map(inv => `<option value="${inv.telefono || inv.whatsapp || ''}">${inv.sucursal} (${inv.cantidad} pzas)</option>`).join('')}
-                            </select>
-                            <button onclick="enviarMensajeCotizacion('${item.SKU}', '${item.Producto?.replace(/'/g, "\\'")}')" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-1.5 px-3 rounded-xl transition duration-150 text-xs flex items-center justify-center gap-1.5 shadow-md shadow-green-950/20 cursor-pointer">
-                                <i class="fa-brands fa-whatsapp text-sm"></i> Solicitar Cotización
-                            </button>
-                        </div>
-                    `;
-                }
-
                 tarjeta.innerHTML = `
-                    <div onclick="actualizarTimestampSesion(); abrirDetalleProducto(${JSON.stringify(item).replace(/"/g, '&quot;')});" class="cursor-pointer flex flex-col h-full justify-between">
+                    <div class="flex flex-col h-full justify-between">
                         <div>
                             <div class="relative pt-[75%] bg-slate-900 overflow-hidden">
                                 ${htmlImagen}
@@ -547,9 +535,6 @@
                                 <span class="text-[11px] font-mono font-bold text-slate-400 tracking-wide block">SKU: ${item.SKU || '---'}</span>
                                 <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition duration-150">${item.Producto || 'Sin Nombre'}</h3>
                             </div>
-                        </div>
-                        <div class="p-4 pt-0">
-                            ${htmlSeccionWhatsApp}
                         </div>
                     </div>
                 `;
@@ -564,22 +549,6 @@
             ejecutarOrdenacionYRenderizado();
         }
 
-        function enviarMensajeCotizacion(sku, descripcion) {
-            const selectEl = document.getElementById(`select-wh-${sku}`);
-            if (!selectEl) return;
-            
-            const numeroWhatsapp = selectEl.value;
-            if (!numeroWhatsapp || numeroWhatsapp.trim() === "") {
-                alert("Esta sucursal no tiene asignado un número de WhatsApp.");
-                return;
-            }
-
-            const plantilla = `Hola, me interesa cotizar la siguiente refacción:\n\n*SKU:* ${sku}\n*Descripción:* ${descripcion}\n\n¿Tienen disponibilidad para entrega o envío? Quedo atento.`;
-            const urlFinal = `https://api.whatsapp.com/send?phone=${encodeURIComponent(numeroWhatsapp)}&text=${encodeURIComponent(plantilla)}`;
-            
-            window.open(urlFinal, '_blank');
-        }
-
         function enviarMensajeCotizacionModal(sku, descripcion, numeroWhatsapp) {
             if (!numeroWhatsapp || numeroWhatsapp.trim() === "") {
                 alert("Esta sucursal no tiene asignado un número de WhatsApp.");
@@ -590,7 +559,7 @@
             window.open(urlFinal, '_blank');
         }
 
-        // REQUERIMIENTO 1: PAGINACIÓN COMPLETA E INTERACTIVA CON NÚMEROS Y CLICS DIRECTOS
+        // REQUERIMIENTO 2: AJUSTE DE PAGINACIÓN DINÁMICA CON ELIPSIS EXACTO A LO SOLICITADO
         function construirControlesVisualesPaginacion(totalElementos) {
             const contenedorSuperior = document.getElementById('paginacion-superior');
             const contenedorInferior = document.getElementById('paginacion-inferior');
@@ -599,35 +568,44 @@
 
             if (totalElementos === 0) {
                 const vacio = `<span class="text-slate-500 font-bold text-xs uppercase">Sin registros</span>`;
-                contenedorSuperior.innerHTML = vácio;
+                contenedorSuperior.innerHTML = vacio;
                 contenedorInferior.innerHTML = vacio;
                 return;
             }
 
             const generarBloqueControles = () => {
                 const fragmento = document.createElement('div');
-                fragmento.className = "flex items-center gap-1.5 flex-wrap";
+                fragmento.className = "flex items-center gap-1.5 flex-wrap select-none";
 
-                // Botón Primera
-                const btnPrimera = document.createElement('button');
-                btnPrimera.className = "paginacion-btn";
-                btnPrimera.innerText = "Primera";
-                btnPrimera.disabled = paginaActual === 1;
-                btnPrimera.onclick = () => cambiarPagina(1);
-                fragmento.appendChild(btnPrimera);
-
-                // Botón Anterior
+                // Botón < Anterior
                 const btnAnterior = document.createElement('button');
                 btnAnterior.className = "paginacion-btn";
-                btnAnterior.innerText = "Anterior";
+                btnAnterior.innerHTML = `<i class="fa-solid fa-chevron-left mr-1"></i> Anterior`;
                 btnAnterior.disabled = paginaActual === 1;
                 btnAnterior.onclick = () => cambiarPagina(paginaActual - 1);
                 fragmento.appendChild(btnAnterior);
 
-                // Páginas Numéricas Interactivas
-                let inicioRango = Math.max(1, paginaActual - 2);
-                let finRango = Math.min(totalPaginas, paginaActual + 2);
+                // Rango dinámico
+                let inicioRango = Math.max(1, paginaActual - 1);
+                let finRango = Math.min(totalPaginas, paginaActual + 1);
 
+                // Forzar visualización de la primera página (#1) si no está en el rango inicial
+                if (inicioRango > 1) {
+                    const btnPrimera = document.createElement('button');
+                    btnPrimera.className = `paginacion-btn ${paginaActual === 1 ? 'activa' : ''}`;
+                    btnPrimera.innerText = "1";
+                    btnPrimera.onclick = () => cambiarPagina(1);
+                    fragmento.appendChild(btnPrimera);
+
+                    if (inicioRango > 2) {
+                        const elipsis = document.createElement('span');
+                        elipsis.className = "px-1 text-slate-500 font-bold text-sm";
+                        elipsis.innerText = "...";
+                        fragmento.appendChild(elipsis);
+                    }
+                }
+
+                // Páginas en Uso
                 for (let i = inicioRango; i <= finRango; i++) {
                     const btnNum = document.createElement('button');
                     btnNum.className = `paginacion-btn ${paginaActual === i ? 'activa' : ''}`;
@@ -636,21 +614,29 @@
                     fragmento.appendChild(btnNum);
                 }
 
-                // Botón Siguiente
+                // Forzar visualización de la última página si no está en el rango final
+                if (finRango < totalPaginas) {
+                    if (finRango < totalPaginas - 1) {
+                        const elipsis = document.createElement('span');
+                        elipsis.className = "px-1 text-slate-500 font-bold text-sm";
+                        elipsis.innerText = "...";
+                        fragmento.appendChild(elipsis);
+                    }
+
+                    const btnUltima = document.createElement('button');
+                    btnUltima.className = `paginacion-btn ${paginaActual === totalPaginas ? 'activa' : ''}`;
+                    btnUltima.innerText = totalPaginas;
+                    btnUltima.onclick = () => cambiarPagina(totalPaginas);
+                    fragmento.appendChild(btnUltima);
+                }
+
+                // Botón Siguiente >
                 const btnSiguiente = document.createElement('button');
                 btnSiguiente.className = "paginacion-btn";
-                btnSiguiente.innerText = "Siguiente";
+                btnSiguiente.innerHTML = `Siguiente <i class="fa-solid fa-chevron-right ml-1"></i>`;
                 btnSiguiente.disabled = paginaActual >= totalPaginas;
                 btnSiguiente.onclick = () => cambiarPagina(paginaActual + 1);
                 fragmento.appendChild(btnSiguiente);
-
-                // Botón Última
-                const btnUltima = document.createElement('button');
-                btnUltima.className = "paginacion-btn";
-                btnUltima.innerText = "Última";
-                btnUltima.disabled = paginaActual >= totalPaginas;
-                btnUltima.onclick = () => cambiarPagina(totalPaginas);
-                fragmento.appendChild(btnUltima);
 
                 return fragmento;
             };
@@ -713,7 +699,7 @@
             renderizarTarjetasProductos(filtrados);
         }
 
-        // REQUERIMIENTO 4: DETALLE INTERNO COMPLETO (AGENCIA, CANTIDAD, BOTÓN WHATSAPP)
+        // REQUERIMIENTO 4: DETALLE INTERNO COMPLETO CON AGENCIA, CANTIDAD Y BOTÓN DE SOLICITUD
         function abrirDetalleProducto(item) {
             const sku = item.SKU || "---";
             const titulo = item.Producto || "Sin Nombre";
@@ -736,7 +722,7 @@
                                 <div class="flex flex-col gap-2 bg-slate-900 p-3 rounded-lg border border-slate-700/40">
                                     <div class="flex justify-between items-center text-xs">
                                         <span class="text-slate-300 font-bold"><i class="fa-solid fa-location-dot text-emerald-500 mr-1"></i> ${inv.sucursal}</span>
-                                        <span class="font-mono bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded-md font-bold">${inv.cantidad} disponibles</span>
+                                        <span class="font-mono bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded-md font-bold">${inv.cantidad} pzas</span>
                                     </div>
                                     ${!esAdmin ? `
                                     <button onclick="enviarMensajeCotizacionModal('${sku}', '${titulo.replace(/'/g, "\\'")}', '${inv.telefono || inv.whatsapp || ''}')" 
