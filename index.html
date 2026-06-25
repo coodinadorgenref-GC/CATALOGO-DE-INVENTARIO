@@ -106,7 +106,7 @@
                        class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
             </div>
 
-            <div id="error-login" class="hidden bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 text-center border border-red-900/50"></div>
+            <div id="error-login" class="hidden bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 text-center border border-red-900/50 block"></div>
 
             <button id="btn-login" onclick="manejarInicioDeSesion()" 
                     class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg shadow-emerald-900/20 cursor-pointer">
@@ -183,7 +183,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzUP8WQx8WjUfT35WCTPU0nJclZDhPCnPTgu7zL1cDzJ8ZHSnOvUsllr4kqinHMrg4w/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbyp8f6OG_Y-rAecSi5Y6DEVLJ-rWASuRuUa8jSit52XyHO2FzMUEoGkowRlJGsMgVCH/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -366,14 +366,12 @@
             }
         }
 
-        /* ACTUALIZADO: Construye las marcas filtrándolas dinámicamente con lo escrito en el buscador */
         function construirDropdownMarcas() {
             const contenedor = document.getElementById('lista-marcas-dropdown');
             if (!contenedor) return;
 
             const consulta = document.getElementById('buscador').value.toLowerCase().trim();
 
-            // Extraer marcas únicas cuyos productos coincidan con los términos del buscador
             const marcasSet = new Set();
             inventarioMaestro.forEach(item => {
                 const coincideTexto = !consulta || (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase().includes(consulta);
@@ -421,7 +419,7 @@
                 return linkClean;
             }
 
-            let match = linkClean.match(/([-\w]{25,})/);
+            let match = linkClean.match(/([-\w]{25,}/);
             if (match && match[0]) {
                 return `https://drive.google.com/thumbnail?id=${match[0]}&sz=w600`;
             }
@@ -529,74 +527,62 @@
                 bloquesHTML = `<div class="compatibilidad-container"><p class="text-xs text-slate-500 italic py-1 text-center">No se ha capturado información de compatibilidad.</p></div>`;
             }
 
-            // --- NUEVO AGREGADO SEGURO: SECCIÓN DE INVENTARIO Y ENLACE DE WHATSAPP WEB POR AGENCIA ---
-            let htmlInventarioEspejo = "";
-            const existencias = item.Existencias || [];
-
-            if (existencias.length > 0) {
-                let filasSucursales = "";
-                existencias.forEach(stock => {
-                    // Texto predefinido con saltos de línea codificados para enviar la cotización de forma directa
-                    const textoMsg = `Hola ${stock.sucursal}, solicito cotización de la siguiente refacción:\n\n*SKU:* ${sku}\n*Producto:* ${titulo}\n*Marca:* ${marca}\n\n_Vendedor: ${document.getElementById('nombre-usuario').innerText || usuarioActual}_`;
+            // --- BLOQUE NUEVO: AGREGAR RENDERIZADO DE EXISTENCIAS Y BOTONES DE WHATSAPP POR ROL ---
+            let htmlBloqueInventario = "";
+            
+            if (!esAdmin) {
+                // Si es "usuario", desplegamos las existencias cruzadas y botones de WhatsApp Web
+                if (item.Existencias && item.Existencias.length > 0) {
+                    htmlBloqueInventario += `<div class="mt-4 bg-slate-900 border border-slate-700 rounded-xl p-4"><h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-3"><i class="fa-solid fa-layer-group mr-1"></i> Existencias por Agencia</h4><div class="space-y-2">`;
                     
-                    // Condicional dinámico: si la sucursal tiene número asignado, monta el botón de WhatsApp Web
-                    let botonWA = `<span class="text-xs font-semibold text-slate-500 italic">Sin Teléfono</span>`;
-                    if (stock.telefono && stock.telefono.trim() !== "") {
-                        const linkWhatsAppWeb = `https://web.whatsapp.com/send?phone=${stock.telefono.trim()}&text=${encodeURIComponent(textoMsg)}`;
-                        botonWA = `
-                            <a href="${linkWhatsAppWeb}" target="_blank" rel="noopener noreferrer" 
-                               class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs py-1.5 px-3 rounded-lg transition duration-150 inline-flex items-center gap-1.5 shadow-sm shadow-emerald-950/50">
-                                <i class="fa-brands fa-whatsapp text-sm"></i> Cotizar
-                            </a>`;
-                    }
-
-                    filasSucursales += `
-                        <tr class="border-b border-slate-700/50 last:border-0 hover:bg-slate-900/30 transition duration-150">
-                            <td class="py-2.5 px-2 text-xs font-bold text-slate-200 uppercase">${stock.sucursal}</td>
-                            <td class="py-2.5 px-2 text-center text-sm font-black text-emerald-400">${stock.cantidad}</td>
-                            <td class="py-2.5 px-2 text-right">${botonWA}</td>
-                        </tr>`;
-                });
-
-                htmlInventarioEspejo = `
-                    <div class="mt-5 bg-slate-900/60 border border-slate-700 p-4 rounded-xl shadow-inner">
-                        <h4 class="text-xs font-black tracking-wider text-slate-400 uppercase mb-2.5 flex items-center gap-1.5">
-                            <i class="fa-solid fa-boxes-stacked text-emerald-400"></i> Existencias por Sucursal
-                        </h4>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse">
-                                <thead>
-                                    <tr class="border-b border-slate-700 text-[10px] font-black text-slate-400 tracking-wider uppercase bg-slate-900/40">
-                                        <th class="py-1.5 px-2">Agencia</th>
-                                        <th class="py-1.5 px-2 text-center">Cant.</th>
-                                        <th class="py-1.5 px-2 text-right">Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${filasSucursales}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>`;
+                    item.Existencias.forEach(ex => {
+                        if (ex.telefono) {
+                            // Generación limpia del link para WhatsApp Web
+                            const textoMensaje = encodeURIComponent(`Hola ${ex.sucursal}, solicito cotización de la siguiente refacción:\n\n*SKU:* ${sku}\n*Producto:* ${titulo}\n*Marca:* ${marca}`);
+                            const linkWhatsAppWeb = `https://web.whatsapp.com/send?phone=${ex.telefono}&text=${textoMensaje}`;
+                            
+                            htmlBloqueInventario += `
+                                <div class="flex items-center justify-between bg-slate-800 p-2.5 rounded-lg border border-slate-700">
+                                    <div>
+                                        <p class="text-xs font-bold text-white">${ex.sucursal}</p>
+                                        <p class="text-[11px] font-semibold text-slate-400">Disponibles: <span class="text-emerald-400 font-bold">${ex.cantidad} pzas</span></p>
+                                    </div>
+                                    <a href="${linkWhatsAppWeb}" target="_blank" rel="noopener noreferrer" class="bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold py-1.5 px-3 rounded-md transition flex items-center gap-1">
+                                        <i class="fa-brands fa-whatsapp text-sm"></i> Cotizar
+                                    </a>
+                                </div>
+                            `;
+                        } else {
+                            htmlBloqueInventario += `
+                                <div class="flex items-center justify-between bg-slate-800 p-2.5 rounded-lg border border-slate-700">
+                                    <div>
+                                        <p class="text-xs font-bold text-white">${ex.sucursal}</p>
+                                        <p class="text-[11px] font-semibold text-slate-400">Disponibles: <span class="text-emerald-400 font-bold">${ex.cantidad} pzas</span></p>
+                                    </div>
+                                    <span class="text-[10px] bg-slate-700 text-slate-400 py-1 px-2 rounded font-medium italic">Sin Teléfono</span>
+                                </div>
+                            `;
+                        }
+                    });
+                    
+                    htmlBloqueInventario += `</div></div>`;
+                } else {
+                    htmlBloqueInventario += `<div class="mt-4 bg-slate-900 border border-slate-700 rounded-xl p-3 text-center"><p class="text-xs font-semibold text-red-400"><i class="fa-solid fa-circle-exclaim mr-1"></i> Sin stock disponible en ninguna sucursal</p></div>`;
+                }
             } else {
-                htmlInventarioEspejo = `
-                    <div class="mt-5 bg-slate-900/40 border border-slate-700/50 p-4 rounded-xl text-center">
-                        <p class="text-xs text-slate-400 italic font-medium flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> No se detectan existencias en ninguna sucursal.
-                        </p>
-                    </div>`;
+                // Si es "admin", mostramos de forma preferencial los datos generales protegidos (Número de Parte Original)
+                const numParte = item.NumeroParteOriginal || "No Registrado";
+                htmlBloqueInventario += `
+                    <div class="mt-4 bg-slate-900 border border-slate-700 rounded-xl p-4">
+                        <h4 class="text-xs font-black uppercase tracking-wider text-blue-400 mb-2"><i class="fa-solid fa-shield-halved mr-1"></i> Datos de Administrador</h4>
+                        <div class="bg-slate-800 p-3 rounded-lg border border-slate-700 font-mono text-xs">
+                            <span class="text-slate-400 block text-[10px] uppercase font-sans font-bold tracking-wide mb-0.5">Nº Parte Original:</span>
+                            <span class="text-white font-bold select-all">${numParte}</span>
+                        </div>
+                    </div>
+                `;
             }
-
-            // --- NUEVO AGREGADO SEGURO: MOSTRAR NÚMERO DE PARTE ORIGINAL EXCLUSIVO PARA ADMIN ---
-            let htmlNumeroParteAdmin = "";
-            if (esAdmin && item.NumeroParteOriginal) {
-                htmlNumeroParteAdmin = `
-                    <div class="mt-2 p-2.5 bg-blue-950/40 border border-blue-900/50 rounded-xl">
-                        <span class="block text-[10px] font-black text-blue-400 tracking-wider uppercase">Número de Parte Original (Exclusivo Admin)</span>
-                        <span class="text-sm font-mono font-bold text-white">${item.NumeroParteOriginal}</span>
-                    </div>`;
-            }
-            // --- FIN DE LOS AGREGADOS SEGUROS ---
+            // --- FIN DEL BLOQUE NUEVO ---
 
             document.getElementById('modal-cuerpo').innerHTML = `
                 <div class="relative pt-[65%] bg-slate-900 overflow-hidden rounded-xl mb-4 border border-slate-700 group">
@@ -608,13 +594,10 @@
                 <div class="mb-4">
                     <span class="bg-emerald-950 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase inline-block mb-2">${marca}</span>
                     <h2 class="text-lg font-bold text-white leading-snug">${titulo}</h2>
-                    <div class="flex flex-col gap-1 mt-1">
-                        <span class="text-xs font-mono text-slate-400 block">SKU: ${sku}</span>
-                        ${htmlNumeroParteAdmin}
-                    </div>
+                    <span class="text-xs font-mono text-slate-400 block mt-1">SKU: ${sku}</span>
                 </div>
                 <div class="space-y-3">${bloquesHTML}</div>
-                ${htmlInventarioEspejo}
+                ${htmlBloqueInventario}
                 ${htmlBotonAdmin}
             `;
             alternarModal();
@@ -636,23 +619,20 @@
             if (e.target.id === "modal-detalles") alternarModal();
         }
 
-        /* NUEVA: Controla el flujo cuando escribes en la barra para refrescar también las marcas */
         function ejecutarBusquedaCombinada() {
             const buscador = document.getElementById('buscador');
             const btnLimpiar = document.getElementById('btn-limpiar-buscador');
             
-            // Mostrar u ocultar la 'X' según tenga texto
             if (buscador.value.length > 0) {
                 btnLimpiar.classList.remove('hidden');
             } else {
                 btnLimpiar.classList.add('hidden');
             }
             
-            construirDropdownMarcas(); // Filtra marcas interactivamente
-            filtrarProductos();        // Filtra productos en tarjetas
+            construirDropdownMarcas(); 
+            filtrarProductos();        
         }
 
-        /* NUEVA: Borra el texto de búsqueda y reajusta la interfaz limpia */
         function limpiarBuscadorTexto() {
             const buscador = document.getElementById('buscador');
             buscador.value = "";
