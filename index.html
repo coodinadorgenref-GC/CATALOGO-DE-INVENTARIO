@@ -237,7 +237,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbx7s8NP3UF5kTjaPP4bJGHtVEGCaoniNSmvUO6SykBNyCARDH6ML_Oa6ywmBaDv7Yyq/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxBX76dhk1IYmh2FZvZ_9F4ORgV9YnFRCkiFAEmU41xoD6jpWvb1P7BBprt1k919pnN/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -433,7 +433,10 @@
 
             const marcasSet = new Set();
             inventarioMaestro.forEach(item => {
-                const coincideTexto = !consulta || (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase().includes(consulta);
+                // Se agregó lógica de búsqueda de Num Parte para admin en el dropdown
+                const busquedaBase = String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '');
+                const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '')) : busquedaBase;
+                const coincideTexto = !consulta || busquedaAdmin.toLowerCase().includes(consulta);
                 
                 if (coincideTexto && item.Marca && item.Marca.trim() !== "") {
                     marcasSet.add(item.Marca.trim().toUpperCase());
@@ -489,7 +492,6 @@
             imgElement.src = 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
         }
 
-        // REQUERIMIENTO 1 Y 3: SE ELIMINARON AGENCIAS Y BOTÓN DE LA TARJETA PRINCIPAL
         function ejecutarOrdenacionYRenderizado() {
             if (criterioOrdenacionActual === 'AZ') {
                 productosFiltradosGlobal.sort((a, b) => (a.Producto || '').localeCompare(b.Producto || ''));
@@ -559,7 +561,6 @@
             window.open(urlFinal, '_blank');
         }
 
-        // REQUERIMIENTO 2: AJUSTE DE PAGINACIÓN DINÁMICA CON ELIPSIS EXACTO A LO SOLICITADO
         function construirControlesVisualesPaginacion(totalElementos) {
             const contenedorSuperior = document.getElementById('paginacion-superior');
             const contenedorInferior = document.getElementById('paginacion-inferior');
@@ -577,7 +578,6 @@
                 const fragmento = document.createElement('div');
                 fragmento.className = "flex items-center gap-1.5 flex-wrap select-none";
 
-                // Botón < Anterior
                 const btnAnterior = document.createElement('button');
                 btnAnterior.className = "paginacion-btn";
                 btnAnterior.innerHTML = `<i class="fa-solid fa-chevron-left mr-1"></i> Anterior`;
@@ -585,11 +585,9 @@
                 btnAnterior.onclick = () => cambiarPagina(paginaActual - 1);
                 fragmento.appendChild(btnAnterior);
 
-                // Rango dinámico
                 let inicioRango = Math.max(1, paginaActual - 1);
                 let finRango = Math.min(totalPaginas, paginaActual + 1);
 
-                // Forzar visualización de la primera página (#1) si no está en el rango inicial
                 if (inicioRango > 1) {
                     const btnPrimera = document.createElement('button');
                     btnPrimera.className = `paginacion-btn ${paginaActual === 1 ? 'activa' : ''}`;
@@ -605,7 +603,6 @@
                     }
                 }
 
-                // Páginas en Uso
                 for (let i = inicioRango; i <= finRango; i++) {
                     const btnNum = document.createElement('button');
                     btnNum.className = `paginacion-btn ${paginaActual === i ? 'activa' : ''}`;
@@ -614,7 +611,6 @@
                     fragmento.appendChild(btnNum);
                 }
 
-                // Forzar visualización de la última página si no está en el rango final
                 if (finRango < totalPaginas) {
                     if (finRango < totalPaginas - 1) {
                         const elipsis = document.createElement('span');
@@ -630,7 +626,6 @@
                     fragmento.appendChild(btnUltima);
                 }
 
-                // Botón Siguiente >
                 const btnSiguiente = document.createElement('button');
                 btnSiguiente.className = "paginacion-btn";
                 btnSiguiente.innerHTML = `Siguiente <i class="fa-solid fa-chevron-right ml-1"></i>`;
@@ -692,20 +687,29 @@
                     }
                 }
                 
-                const s = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
-                return s.includes(consulta);
+                const busquedaBase = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
+                const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '').toLowerCase()) : busquedaBase;
+                
+                return busquedaAdmin.includes(consulta);
             });
             
             renderizarTarjetasProductos(filtrados);
         }
 
-        // REQUERIMIENTO 4: DETALLE INTERNO COMPLETO CON AGENCIA, CANTIDAD Y BOTÓN DE SOLICITUD
         function abrirDetalleProducto(item) {
             const sku = item.SKU || "---";
             const titulo = item.Producto || "Sin Nombre";
             const marca = item.Marca || 'GENÉRICO';
             const rawImagen = item.Imagen || "";
             const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
+            
+            // Lógica de visualización para Admin
+            let htmlInfoAdmin = "";
+            if (esAdmin && item.Pr_Numero_Parte) {
+                htmlInfoAdmin = `<p class="text-xs font-mono text-emerald-400 font-bold bg-emerald-950/30 p-2 rounded-lg border border-emerald-900/50 mb-3">
+                                   <i class="fa-solid fa-barcode mr-2"></i> Num. Parte: ${item.Pr_Numero_Parte}
+                                 </p>`;
+            }
             
             const htmlImagenModal = `<img src="${urlImagenOptimizada}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" onclick="abrirZoomImagen('${urlImagenOptimizada}')" class="absolute inset-0 w-full h-full object-cover cursor-zoom-in group-hover:scale-105 transition duration-300">`;
             const rawCompatibilidad = item.Compatibilidad || "";
@@ -801,6 +805,7 @@
                     <span class="bg-emerald-950 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase inline-block mb-2">${marca}</span>
                     <h2 class="text-lg font-bold text-white leading-snug">${titulo}</h2>
                     <span class="text-xs font-mono text-slate-400 block mt-1">SKU: ${sku}</span>
+                    ${htmlInfoAdmin}
                 </div>
                 
                 ${htmlInventariosModal}
