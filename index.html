@@ -875,20 +875,11 @@ function guardarCompatibilidad(sku) {
     .then(response => response.json())
     .then(result => {
         if (result.success) {
-            // 1. Cerramos el modal
             alternarModal(); 
-            
-            // 2. ACTUALIZACIÓN EN MEMORIA (Usando la variable que identificaste)
-            // Buscamos el producto en tu variable global 'inventarioMaestro'
+            // Actualización local
             let producto = inventarioMaestro.find(p => p.SKU === sku);
-            if (producto) {
-                producto.Compatibilidad = nuevoTexto;
-            }
-            
-            // 3. Refrescamos la vista usando la función que ya usas para filtrar
-            // Esto mantendrá la búsqueda y los filtros activos, solo actualizará el texto
+            if (producto) producto.Compatibilidad = nuevoTexto;
             filtrarProductos(); 
-            
             alert("¡Compatibilidad actualizada!");
         } else {
             alert("Error: " + result.message);
@@ -896,7 +887,7 @@ function guardarCompatibilidad(sku) {
     })
     .catch(err => {
         console.error("Error:", err);
-        alert("Error de conexión.");
+        alert("Error de conexión. Verifica la URL de la API.");
     })
     .finally(() => {
         btn.innerText = "Guardar Cambios";
