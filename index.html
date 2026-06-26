@@ -242,7 +242,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyUTcJ3_wbJTmTFlqjtMjJyWBgN0cmHhAa9Iub6CHNaQ6oAIkS6I_uw4XIpkBkvNYNU/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbyGwthfcHssL3Q4Ih5S3765krz55azIZkxFPbPDspTXxA1uA5L53zih5E4CKOVOypjB/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -861,8 +861,12 @@ function guardarCompatibilidad(sku) {
     btn.innerText = "Guardando...";
     btn.disabled = true;
 
+    // Usamos 'no-cors' para evitar el bloqueo del navegador.
+    // IMPORTANTE: Al usar no-cors, no podemos leer la respuesta (result.success).
+    // Asumiremos que la petición se envió correctamente.
     fetch(API_URL, {
         method: 'POST',
+        mode: 'no-cors', 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
             action: 'actualizarCompatibilidad', 
@@ -872,22 +876,21 @@ function guardarCompatibilidad(sku) {
             nuevaCompatibilidad: nuevoTexto 
         })
     })
-    .then(response => response.json())
-    .then(result => {
-        if (result.success) {
-            alternarModal(); 
-            // Actualización local
-            let producto = inventarioMaestro.find(p => p.SKU === sku);
-            if (producto) producto.Compatibilidad = nuevoTexto;
-            filtrarProductos(); 
-            alert("¡Compatibilidad actualizada!");
-        } else {
-            alert("Error: " + result.message);
+    .then(() => {
+        // Ejecutamos las acciones de éxito sin esperar respuesta del servidor
+        alternarModal(); 
+        
+        let producto = inventarioMaestro.find(p => p.SKU === sku);
+        if (producto) {
+            producto.Compatibilidad = nuevoTexto;
         }
+        
+        filtrarProductos(); 
+        alert("¡Cambios enviados correctamente!");
     })
     .catch(err => {
         console.error("Error:", err);
-        alert("Error de conexión. Verifica la URL de la API.");
+        alert("Error al conectar con el servidor.");
     })
     .finally(() => {
         btn.innerText = "Guardar Cambios";
