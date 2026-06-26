@@ -863,7 +863,6 @@ function guardarCompatibilidad(sku) {
 
     fetch(API_URL, {
         method: 'POST',
-        mode: 'no-cors',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
             action: 'actualizarCompatibilidad', 
@@ -873,22 +872,33 @@ function guardarCompatibilidad(sku) {
             nuevaCompatibilidad: nuevoTexto 
         })
     })
-    .then(() => {
-        // 1. Cerramos la tarjeta (modal)
-        alternarModal(); 
-        
-        // 2. AQUÍ ESTÁ EL CAMBIO: 
-        // Inmediatamente después de cerrar, forzamos la descarga de datos 
-        // tal como si hubieras presionado el botón de "Actualizar"
-        obtenerInventarioDesdeServidor(); 
-        
-        // 3. Restauramos el botón por si el usuario vuelve a abrir otra tarjeta
-        btn.innerText = "Guardar Cambios";
-        btn.disabled = false;
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            // 1. Cerramos el modal
+            alternarModal(); 
+            
+            // 2. ACTUALIZACIÓN EN MEMORIA (Usando la variable que identificaste)
+            // Buscamos el producto en tu variable global 'inventarioMaestro'
+            let producto = inventarioMaestro.find(p => p.SKU === sku);
+            if (producto) {
+                producto.Compatibilidad = nuevoTexto;
+            }
+            
+            // 3. Refrescamos la vista usando la función que ya usas para filtrar
+            // Esto mantendrá la búsqueda y los filtros activos, solo actualizará el texto
+            filtrarProductos(); 
+            
+            alert("¡Compatibilidad actualizada!");
+        } else {
+            alert("Error: " + result.message);
+        }
     })
     .catch(err => {
         console.error("Error:", err);
-        alert("Hubo un problema al guardar. Por favor, intenta de nuevo.");
+        alert("Error de conexión.");
+    })
+    .finally(() => {
         btn.innerText = "Guardar Cambios";
         btn.disabled = false;
     });
