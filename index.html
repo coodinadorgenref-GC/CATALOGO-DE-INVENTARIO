@@ -875,9 +875,16 @@ function guardarCompatibilidad(sku) {
         })
     })
     .then(() => {
-        // En lugar de alert, simplemente recargamos la página
-        // Esto hará que el usuario vea sus cambios reflejados al abrir de nuevo
-        location.reload(); 
+        // 1. Cerramos el modal para limpiar la vista
+        alternarModal(); 
+        
+        // 2. LLAMAMOS A TU FUNCIÓN DE CARGA EXISTENTE
+        // Esto refresca los datos sin recargar la página ni perder tus filtros/búsqueda
+        obtenerInventarioDesdeServidor(); 
+        
+        // 3. Restauramos el botón
+        btn.innerText = "Guardar Cambios";
+        btn.disabled = false;
     })
     .catch(err => {
         console.error("Error:", err);
