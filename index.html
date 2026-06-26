@@ -436,17 +436,27 @@
 
             const consulta = document.getElementById('buscador').value.toLowerCase().trim();
 
-            const marcasSet = new Set();
-            inventarioMaestro.forEach(item => {
-                // Actualizado: Incluye Pr_Numero_Parte en la búsqueda si es admin
-                const busquedaBase = String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '');
-                const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '')) : busquedaBase;
-                const coincideTexto = !consulta || busquedaAdmin.toLowerCase().includes(consulta);
-                
-                if (coincideTexto && item.Marca && item.Marca.trim() !== "") {
-                    marcasSet.add(item.Marca.trim().toUpperCase());
-                }
-            });
+            // Actualización del bucle para generar marcasSet
+const marcasSet = new Set();
+// Normalizamos la consulta para búsqueda sin espacios
+const consultaLimpia = consulta.replace(/\s+/g, '');
+
+inventarioMaestro.forEach(item => {
+    // 1. Construimos el texto base unificado
+    const busquedaBase = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
+    
+    // 2. Agregamos parte de admin si aplica
+    const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '').toLowerCase()) : busquedaBase;
+    
+    // 3. Normalizamos el texto del producto y la consulta
+    const busquedaFinalSinEspacios = busquedaAdmin.replace(/\s+/g, '');
+    
+    const coincideTexto = !consultaLimpia || busquedaFinalSinEspacios.includes(consultaLimpia);
+    
+    if (coincideTexto && item.Marca && item.Marca.trim() !== "") {
+        marcasSet.add(item.Marca.trim().toUpperCase());
+    }
+});
 
             const marcasOrdenadas = Array.from(marcasSet).sort();
             
@@ -679,18 +689,37 @@
             filtrarProductos();
         }
 
-        function filtrarProductos() {
-            actualizarTimestampSesion();
-            const consulta = document.getElementById('buscador').value.toLowerCase().trim();
-            criterioOrdenacionActual = document.getElementById('orden-alfabetico').value;
-            
-            const filtrados = inventarioMaestro.filter(item => {
-                if (marcaSeleccionadaActual !== "TODAS") {
-                    const marcaItem = (item.Marca || '').toLowerCase().trim();
-                    if (marcaItem !== marcaSeleccionadaActual.toLowerCase().trim()) {
-                        return false; 
-                    }
-                }
+function filtrarProductos() {
+    actualizarTimestampSesion();
+    
+    // Obtenemos la consulta y la limpiamos de espacios
+    const consultaOriginal = document.getElementById('buscador').value.toLowerCase();
+    const consultaLimpia = consultaOriginal.replace(/\s+/g, '');
+    
+    criterioOrdenacionActual = document.getElementById('orden-alfabetico').value;
+    
+    const filtrados = inventarioMaestro.filter(item => {
+        // Filtro por marca
+        if (marcaSeleccionadaActual !== "TODAS") {
+            const marcaItem = (item.Marca || '').toLowerCase().trim();
+            if (marcaItem !== marcaSeleccionadaActual.toLowerCase().trim()) {
+                return false; 
+            }
+        }
+        
+        // Construcción del texto de búsqueda
+        const busquedaBase = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
+        const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '').toLowerCase()) : busquedaBase;
+        
+        // Limpiamos el texto completo del producto de espacios
+        const busquedaAdminSinEspacios = busquedaAdmin.replace(/\s+/g, '');
+        
+        // Comparamos los dos textos normalizados
+        return busquedaAdminSinEspacios.includes(consultaLimpia);
+    });
+    
+    renderizarTarjetasProductos(filtrados);
+}
                 
                 // Actualizado: Incluye Pr_Numero_Parte en el filtro si es admin
                 const busquedaBase = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
