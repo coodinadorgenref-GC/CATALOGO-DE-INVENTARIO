@@ -690,47 +690,37 @@ inventarioMaestro.forEach(item => {
         }
 
 function filtrarProductos() {
-    actualizarTimestampSesion();
-    
-    // Obtenemos la consulta y la limpiamos de espacios
-    const consultaOriginal = document.getElementById('buscador').value.toLowerCase();
-    const consultaLimpia = consultaOriginal.replace(/\s+/g, '');
-    
-    criterioOrdenacionActual = document.getElementById('orden-alfabetico').value;
-    
-    const filtrados = inventarioMaestro.filter(item => {
-        // Filtro por marca
-        if (marcaSeleccionadaActual !== "TODAS") {
-            const marcaItem = (item.Marca || '').toLowerCase().trim();
-            if (marcaItem !== marcaSeleccionadaActual.toLowerCase().trim()) {
-                return false; 
-            }
-        }
-        
-        // Construcción del texto de búsqueda
-        const busquedaBase = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
-        const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '').toLowerCase()) : busquedaBase;
-        
-        // Limpiamos el texto completo del producto de espacios
-        const busquedaAdminSinEspacios = busquedaAdmin.replace(/\s+/g, '');
-        
-        // Comparamos los dos textos normalizados
-        return busquedaAdminSinEspacios.includes(consultaLimpia);
-    });
-    
-    renderizarTarjetasProductos(filtrados);
-}
+            actualizarTimestampSesion();
+            
+            // Obtenemos la consulta y la limpiamos de espacios
+            const consultaOriginal = document.getElementById('buscador').value.toLowerCase();
+            const consultaLimpia = consultaOriginal.replace(/\s+/g, '');
+            
+            criterioOrdenacionActual = document.getElementById('orden-alfabetico').value;
+            
+            const filtrados = inventarioMaestro.filter(item => {
+                // Filtro por marca
+                if (marcaSeleccionadaActual !== "TODAS") {
+                    const marcaItem = (item.Marca || '').toLowerCase().trim();
+                    if (marcaItem !== marcaSeleccionadaActual.toLowerCase().trim()) {
+                        return false; 
+                    }
+                }
                 
-                // Actualizado: Incluye Pr_Numero_Parte en el filtro si es admin
+                // Construcción del texto de búsqueda
                 const busquedaBase = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
                 const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '').toLowerCase()) : busquedaBase;
                 
-                return busquedaAdmin.includes(consulta);
+                // Limpiamos el texto completo del producto de espacios
+                const busquedaAdminSinEspacios = busquedaAdmin.replace(/\s+/g, '');
+                
+                // Comparamos los dos textos normalizados
+                return busquedaAdminSinEspacios.includes(consultaLimpia);
             });
             
             renderizarTarjetasProductos(filtrados);
         }
-
+        
         function abrirDetalleProducto(item) {
             const sku = item.SKU || "---";
             const titulo = item.Producto || "Sin Nombre";
