@@ -858,7 +858,6 @@ function guardarCompatibilidad(sku) {
     const nuevoTexto = document.getElementById('edit-compat').value;
     const btn = document.getElementById('btn-edicion');
     
-    // Cambiamos el texto para que el usuario sepa que está trabajando
     btn.innerText = "Guardando...";
     btn.disabled = true;
 
@@ -875,14 +874,15 @@ function guardarCompatibilidad(sku) {
         })
     })
     .then(() => {
-        // 1. Cerramos el modal para limpiar la vista
+        // 1. Cerramos la tarjeta (modal)
         alternarModal(); 
         
-        // 2. LLAMAMOS A TU FUNCIÓN DE CARGA EXISTENTE
-        // Esto refresca los datos sin recargar la página ni perder tus filtros/búsqueda
+        // 2. AQUÍ ESTÁ EL CAMBIO: 
+        // Inmediatamente después de cerrar, forzamos la descarga de datos 
+        // tal como si hubieras presionado el botón de "Actualizar"
         obtenerInventarioDesdeServidor(); 
         
-        // 3. Restauramos el botón
+        // 3. Restauramos el botón por si el usuario vuelve a abrir otra tarjeta
         btn.innerText = "Guardar Cambios";
         btn.disabled = false;
     })
