@@ -858,15 +858,13 @@ function guardarCompatibilidad(sku) {
     const nuevoTexto = document.getElementById('edit-compat').value;
     const btn = document.getElementById('btn-edicion');
     
+    // 1. Ponemos el botón en estado de carga
     btn.innerText = "Guardando...";
     btn.disabled = true;
 
-    // Usamos 'no-cors' para evitar el bloqueo del navegador.
-    // IMPORTANTE: Al usar no-cors, no podemos leer la respuesta (result.success).
-    // Asumiremos que la petición se envió correctamente.
     fetch(API_URL, {
         method: 'POST',
-        mode: 'no-cors', 
+        mode: 'no-cors', // Mantenemos el modo no-cors que te funciona
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
             action: 'actualizarCompatibilidad', 
@@ -877,22 +875,21 @@ function guardarCompatibilidad(sku) {
         })
     })
     .then(() => {
-        // Ejecutamos las acciones de éxito sin esperar respuesta del servidor
-        alternarModal(); 
+        // 2. Cerramos la tarjeta primero
+        alternarModal();
         
-        let producto = inventarioMaestro.find(p => p.SKU === sku);
-        if (producto) {
-            producto.Compatibilidad = nuevoTexto;
-        }
+        // 3. Ejecutamos tu función de sincronización que ya tiene el spinner y el re-filtrado
+        // Esto hará que el usuario vea el aviso de "Cargando..." global
+        forzarSincronizacionDatos(); 
         
-        filtrarProductos(); 
         alert("¡Cambios enviados correctamente!");
     })
     .catch(err => {
         console.error("Error:", err);
-        alert("Error al conectar con el servidor.");
+        alert("Error de conexión al guardar.");
     })
     .finally(() => {
+        // Restauramos el botón
         btn.innerText = "Guardar Cambios";
         btn.disabled = false;
     });
