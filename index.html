@@ -473,26 +473,27 @@ inventarioMaestro.forEach(item => {
 
             contenedor.innerHTML = htmlDropdown;
         }
-// --- FUNCIONES PARA FILTRO DE FAMILIAS ---
+// --- FUNCION PARA DIBUJAR EL FILTRO DE FAMILIAS ---
 function renderizarFiltrosFamilia() {
     const contenedor = document.getElementById('filter-familia-container');
     if (!contenedor) return;
 
-    // Extraer familias únicas
+    // Obtenemos familias únicas
     const familias = [...new Set(inventarioMaestro.map(item => item.Familia || "Sin Familia"))].sort();
     
-    let html = `<div class="flex flex-col gap-1">
-        <label class="flex items-center gap-2 p-1.5 text-xs font-bold cursor-pointer hover:bg-slate-800 rounded">
-            <input type="radio" name="familia" value="TODAS" ${familiaSeleccionadaActual === 'TODAS' ? 'checked' : ''} onchange="seleccionarFamilia(this.value)"> 
-            TODAS
-        </label>`;
+    let html = `<div class="flex flex-col gap-1 p-2 text-xs">`;
+    // Opción TODAS
+    html += `<label class="flex items-center gap-2 cursor-pointer hover:text-emerald-400">
+                <input type="radio" name="familia" value="TODAS" ${familiaSeleccionadaActual === 'TODAS' ? 'checked' : ''} onchange="seleccionarFamilia(this.value)"> 
+                TODAS
+             </label>`;
     
+    // Lista de familias
     familias.forEach(f => {
-        html += `
-        <label class="flex items-center gap-2 p-1.5 text-xs font-semibold cursor-pointer hover:bg-slate-800 rounded">
-            <input type="radio" name="familia" value="${f}" ${familiaSeleccionadaActual === f ? 'checked' : ''} onchange="seleccionarFamilia(this.value)"> 
-            ${f}
-        </label>`;
+        html += `<label class="flex items-center gap-2 cursor-pointer hover:text-emerald-400">
+                    <input type="radio" name="familia" value="${f}" ${familiaSeleccionadaActual === f ? 'checked' : ''} onchange="seleccionarFamilia(this.value)"> 
+                    ${f}
+                 </label>`;
     });
     html += `</div>`;
     contenedor.innerHTML = html;
@@ -500,7 +501,7 @@ function renderizarFiltrosFamilia() {
 
 function seleccionarFamilia(familia) {
     familiaSeleccionadaActual = familia;
-    paginaActual = 1;
+    paginaActual = 1; // Volvemos a la primera página
     filtrarProductos();
 }
         function alternarDropdownMarcas(event) {
