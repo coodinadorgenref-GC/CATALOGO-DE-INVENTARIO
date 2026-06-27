@@ -317,25 +317,29 @@
             return `<img src="${url}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">`;
         }
 
-        function forzarSincronizacionDatos() {
-            actualizarTimestampSesion();
-            const icono = document.getElementById('icono-sincronizar');
-            const textoSincronizar = document.getElementById('texto-sincronizar');
-            if (icono) icono.classList.add('animate-spin');
-            if (textoSincronizar) textoSincronizar.innerText = "Cargando...";
-            
-            document.getElementById('contenedor-principal-catalogo').classList.add('hidden');
-            document.getElementById('cargando-datos').classList.remove('hidden');
-            
-            obtenerInventarioDesdeServidor().then(() => {
-                if (icono) icono.classList.remove('animate-spin');
-                if (textoSincronizar) textoSincronizar.innerText = "Actualizar";
-                filtrarProductos();
-            }).catch(() => {
-                if (icono) icono.classList.remove('animate-spin');
-                if (textoSincronizar) textoSincronizar.innerText = "Actualizar";
-            });
+function forzarSincronizacionDatos() {
+    actualizarTimestampSesion();
+    
+    // 1. Forzar la visibilidad del spinner
+    const icono = document.getElementById('icono-sincronizar');
+    const textoSincronizar = document.getElementById('texto-sincronizar');
+    if (icono) icono.classList.add('animate-spin');
+    if (textoSincronizar) {
+        textoSincronizar.classList.remove('hidden'); // Aseguramos que se vea
+        textoSincronizar.innerText = "Cargando...";
+    }
+    
+    // 2. Ejecutar la descarga forzada (llamamos directamente a la lógica de fetch)
+    // Para no duplicar código, puedes llamar a una versión limpia de la descarga
+    obtenerInventarioDesdeServidor().then(() => {
+        // Restaurar estado original al finalizar
+        if (icono) icono.classList.remove('animate-spin');
+        if (textoSincronizar) {
+            textoSincronizar.innerText = "Actualizar";
+            // Si el texto estaba oculto antes, puedes volver a ocultarlo si deseas
         }
+    });
+}
 
         function guardarSesionEnDispositivo(correo, token, nombre, esAdmin) {
             const tiempoActual = new Date().getTime();
