@@ -246,7 +246,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbzfYftodXYbmAtEFxJxHc7naFrygz-t_l2SADXJ89hb4nPXTbKjgZ1dXq0ds7cilevJ/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbw5SesUj-nUEwxzaJYwkGjPWtWBYJ1Nu7JuBVRB0Hsn3xmR_ifOv1vBDM_8HHBrseDE/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -422,6 +422,7 @@
                     inventarioMaestro = resultado.data;
                     
                     construirDropdownMarcas();
+                    renderizarFiltrosFamilia();
                     filtrarProductos();
                     
                     document.getElementById('cargando-datos').classList.add('hidden');
@@ -442,26 +443,26 @@
             const consulta = document.getElementById('buscador').value.toLowerCase().trim();
 
             // Actualización del bucle para generar marcasSet
-const marcasSet = new Set();
-// Normalizamos la consulta para búsqueda sin espacios
-const consultaLimpia = consulta.replace(/\s+/g, '');
+            const marcasSet = new Set();
+            // Normalizamos la consulta para búsqueda sin espacios
+            const consultaLimpia = consulta.replace(/\s+/g, '');
 
-inventarioMaestro.forEach(item => {
-    // 1. Construimos el texto base unificado
-    const busquedaBase = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
-    
-    // 2. Agregamos parte de admin si aplica
-    const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '').toLowerCase()) : busquedaBase;
-    
-    // 3. Normalizamos el texto del producto y la consulta
-    const busquedaFinalSinEspacios = busquedaAdmin.replace(/\s+/g, '');
-    
-    const coincideTexto = !consultaLimpia || busquedaFinalSinEspacios.includes(consultaLimpia);
-    
-    if (coincideTexto && item.Marca && item.Marca.trim() !== "") {
-        marcasSet.add(item.Marca.trim().toUpperCase());
-    }
-});
+            inventarioMaestro.forEach(item => {
+                // 1. Construimos el texto base unificado
+                const busquedaBase = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
+                
+                // 2. Agregamos parte de admin si aplica
+                const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '').toLowerCase()) : busquedaBase;
+                
+                // 3. Normalizamos el texto del producto y la consulta
+                const busquedaFinalSinEspacios = busquedaAdmin.replace(/\s+/g, '');
+                
+                const coincideTexto = !consultaLimpia || busquedaFinalSinEspacios.includes(consultaLimpia);
+                
+                if (coincideTexto && item.Marca && item.Marca.trim() !== "") {
+                    marcasSet.add(item.Marca.trim().toUpperCase());
+                }
+            });
 
             const marcasOrdenadas = Array.from(marcasSet).sort();
             
