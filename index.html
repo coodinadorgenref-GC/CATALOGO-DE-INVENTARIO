@@ -459,20 +459,25 @@ async function obtenerInventarioDesdeServidor() {
     }
 }
 function procesarDespuesDeCarga() {
-    // Esto es un "bloque de protección"
+    // 1. Intentar ejecutar las funciones de interfaz
     try {
         if (typeof construirDropdownMarcas === 'function') construirDropdownMarcas();
-        if (typeof renderizarFiltrosFamilia === 'function') renderizarFiltrosFamilias();
+        if (typeof renderizarFiltrosFamilia === 'function') renderizarFiltrosFamilia();
         if (typeof filtrarProductos === 'function') filtrarProductos();
     } catch (e) {
-        console.error("Error menor en renderizado:", e);
+        console.error("Error en el renderizado, pero continuamos...", e);
     }
     
-    // ESTO TIENE QUE EJECUTARSE SÍ O SÍ
-    const cargando = document.getElementById('cargando-datos');
-    const principal = document.getElementById('contenedor-principal-catalogo');
-    if (cargando) cargando.classList.add('hidden');
-    if (principal) principal.classList.remove('hidden');
+    // 2. ESTO SE EJECUTARÁ SÍ O SÍ, aunque lo de arriba falle
+    try {
+        const elementoCargando = document.getElementById('cargando-datos');
+        const elementoPrincipal = document.getElementById('contenedor-principal-catalogo');
+        
+        if (elementoCargando) elementoCargando.classList.add('hidden');
+        if (elementoPrincipal) elementoPrincipal.classList.remove('hidden');
+    } catch (e) {
+        console.error("Error al ocultar el spinner: ", e);
+    }
 }
 
         function construirDropdownMarcas() {
