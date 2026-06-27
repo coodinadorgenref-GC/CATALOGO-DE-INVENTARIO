@@ -246,7 +246,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbyGwthfcHssL3Q4Ih5S3765krz55azIZkxFPbPDspTXxA1uA5L53zih5E4CKOVOypjB/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbzfYftodXYbmAtEFxJxHc7naFrygz-t_l2SADXJ89hb4nPXTbKjgZ1dXq0ds7cilevJ/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -724,36 +724,44 @@ function seleccionarFamilia(familia) {
         }
 
 function filtrarProductos() {
-            actualizarTimestampSesion();
-            
-            // Obtenemos la consulta y la limpiamos de espacios
-            const consultaOriginal = document.getElementById('buscador').value.toLowerCase();
-            const consultaLimpia = consultaOriginal.replace(/\s+/g, '');
-            
-            criterioOrdenacionActual = document.getElementById('orden-alfabetico').value;
-            
-            const filtrados = inventarioMaestro.filter(item => {
-                // Filtro por marca
-                if (marcaSeleccionadaActual !== "TODAS") {
-                    const marcaItem = (item.Marca || '').toLowerCase().trim();
-                    if (marcaItem !== marcaSeleccionadaActual.toLowerCase().trim()) {
-                        return false; 
-                    }
-                }
-                
-                // Construcción del texto de búsqueda
-                const busquedaBase = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
-                const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '').toLowerCase()) : busquedaBase;
-                
-                // Limpiamos el texto completo del producto de espacios
-                const busquedaAdminSinEspacios = busquedaAdmin.replace(/\s+/g, '');
-                
-                // Comparamos los dos textos normalizados
-                return busquedaAdminSinEspacios.includes(consultaLimpia);
-            });
-            
-            renderizarTarjetasProductos(filtrados);
+    actualizarTimestampSesion();
+    
+    // Obtenemos la consulta y la limpiamos de espacios
+    const consultaOriginal = document.getElementById('buscador').value.toLowerCase();
+    const consultaLimpia = consultaOriginal.replace(/\s+/g, '');
+    
+    criterioOrdenacionActual = document.getElementById('orden-alfabetico').value;
+    
+    const filtrados = inventarioMaestro.filter(item => {
+        // 1. Filtro por marca (YA EXISTENTE)
+        if (marcaSeleccionadaActual !== "TODAS") {
+            const marcaItem = (item.Marca || '').toLowerCase().trim();
+            if (marcaItem !== marcaSeleccionadaActual.toLowerCase().trim()) {
+                return false; 
+            }
         }
+        
+        // 2. NUEVO: Filtro por familia
+        if (typeof familiaSeleccionadaActual !== 'undefined' && familiaSeleccionadaActual !== "TODAS") {
+            const familiaItem = (item.Familia || 'Sin Familia').trim();
+            if (familiaItem !== familiaSeleccionadaActual.trim()) {
+                return false;
+            }
+        }
+        
+        // 3. Construcción del texto de búsqueda (YA EXISTENTE)
+        const busquedaBase = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
+        const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '').toLowerCase()) : busquedaBase;
+        
+        // Limpiamos el texto completo del producto de espacios
+        const busquedaAdminSinEspacios = busquedaAdmin.replace(/\s+/g, '');
+        
+        // Comparamos los dos textos normalizados
+        return busquedaAdminSinEspacios.includes(consultaLimpia);
+    });
+    
+    renderizarTarjetasProductos(filtrados);
+}
         
         function abrirDetalleProducto(item) {
             const sku = item.SKU || "---";
