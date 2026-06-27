@@ -261,7 +261,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbybLRF0fAaauGEqIiU8DUgEcjRcWZlAeZfkYKWFx0-4qnM4j60RhqtgSEaCidUafVJO/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxac3_2fp9G4Xmw-PlGHKo22Hgl_Ur3Spi5oNhEFHF7D0zSbjYzFCKjdNBD_bf_fF6G/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -422,34 +422,47 @@
             }
         }
 
-        async function obtenerInventarioDesdeServidor() {
-            try {
-                const respuesta = await fetch(API_URL, {
-                    method: 'POST',
-                    mode: 'cors',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify({ action: 'obtenerInventario', token: tokenActual, correo: usuarioActual })
-                });
+async function obtenerInventarioDesdeServidor() {
+    // 1. Intentar cargar desde el caché local al instante
+    const cache = localStorage.getItem('inventario_cache');
+    if (cache) {
+        inventarioMaestro = JSON.parse(cache);
+        console.log("Cargado desde caché local (instantáneo)");
+        procesarDespuesDeCarga(); 
+    }
 
-                const resultado = await respuesta.json();
+    // 2. Hacer el fetch en segundo plano para obtener datos frescos
+    try {
+        const respuesta = await fetch(API_URL, {
+            method: 'POST',
+            mode: 'cors',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify({ action: 'obtenerInventario', token: tokenActual, correo: usuarioActual })
+        });
 
-                if (resultado.success) {
-                    inventarioMaestro = resultado.data;
-                    
-                    construirDropdownMarcas();
-                    renderizarFiltrosFamilia();
-                    filtrarProductos();
-                    
-                    document.getElementById('cargando-datos').classList.add('hidden');
-                    document.getElementById('contenedor-principal-catalogo').classList.remove('hidden');
-                } else {
-                    alert("Error: " + resultado.message);
-                    cerrarSesion();
-                }
-            } catch (err) {
-                alert("Error crítico al cargar el inventario.");
-            }
+        const resultado = await respuesta.json();
+
+        if (resultado.success) {
+            inventarioMaestro = resultado.data;
+            // Guardar en caché para la próxima vez
+            localStorage.setItem('inventario_cache', JSON.stringify(inventarioMaestro));
+            procesarDespuesDeCarga();
+        } else {
+            console.error("Error al sincronizar: " + resultado.message);
         }
+    } catch (err) {
+        console.error("Error al actualizar inventario:", err);
+    }
+}
+        function procesarDespuesDeCarga() {
+    construirDropdownMarcas();
+    renderizarFiltrosFamilia();
+    filtrarProductos();
+    
+    // Ocultar el cargando
+    document.getElementById('cargando-datos').classList.add('hidden');
+    document.getElementById('contenedor-principal-catalogo').classList.remove('hidden');
+}
 
         function construirDropdownMarcas() {
             const contenedor = document.getElementById('lista-marcas-dropdown');
