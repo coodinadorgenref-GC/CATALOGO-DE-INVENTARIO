@@ -209,10 +209,18 @@
                         <option value="AZ">Nombre: A - Z</option>
                         <option value="ZA">Nombre: Z - A</option>
                     </select>
-                    <div class="mt-4">
-                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Filtrar por Familia</label>
-                    <div id="filter-familia-container" class="mt-2 bg-slate-900 border border-slate-700 rounded-xl max-h-[250px] overflow-y-auto p-2">
-                        </div>
+                <div class="mt-4">
+                   <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Filtrar por Familia</label>
+                
+            <input type="text" id="busqueda-familia" placeholder="Buscar familia..." oninput="filtrarListaFamilias()"
+                   class="w-full mt-2 p-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:ring-1 focus:ring-emerald-500 outline-none">
+            
+            <button onclick="limpiarSeleccionFamilias()" class="text-[9px] text-emerald-500 font-bold uppercase mt-1 hover:underline">
+                Borrar selecciones
+            </button>
+            
+            <div id="filter-familia-container" class="mt-2 bg-slate-900 border border-slate-700 rounded-xl max-h-[200px] overflow-y-auto p-2">
+            </div>
                 </div>
             </aside>
 
@@ -256,7 +264,7 @@
         let tokenActual = "";
         let esAdmin = false;
         let marcaSeleccionadaActual = "TODAS";
-        let familiaSeleccionadaActual = "TODAS";
+        let familiaSeleccionadaActual = [];
         let criterioOrdenacionActual = "AZ";
 
         let paginaActual = 1;
@@ -474,31 +482,56 @@
 
             contenedor.innerHTML = htmlDropdown;
         }
-// --- FUNCION PARA DIBUJAR EL FILTRO DE FAMILIAS ---
-function renderizarFiltrosFamilia() {
-    const contenedor = document.getElementById('filter-familia-container');
-    if (!contenedor) return;
-
-    // Obtenemos familias únicas
-    const familias = [...new Set(inventarioMaestro.map(item => item.Familia || "Sin Familia"))].sort();
-    
-    let html = `<div class="flex flex-col gap-1 p-2 text-xs">`;
-    // Opción TODAS
-    html += `<label class="flex items-center gap-2 cursor-pointer hover:text-emerald-400">
-                <input type="radio" name="familia" value="TODAS" ${familiaSeleccionadaActual === 'TODAS' ? 'checked' : ''} onchange="seleccionarFamilia(this.value)"> 
-                TODAS
-             </label>`;
-    
-    // Lista de familias
-    familias.forEach(f => {
-        html += `<label class="flex items-center gap-2 cursor-pointer hover:text-emerald-400">
-                    <input type="radio" name="familia" value="${f}" ${familiaSeleccionadaActual === f ? 'checked' : ''} onchange="seleccionarFamilia(this.value)"> 
-                    ${f}
-                 </label>`;
-    });
-    html += `</div>`;
-    contenedor.innerHTML = html;
-}
+        // --- FUNCION PARA DIBUJAR EL FILTRO DE FAMILIAS ---
+        function renderizarFiltrosFamilia() {
+            const contenedor = document.getElementById('filter-familia-container');
+            if (!contenedor) return;
+        
+            const familias = [...new Set(inventarioMaestro.map(item => item.Familia || "Sin Familia"))].sort();
+            
+            let html = `<div class="flex flex-col gap-1 text-xs">`;
+            
+            familias.forEach(f => {
+                // Verifica si la familia está en tu array de seleccionadas
+                const isChecked = familiaSeleccionadaActual.includes(f) ? 'checked' : '';
+                html += `
+                <label class="flex items-center gap-2 p-1 cursor-pointer hover:bg-slate-800 rounded text-slate-300 item-familia">
+                    <input type="checkbox" value="${f}" ${isChecked} onchange="toggleFamilia(this)"> 
+                    <span class="nombre-familia">${f}</span>
+                </label>`;
+            });
+            html += `</div>`;
+            contenedor.innerHTML = html;
+        }
+        
+        // Lógica para marcar/desmarcar
+        function toggleFamilia(checkbox) {
+            if (checkbox.checked) {
+                familiaSeleccionadaActual.push(checkbox.value);
+            } else {
+                familiaSeleccionadaActual = familiaSeleccionadaActual.filter(f => f !== checkbox.value);
+            }
+            filtrarProductos(); 
+        }
+        
+        // Búsqueda en tiempo real
+        function filtrarListaFamilias() {
+            const busqueda = document.getElementById('busqueda-familia').value.toLowerCase();
+            const items = document.querySelectorAll('.item-familia');
+            items.forEach(item => {
+                const nombre = item.querySelector('.nombre-familia').innerText.toLowerCase();
+                item.style.display = nombre.includes(busqueda) ? 'flex' : 'none';
+            });
+        }
+        
+        // Borrar todo
+        function limpiarSeleccionFamilias() {
+            familiaSeleccionadaActual = [];
+            document.getElementById('busqueda-familia').value = "";
+            filtrarListaFamilias(); 
+            renderizarFiltrosFamilia(); 
+            filtrarProductos(); 
+        }
 
 function seleccionarFamilia(familia) {
     familiaSeleccionadaActual = familia;
@@ -744,10 +777,11 @@ function filtrarProductos() {
         }
         
         // 2. NUEVO: Filtro por familia
-        if (typeof familiaSeleccionadaActual !== 'undefined' && familiaSeleccionadaActual !== "TODAS") {
+        // ... dentro de filtrarProductos, sustituye el bloque de familia por esto:
+        if (familiaSeleccionadaActual.length > 0) {
             const familiaItem = (item.Familia || 'Sin Familia').trim();
-            if (familiaItem !== familiaSeleccionadaActual.trim()) {
-                return false;
+            if (!familiaSeleccionadaActual.includes(familiaItem)) {
+                return false; // Si no está en el array, lo excluye
             }
         }
         
