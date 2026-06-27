@@ -458,14 +458,21 @@ async function obtenerInventarioDesdeServidor() {
         console.error("Error al actualizar inventario:", err);
     }
 }
-        function procesarDespuesDeCarga() {
-    construirDropdownMarcas();
-    renderizarFiltrosFamilia();
-    filtrarProductos();
+function procesarDespuesDeCarga() {
+    // Esto es un "bloque de protección"
+    try {
+        if (typeof construirDropdownMarcas === 'function') construirDropdownMarcas();
+        if (typeof renderizarFiltrosFamilia === 'function') renderizarFiltrosFamilias();
+        if (typeof filtrarProductos === 'function') filtrarProductos();
+    } catch (e) {
+        console.error("Error menor en renderizado:", e);
+    }
     
-    // Ocultar el cargando
-    document.getElementById('cargando-datos').classList.add('hidden');
-    document.getElementById('contenedor-principal-catalogo').classList.remove('hidden');
+    // ESTO TIENE QUE EJECUTARSE SÍ O SÍ
+    const cargando = document.getElementById('cargando-datos');
+    const principal = document.getElementById('contenedor-principal-catalogo');
+    if (cargando) cargando.classList.add('hidden');
+    if (principal) principal.classList.remove('hidden');
 }
 
         function construirDropdownMarcas() {
