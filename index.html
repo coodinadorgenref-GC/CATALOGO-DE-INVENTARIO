@@ -210,10 +210,17 @@
                         <option value="ZA">Nombre: Z - A</option>
                     </select>
                 <div class="mt-4">
-                   <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Filtrar por Familia</label>
+            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Filtrar por Familia</label>
+            
+            <div class="relative w-full mt-2">
+                <input type="text" id="busqueda-familia" placeholder="Buscar familia..." oninput="filtrarListaFamilias()"
+                       class="w-full p-2 pr-8 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:ring-1 focus:ring-emerald-500 outline-none">
                 
-            <input type="text" id="busqueda-familia" placeholder="Buscar familia..." oninput="filtrarListaFamilias()"
-                   class="w-full mt-2 p-2 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:ring-1 focus:ring-emerald-500 outline-none">
+                <button id="btn-limpiar-familia" onclick="limpiarBuscadorFamilia()" 
+                        class="absolute right-2 top-1/2 transform -translate-y-1/2 text-slate-500 hover:text-emerald-400 hidden">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
             
             <button onclick="limpiarSeleccionFamilias()" class="text-[9px] text-emerald-500 font-bold uppercase mt-1 hover:underline">
                 Borrar selecciones
@@ -254,7 +261,7 @@
     </div>
 
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbw5SesUj-nUEwxzaJYwkGjPWtWBYJ1Nu7JuBVRB0Hsn3xmR_ifOv1vBDM_8HHBrseDE/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbzUT1APGQgQ_Qf3vE1dTqQx2wz7iIfDj_GfomD3ebIGXHG_Y3wwWJPXg9VTP8rHn6Qt/exec";
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -514,24 +521,43 @@
             filtrarProductos(); 
         }
         
-        // Búsqueda en tiempo real
-        function filtrarListaFamilias() {
-            const busqueda = document.getElementById('busqueda-familia').value.toLowerCase();
-            const items = document.querySelectorAll('.item-familia');
-            items.forEach(item => {
-                const nombre = item.querySelector('.nombre-familia').innerText.toLowerCase();
-                item.style.display = nombre.includes(busqueda) ? 'flex' : 'none';
-            });
-        }
-        
-        // Borrar todo
-        function limpiarSeleccionFamilias() {
-            familiaSeleccionadaActual = [];
-            document.getElementById('busqueda-familia').value = "";
-            filtrarListaFamilias(); 
-            renderizarFiltrosFamilia(); 
-            filtrarProductos(); 
-        }
+// --- BÚSQUEDA Y FILTRADO DE FAMILIAS ---
+function filtrarListaFamilias() {
+    const input = document.getElementById('busqueda-familia');
+    const btnLimpiar = document.getElementById('btn-limpiar-familia');
+    const busqueda = input.value.toLowerCase();
+    
+    // 1. Mostrar/ocultar el icono X dependiendo de si hay texto
+    if (btnLimpiar) {
+        btnLimpiar.classList.toggle('hidden', busqueda === "");
+    }
+
+    // 2. Filtrar los items de la lista
+    const items = document.querySelectorAll('.item-familia');
+    items.forEach(item => {
+        const nombre = item.querySelector('.nombre-familia').innerText.toLowerCase();
+        item.style.display = nombre.includes(busqueda) ? 'flex' : 'none';
+    });
+}
+
+function limpiarBuscadorFamilia() {
+    const input = document.getElementById('busqueda-familia');
+    const btnLimpiar = document.getElementById('btn-limpiar-familia');
+    
+    // 1. Limpiar el texto
+    input.value = "";
+    
+    // 2. Ocultar el icono X
+    if (btnLimpiar) {
+        btnLimpiar.classList.add('hidden');
+    }
+    
+    // 3. Volver a mostrar todos los elementos de la lista
+    const items = document.querySelectorAll('.item-familia');
+    items.forEach(item => {
+        item.style.display = 'flex';
+    });
+}
 
 function seleccionarFamilia(familia) {
     familiaSeleccionadaActual = familia;
