@@ -908,9 +908,9 @@ function seleccionarMarcaDropdown(event, marca) {
 function filtrarProductos() {
     actualizarTimestampSesion();
     
-    // 1. Obtener y normalizar la consulta: convertir a minúsculas y dividir por espacios
-    const consultaInput = document.getElementById('buscador').value.toLowerCase();
-    const palabrasConsulta = consultaInput.split(/\s+/).filter(p => p.length > 0);
+    // 1. Normalizamos la consulta: eliminamos espacios y convertimos a minúsculas
+    const consultaRaw = document.getElementById('buscador').value.toLowerCase();
+    const consultaSinEspacios = consultaRaw.replace(/\s+/g, ''); 
     
     criterioOrdenacionActual = document.getElementById('orden-alfabetico').value;
     
@@ -921,19 +921,17 @@ function filtrarProductos() {
         const cumpleMarca = marcaSeleccionadaActual.length === 0 || marcaSeleccionadaActual.includes(marcaItem);
         const cumpleFamilia = familiaSeleccionadaActual.length === 0 || familiaSeleccionadaActual.includes(familiaItem);
         
-        // 2. Crear un gran bloque de texto con toda la información del producto
+        // 2. Construimos el bloque de texto del producto y TAMBIÉN le quitamos espacios
         const textoCompleto = (
-            (item.SKU || '') + " " + 
-            (item.Producto || '') + " " + 
-            (item.Marca || '') + " " + 
-            (item.Compatibilidad || '') + " " + 
+            (item.SKU || '') + 
+            (item.Producto || '') + 
+            (item.Marca || '') + 
+            (item.Compatibilidad || '') + 
             (esAdmin ? (item.Pr_Numero_Parte || '') : '')
-        ).toLowerCase();
+        ).toLowerCase().replace(/\s+/g, ''); // <--- AQUÍ ESTÁ EL TRUCO
         
-        // 3. Verificar que TODAS las palabras de la consulta estén presentes en el texto
-        const coincidePalabras = palabrasConsulta.every(palabra => textoCompleto.includes(palabra));
-        
-        return cumpleMarca && cumpleFamilia && coincidePalabras;
+        // 3. Ahora comparamos dos bloques sin espacios
+        return cumpleMarca && cumpleFamilia && textoCompleto.includes(consultaSinEspacios);
     });
     
     renderizarTarjetasProductos(filtrados);
