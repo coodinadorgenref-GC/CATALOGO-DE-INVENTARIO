@@ -456,10 +456,13 @@ async function obtenerInventarioDesdeServidor() {
         console.error("Error al actualizar inventario:", err);
     }
 }
-// --- FUNCIÓN PROTEGIDA PARA PROCESAR LA CARGA ---
+// --- FUNCIÓN PROTEGIDA PARA PROCESAR LA CARGA (ACTUALIZADA) ---
 function procesarDespuesDeCarga() {
     try {
-        if (typeof construirDropdownMarcas === 'function') construirDropdownMarcas();
+        // --- AQUÍ ESTÁ EL CAMBIO ---
+        if (typeof renderizarFiltrosMarcas === 'function') renderizarFiltrosMarcas();
+        // -------------------------
+        
         if (typeof renderizarFiltrosFamilia === 'function') renderizarFiltrosFamilia();
         if (typeof filtrarProductos === 'function') filtrarProductos();
     } catch (e) {
