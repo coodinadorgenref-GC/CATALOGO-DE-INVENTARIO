@@ -508,22 +508,26 @@ function procesarDespuesDeCarga() {
             // Normalizamos la consulta para búsqueda sin espacios
             const consultaLimpia = consulta.replace(/\s+/g, '');
 
-            inventarioMaestro.forEach(item => {
-                // 1. Construimos el texto base unificado
-                const busquedaBase = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
-                
-                // 2. Agregamos parte de admin si aplica
-                const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '').toLowerCase()) : busquedaBase;
-                
-                // 3. Normalizamos el texto del producto y la consulta
-                const busquedaFinalSinEspacios = busquedaAdmin.replace(/\s+/g, '');
-                
-                const coincideTexto = !consultaLimpia || busquedaFinalSinEspacios.includes(consultaLimpia);
-                
-                if (coincideTexto && item.Marca && item.Marca.trim() !== "") {
-                    marcasSet.add(item.Marca.trim().toUpperCase());
-                }
-            });
+        inventarioMaestro.forEach(item => {
+            // Unimos los campos y quitamos espacios
+            const textoParaBuscar = (
+                String(item.SKU || '') + String(item.Producto || '') + 
+                String(item.Marca || '') + String(item.Compatibilidad || '') +
+                (esAdmin ? String(item.Pr_Numero_Parte || '') : '')
+            ).toLowerCase();
+            
+            // Normalizamos: quitamos espacios para la búsqueda
+            const busquedaNormalizada = normalizarTexto(textoParaBuscar).replace(/\s+/g, '');
+            
+            // Normalizamos la consulta también
+            const consultaNormalizada = normalizarTexto(consulta).replace(/\s+/g, '');
+            
+            const coincideTexto = !consultaNormalizada || busquedaNormalizada.includes(consultaNormalizada);
+            
+            if (coincideTexto && item.Marca && item.Marca.trim() !== "") {
+                marcasSet.add(item.Marca.trim().toUpperCase());
+            }
+        });
 
             const marcasOrdenadas = Array.from(marcasSet).sort();
             
@@ -904,23 +908,28 @@ function seleccionarMarcaDropdown(event, marca) {
 function filtrarProductos() {
     actualizarTimestampSesion();
     
-    const consultaNormalizada = normalizarTexto(document.getElementById('buscador').value);
+    // 1. Normalizamos la consulta del usuario eliminando espacios
+    const consultaInput = document.getElementById('buscador').value;
+    const consultaNormalizada = normalizarTexto(consultaInput).replace(/\s+/g, '');
+    
     criterioOrdenacionActual = document.getElementById('orden-alfabetico').value;
     
     const filtrados = inventarioMaestro.filter(item => {
         const marcaItem = (item.Marca || '').trim();
         const familiaItem = (item.Familia || 'Sin Familia').trim();
         
-        // Cumple si el arreglo está vacío (selección total) o si contiene la marca/familia actual
         const cumpleMarca = marcaSeleccionadaActual.length === 0 || marcaSeleccionadaActual.includes(marcaItem);
         const cumpleFamilia = familiaSeleccionadaActual.length === 0 || familiaSeleccionadaActual.includes(familiaItem);
         
-        const busquedaTexto = normalizarTexto(
+        // 2. Construimos el texto del producto y TAMBIÉN eliminamos espacios
+        const textoCompleto = (
             (item.SKU || '') + (item.Producto || '') + (item.Marca || '') + 
             (item.Compatibilidad || '') + (esAdmin ? (item.Pr_Numero_Parte || '') : '')
         );
+        const busquedaTextoNormalizada = normalizarTexto(textoCompleto).replace(/\s+/g, '');
         
-        return cumpleMarca && cumpleFamilia && busquedaTexto.includes(consultaNormalizada);
+        // 3. Comparación sin espacios
+        return cumpleMarca && cumpleFamilia && busquedaTextoNormalizada.includes(consultaNormalizada);
     });
     
     renderizarTarjetasProductos(filtrados);
