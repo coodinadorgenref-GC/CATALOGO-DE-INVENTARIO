@@ -562,6 +562,20 @@ function limpiarSeleccionFamilias() {
             }
             filtrarProductos(); 
         }
+        function toggleMarca(checkbox) {
+    if (checkbox.checked) {
+        marcaSeleccionadaActual.push(checkbox.value);
+    } else {
+        marcaSeleccionadaActual = marcaSeleccionadaActual.filter(m => m !== checkbox.value);
+    }
+    filtrarProductos(); // Llama a la lógica de filtrado que actualizamos antes
+}
+
+function limpiarSeleccionMarcas() {
+    marcaSeleccionadaActual = [];
+    document.querySelectorAll('#filter-marca-container input[type="checkbox"]').forEach(cb => cb.checked = false);
+    filtrarProductos();
+}
         
 // --- BÚSQUEDA Y FILTRADO DE FAMILIAS ---
 function filtrarListaFamilias() {
