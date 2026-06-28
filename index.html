@@ -536,6 +536,26 @@ function procesarDespuesDeCarga() {
             html += `</div>`;
             contenedor.innerHTML = html;
         }
+        // --- FUNCION PARA DIBUJAR EL FILTRO DE MARCAS ---
+function renderizarFiltrosMarcas() {
+    const contenedor = document.getElementById('filter-marca-container');
+    if (!contenedor) return;
+
+    const marcas = [...new Set(inventarioMaestro.map(item => item.Marca || "GENÉRICO"))].sort();
+    
+    let html = `<div class="flex flex-col gap-1 text-xs">`;
+    
+    marcas.forEach(m => {
+        const isChecked = marcaSeleccionadaActual.includes(m) ? 'checked' : '';
+        html += `
+        <label class="flex items-center gap-2 p-1 cursor-pointer hover:bg-slate-800 rounded text-slate-300 item-marca">
+            <input type="checkbox" value="${m}" ${isChecked} onchange="toggleMarca(this)"> 
+            <span class="nombre-marca">${m}</span>
+        </label>`;
+    });
+    html += `</div>`;
+    contenedor.innerHTML = html;
+}
 // --- FUNCIÓN PARA LIMPIAR FAMILIAS (ASEGÚRATE QUE ESTÉ FUERA DE OTRAS) ---
 function limpiarSeleccionFamilias() {
     try {
