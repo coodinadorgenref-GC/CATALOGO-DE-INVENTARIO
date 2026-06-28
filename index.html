@@ -830,39 +830,28 @@ function seleccionarFamilia(familia) {
 function filtrarProductos() {
     actualizarTimestampSesion();
     
-    // Obtenemos la consulta y la limpiamos de espacios
-    const consultaOriginal = document.getElementById('buscador').value.toLowerCase();
-    const consultaLimpia = consultaOriginal.replace(/\s+/g, '');
-    
+    const consultaNormalizada = normalizarTexto(document.getElementById('buscador').value);
     criterioOrdenacionActual = document.getElementById('orden-alfabetico').value;
     
     const filtrados = inventarioMaestro.filter(item => {
-        // 1. Filtro por marca (YA EXISTENTE)
-        if (marcaSeleccionadaActual !== "TODAS") {
-            const marcaItem = (item.Marca || '').toLowerCase().trim();
-            if (marcaItem !== marcaSeleccionadaActual.toLowerCase().trim()) {
-                return false; 
-            }
-        }
+        const marcaItem = (item.Marca || '').trim();
+        const familiaItem = (item.Familia || 'Sin Familia').trim();
         
-        // 2. NUEVO: Filtro por familia
-        // ... dentro de filtrarProductos, sustituye el bloque de familia por esto:
-        if (familiaSeleccionadaActual.length > 0) {
-            const familiaItem = (item.Familia || 'Sin Familia').trim();
-            if (!familiaSeleccionadaActual.includes(familiaItem)) {
-                return false; // Si no está en el array, lo excluye
-            }
-        }
+        // Lógica de Selección Múltiple: 
+        // Si el arreglo está vacío, se muestran todos (se entiende como "seleccionar todo")
+        const cumpleMarca = marcaSeleccionadaActual.length === 0 || marcaSeleccionadaActual.includes(marcaItem);
+        const cumpleFamilia = familiaSeleccionadaActual.length === 0 || familiaSeleccionadaActual.includes(familiaItem);
         
-        // 3. Construcción del texto de búsqueda (YA EXISTENTE)
-        const busquedaBase = (String(item.SKU || '') + String(item.Producto || '') + String(item.Marca || '') + String(item.Compatibilidad || '')).toLowerCase();
-        const busquedaAdmin = esAdmin ? (busquedaBase + String(item.Pr_Numero_Parte || '').toLowerCase()) : busquedaBase;
+        // Búsqueda principal normalizada
+        const busquedaTexto = normalizarTexto(
+            (item.SKU || '') + 
+            (item.Producto || '') + 
+            (item.Marca || '') + 
+            (item.Compatibilidad || '') + 
+            (esAdmin ? (item.Pr_Numero_Parte || '') : '')
+        );
         
-        // Limpiamos el texto completo del producto de espacios
-        const busquedaAdminSinEspacios = busquedaAdmin.replace(/\s+/g, '');
-        
-        // Comparamos los dos textos normalizados
-        return busquedaAdminSinEspacios.includes(consultaLimpia);
+        return cumpleMarca && cumpleFamilia && busquedaTexto.includes(consultaNormalizada);
     });
     
     renderizarTarjetasProductos(filtrados);
