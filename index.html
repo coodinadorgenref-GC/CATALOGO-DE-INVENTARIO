@@ -908,9 +908,9 @@ function seleccionarMarcaDropdown(event, marca) {
 function filtrarProductos() {
     actualizarTimestampSesion();
     
-    // 1. Normalizamos la consulta del usuario eliminando espacios
-    const consultaInput = document.getElementById('buscador').value;
-    const consultaNormalizada = normalizarTexto(consultaInput).replace(/\s+/g, '');
+    // 1. Obtener y normalizar la consulta: convertir a minúsculas y dividir por espacios
+    const consultaInput = document.getElementById('buscador').value.toLowerCase();
+    const palabrasConsulta = consultaInput.split(/\s+/).filter(p => p.length > 0);
     
     criterioOrdenacionActual = document.getElementById('orden-alfabetico').value;
     
@@ -921,15 +921,19 @@ function filtrarProductos() {
         const cumpleMarca = marcaSeleccionadaActual.length === 0 || marcaSeleccionadaActual.includes(marcaItem);
         const cumpleFamilia = familiaSeleccionadaActual.length === 0 || familiaSeleccionadaActual.includes(familiaItem);
         
-        // 2. Construimos el texto del producto y TAMBIÉN eliminamos espacios
+        // 2. Crear un gran bloque de texto con toda la información del producto
         const textoCompleto = (
-            (item.SKU || '') + (item.Producto || '') + (item.Marca || '') + 
-            (item.Compatibilidad || '') + (esAdmin ? (item.Pr_Numero_Parte || '') : '')
-        );
-        const busquedaTextoNormalizada = normalizarTexto(textoCompleto).replace(/\s+/g, '');
+            (item.SKU || '') + " " + 
+            (item.Producto || '') + " " + 
+            (item.Marca || '') + " " + 
+            (item.Compatibilidad || '') + " " + 
+            (esAdmin ? (item.Pr_Numero_Parte || '') : '')
+        ).toLowerCase();
         
-        // 3. Comparación sin espacios
-        return cumpleMarca && cumpleFamilia && busquedaTextoNormalizada.includes(consultaNormalizada);
+        // 3. Verificar que TODAS las palabras de la consulta estén presentes en el texto
+        const coincidePalabras = palabrasConsulta.every(palabra => textoCompleto.includes(palabra));
+        
+        return cumpleMarca && cumpleFamilia && coincidePalabras;
     });
     
     renderizarTarjetasProductos(filtrados);
@@ -1164,5 +1168,7 @@ function guardarCompatibilidad(sku) {
             imgAmpliada.classList.add('scale-95');
         }
     </script>
+    <script src="//cdn.jsdelivr.net/npm/eruda"></script>
+<script>eruda.init();</script>
 </body>
 </html>
