@@ -268,7 +268,6 @@
         let usuarioActual = "";
         let tokenActual = "";
         let esAdmin = false;
-        let marcaSeleccionadaActual = "TODAS";
         let familiaSeleccionadaActual = [];
         let marcaSeleccionadaActual = [];
         let criterioOrdenacionActual = "AZ";
@@ -837,18 +836,13 @@ function filtrarProductos() {
         const marcaItem = (item.Marca || '').trim();
         const familiaItem = (item.Familia || 'Sin Familia').trim();
         
-        // Lógica de Selección Múltiple: 
-        // Si el arreglo está vacío, se muestran todos (se entiende como "seleccionar todo")
+        // Cumple si el arreglo está vacío (selección total) o si contiene la marca/familia actual
         const cumpleMarca = marcaSeleccionadaActual.length === 0 || marcaSeleccionadaActual.includes(marcaItem);
         const cumpleFamilia = familiaSeleccionadaActual.length === 0 || familiaSeleccionadaActual.includes(familiaItem);
         
-        // Búsqueda principal normalizada
         const busquedaTexto = normalizarTexto(
-            (item.SKU || '') + 
-            (item.Producto || '') + 
-            (item.Marca || '') + 
-            (item.Compatibilidad || '') + 
-            (esAdmin ? (item.Pr_Numero_Parte || '') : '')
+            (item.SKU || '') + (item.Producto || '') + (item.Marca || '') + 
+            (item.Compatibilidad || '') + (esAdmin ? (item.Pr_Numero_Parte || '') : '')
         );
         
         return cumpleMarca && cumpleFamilia && busquedaTexto.includes(consultaNormalizada);
