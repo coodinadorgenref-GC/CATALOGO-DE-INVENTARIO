@@ -557,19 +557,38 @@ function procesarDespuesDeCarga() {
             html += `</div>`;
             contenedor.innerHTML = html;
         }
-        // --- FUNCION PARA DIBUJAR EL FILTRO DE MARCAS ---function renderizarFiltrosMarcas() {
+// --- FUNCION PARA DIBUJAR EL FILTRO DE FAMILIAS ---
+function renderizarFiltrosFamilia() {
+    const contenedor = document.getElementById('filter-familia-container');
+    if (!contenedor) return;
+
+    const familias = [...new Set(inventarioMaestro.map(item => item.Familia || "Sin Familia"))].sort();
+    
+    let html = `<div class="flex flex-col gap-1 text-xs">`;
+    
+    familias.forEach(f => {
+        const isChecked = familiaSeleccionadaActual.includes(f) ? 'checked' : '';
+        html += `
+        <label class="flex items-center gap-2 p-1 cursor-pointer hover:bg-slate-800 rounded text-slate-300 item-familia">
+            <input type="checkbox" value="${f}" ${isChecked} onchange="toggleFamilia(this)"> 
+            <span class="nombre-familia">${f}</span>
+        </label>`;
+    });
+    html += `</div>`;
+    contenedor.innerHTML = html;
+}
+
+// --- FUNCION PARA DIBUJAR EL FILTRO DE MARCAS ---
+function renderizarFiltrosMarcas() {
     const contenedor = document.getElementById('filter-marca-container');
     if (!contenedor) return;
 
-    // Obtenemos marcas únicas, ordenadas y aseguramos valores limpios
     const marcas = [...new Set(inventarioMaestro.map(item => (item.Marca || "GENÉRICO").trim()))].sort();
     
     let html = `<div class="flex flex-col gap-1 text-xs">`;
     
     marcas.forEach(m => {
-        // Mantenemos la lógica de checkbox seleccionado
         const isChecked = marcaSeleccionadaActual.includes(m) ? 'checked' : '';
-        
         html += `
         <label class="flex items-center gap-2 p-1 cursor-pointer hover:bg-slate-800 rounded text-slate-300 item-marca">
             <input type="checkbox" value="${m}" ${isChecked} onchange="toggleMarca(this)"> 
@@ -580,65 +599,19 @@ function procesarDespuesDeCarga() {
     html += `</div>`;
     contenedor.innerHTML = html;
     
-    // IMPORTANTE: Si el usuario ya estaba escribiendo algo en el buscador, 
-    // volvemos a aplicar el filtro para que no aparezcan todas de golpe al actualizar
+    // Aplicamos filtro si ya hay texto en el buscador
     filtrarListaMarcas();
 }
-// --- FUNCIÓN PARA LIMPIAR FAMILIAS (ASEGÚRATE QUE ESTÉ FUERA DE OTRAS) ---
-function limpiarSeleccionFamilias() {
-    try {
-        familiaSeleccionadaActual = []; 
-        const buscador = document.getElementById('busqueda-familia');
-        if (buscador) buscador.value = ""; 
-        
-        const btnLimpiar = document.getElementById('btn-limpiar-familia');
-        if (btnLimpiar) btnLimpiar.classList.add('hidden');
-        
-        if (typeof filtrarListaFamilias === 'function') filtrarListaFamilias(); 
-        if (typeof renderizarFiltrosFamilia === 'function') renderizarFiltrosFamilia();
-        if (typeof filtrarProductos === 'function') filtrarProductos();
-    } catch (e) {
-        console.error("Error al limpiar familias:", e);
-    }
-}
-        // Lógica para marcar/desmarcar
-        function toggleFamilia(checkbox) {
-            if (checkbox.checked) {
-                familiaSeleccionadaActual.push(checkbox.value);
-            } else {
-                familiaSeleccionadaActual = familiaSeleccionadaActual.filter(f => f !== checkbox.value);
-            }
-            filtrarProductos(); 
-        }
-        function toggleMarca(checkbox) {
-    if (checkbox.checked) {
-        marcaSeleccionadaActual.push(checkbox.value);
-    } else {
-        marcaSeleccionadaActual = marcaSeleccionadaActual.filter(m => m !== checkbox.value);
-    }
-    filtrarProductos(); // Llama a la lógica de filtrado que actualizamos antes
-}
 
-function limpiarSeleccionMarcas() {
-    marcaSeleccionadaActual = [];
-    document.querySelectorAll('#filter-marca-container input[type="checkbox"]').forEach(cb => cb.checked = false);
-    filtrarProductos();
-}
-        
 // --- BÚSQUEDA Y FILTRADO DE FAMILIAS ---
 function filtrarListaFamilias() {
     const input = document.getElementById('busqueda-familia');
     const btnLimpiar = document.getElementById('btn-limpiar-familia');
-    const busqueda = input.value.toLowerCase();
+    const busqueda = (input ? input.value : "").toLowerCase();
     
-    // 1. Mostrar/ocultar el icono X dependiendo de si hay texto
-    if (btnLimpiar) {
-        btnLimpiar.classList.toggle('hidden', busqueda === "");
-    }
+    if (btnLimpiar) btnLimpiar.classList.toggle('hidden', busqueda === "");
 
-    // 2. Filtrar los items de la lista
-    const items = document.querySelectorAll('.item-familia');
-    items.forEach(item => {
+    document.querySelectorAll('.item-familia').forEach(item => {
         const nombre = item.querySelector('.nombre-familia').innerText.toLowerCase();
         item.style.display = nombre.includes(busqueda) ? 'flex' : 'none';
     });
@@ -646,44 +619,85 @@ function filtrarListaFamilias() {
 
 function limpiarBuscadorFamilia() {
     const input = document.getElementById('busqueda-familia');
-    const btnLimpiar = document.getElementById('btn-limpiar-familia');
+    if (input) input.value = "";
+    const btn = document.getElementById('btn-limpiar-familia');
+    if (btn) btn.classList.add('hidden');
+    document.querySelectorAll('.item-familia').forEach(item => item.style.display = 'flex');
+}
+
+// --- BÚSQUEDA Y FILTRADO DE MARCAS (NUEVO) ---
+function filtrarListaMarcas() {
+    const input = document.getElementById('busqueda-marca');
+    const btnLimpiar = document.getElementById('btn-limpiar-marca');
+    const busqueda = (input ? input.value : "").toLowerCase();
     
-    // 1. Limpiar el texto
-    input.value = "";
-    
-    // 2. Ocultar el icono X
-    if (btnLimpiar) {
-        btnLimpiar.classList.add('hidden');
-    }
-    
-    // 3. Volver a mostrar todos los elementos de la lista
-    const items = document.querySelectorAll('.item-familia');
-    items.forEach(item => {
-        item.style.display = 'flex';
+    if (btnLimpiar) btnLimpiar.classList.toggle('hidden', busqueda === "");
+
+    document.querySelectorAll('.item-marca').forEach(item => {
+        const nombre = item.querySelector('.nombre-marca').innerText.toLowerCase();
+        item.style.display = nombre.includes(busqueda) ? 'flex' : 'none';
     });
 }
 
-function seleccionarFamilia(familia) {
-    familiaSeleccionadaActual = familia;
-    paginaActual = 1; // Volvemos a la primera página
+function limpiarBuscadorMarca() {
+    const input = document.getElementById('busqueda-marca');
+    if (input) input.value = "";
+    const btn = document.getElementById('btn-limpiar-marca');
+    if (btn) btn.classList.add('hidden');
+    document.querySelectorAll('.item-marca').forEach(item => item.style.display = 'flex');
+}
+
+// --- LÓGICA DE SELECCIÓN Y LIMPIEZA ---
+function toggleFamilia(checkbox) {
+    if (checkbox.checked) {
+        if (!familiaSeleccionadaActual.includes(checkbox.value)) familiaSeleccionadaActual.push(checkbox.value);
+    } else {
+        familiaSeleccionadaActual = familiaSeleccionadaActual.filter(f => f !== checkbox.value);
+    }
+    filtrarProductos(); 
+}
+
+function toggleMarca(checkbox) {
+    if (checkbox.checked) {
+        if (!marcaSeleccionadaActual.includes(checkbox.value)) marcaSeleccionadaActual.push(checkbox.value);
+    } else {
+        marcaSeleccionadaActual = marcaSeleccionadaActual.filter(m => m !== checkbox.value);
+    }
     filtrarProductos();
 }
-        function alternarDropdownMarcas(event) {
-            event.stopPropagation(); 
-            document.getElementById('lista-marcas-dropdown').classList.toggle('show');
-        }
 
-        function seleccionarMarcaDropdown(event, marca) {
-            event.preventDefault();
-            marcaSeleccionadaActual = marca;
-            document.getElementById('texto-marca-seleccionada').innerText = `Marca: ${marca}`;
-            
-            document.querySelectorAll('.item-marca-option').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            paginaActual = 1; 
-            filtrarProductos();
-        }
+function limpiarSeleccionFamilias() {
+    familiaSeleccionadaActual = [];
+    limpiarBuscadorFamilia();
+    renderizarFiltrosFamilia();
+    filtrarProductos();
+}
+
+function limpiarSeleccionMarcas() {
+    marcaSeleccionadaActual = [];
+    limpiarBuscadorMarca();
+    renderizarFiltrosMarcas();
+    filtrarProductos();
+}
+
+// --- DROPDOWNS MARCAS (Legado) ---
+function alternarDropdownMarcas(event) {
+    event.stopPropagation(); 
+    document.getElementById('lista-marcas-dropdown').classList.toggle('show');
+}
+
+function seleccionarMarcaDropdown(event, marca) {
+    event.preventDefault();
+    marcaSeleccionadaActual = marca;
+    const txt = document.getElementById('texto-marca-seleccionada');
+    if(txt) txt.innerText = `Marca: ${marca}`;
+    
+    document.querySelectorAll('.item-marca-option').forEach(el => el.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    paginaActual = 1; 
+    filtrarProductos();
+}
 
         function optimizarEnlaceImagen(enlaceOriginal) {
             if (!enlaceOriginal || typeof enlaceOriginal !== 'string') {
