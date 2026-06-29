@@ -276,13 +276,17 @@
         const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
         const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
-        function normalizarTexto(texto) {
-            if (!texto) return "";
-            return texto.toString().toLowerCase()
-                .normalize("NFD")             // Separa caracteres con acentos
-                .replace(/[\u0300-\u036f]/g, "") // Elimina acentos
-                .replace(/[^a-z0-9]/g, '');     // Elimina TODO lo que no sea letra o número (incluye puntos, guiones y espacios)
-        }
+function normalizarTexto(texto) {
+    if (!texto) return "";
+    return texto.toString().toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        // Cambiamos el regex para permitir espacios (añadimos \s)
+        .replace(/[^a-z0-9\s]/g, '') 
+        // Opcional: reemplazar múltiples espacios por uno solo
+        .replace(/\s+/g, ' ')
+        .trim();
+}
         
         let inventarioMaestro = [];
         let productosFiltradosGlobal = [];
