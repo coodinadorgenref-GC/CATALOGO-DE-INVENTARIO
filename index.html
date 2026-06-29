@@ -913,13 +913,10 @@ function seleccionarMarcaDropdown(event, marca) {
 function filtrarProductos() {
     actualizarTimestampSesion();
     
-    const consultaInput = document.getElementById('buscador').value;
-    const consultaNormalizada = normalizarTexto(consultaInput);
-    const palabrasConsulta = consultaNormalizada.split('').filter(p => p.length > 0); 
-    const palabras = consultaNormalizada.split(/\s+/).filter(p => p.length > 0);
+    // Normalizamos la consulta del usuario
+    const consultaNormalizada = normalizarTexto(document.getElementById('buscador').value);
     
-    criterioOrdenacionActual = document.getElementById('orden-alfabetico').value;
-    
+    // Si la consulta está vacía, mostramos todo para no forzar cálculos innecesarios
     const filtrados = inventarioMaestro.filter(item => {
         const marcaItem = (item.Marca || '').trim();
         const familiaItem = (item.Familia || 'Sin Familia').trim();
@@ -927,25 +924,18 @@ function filtrarProductos() {
         const cumpleMarca = marcaSeleccionadaActual.length === 0 || marcaSeleccionadaActual.includes(marcaItem);
         const cumpleFamilia = familiaSeleccionadaActual.length === 0 || familiaSeleccionadaActual.includes(familiaItem);
         
-        // 2. Construimos el bloque completo y lo normalizamos (sin acentos, sin espacios, minúsculas)
+        // Creamos el texto completo normalizado
         const textoCompleto = (
-            (item.SKU || '') + " " + 
-            (item.Producto || '') + " " + 
-            (item.Marca || '') + " " + 
-            (item.Compatibilidad || '') + " " + 
-            (esAdmin ? (item.Pr_Numero_Parte || '') : '')
+            (item.SKU || '') + (item.Producto || '') + (item.Marca || '') + 
+            (item.Compatibilidad || '') + (esAdmin ? (item.Pr_Numero_Parte || '') : '')
         );
-        const busquedaTextoNormalizada = normalizarTexto(textoCompleto);
         
-        // 3. Verificamos que TODAS las palabras de la búsqueda existan en el texto normalizado
-        const coincidePalabras = palabras.every(palabra => busquedaTextoNormalizada.includes(palabra));
-        
-        return cumpleMarca && cumpleFamilia && coincidePalabras;
+        // Comparamos versiones normalizadas (sin acentos, puntos, guiones ni espacios)
+        return cumpleMarca && cumpleFamilia && normalizarTexto(textoCompleto).includes(consultaNormalizada);
     });
     
     renderizarTarjetasProductos(filtrados);
-}
-        
+}        
         function abrirDetalleProducto(item) {
             const sku = item.SKU || "---";
             const titulo = item.Producto || "Sin Nombre";
