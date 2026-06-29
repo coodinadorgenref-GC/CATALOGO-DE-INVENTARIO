@@ -448,18 +448,22 @@ function forzarSincronizacionDatos() {
         }
 
 async function obtenerInventarioDesdeServidor() {
+    // 1. Intentar cargar desde el caché (solo si existe)
     const cache = localStorage.getItem('inventario_cache');
-    
-    // Si hay caché, cárgalo de forma asíncrona para que la pantalla no se congele
     if (cache) {
-        setTimeout(() => {
-            try {
+        try {
+            // El setTimeout(0) es clave para que la UI no se congele al parsear 3MB
+            setTimeout(() => {
                 inventarioMaestro = JSON.parse(cache);
-                procesarDespuesDeCarga(); 
-            } catch (e) { localStorage.removeItem('inventario_cache'); }
-        }, 50);
+                procesarDespuesDeCarga();
+            }, 0);
+        } catch (e) {
+            console.error("Error al leer caché, borrando...", e);
+            localStorage.removeItem('inventario_cache');
+        }
     }
 
+    // 2. Obtener datos frescos desde la red
     try {
         const respuesta = await fetch(API_URL, {
             method: 'POST',
@@ -467,18 +471,32 @@ async function obtenerInventarioDesdeServidor() {
             headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({ action: 'obtenerInventario', token: tokenActual, correo: usuarioActual })
         });
-
+        
         const resultado = await respuesta.json();
-
         if (resultado.success) {
             inventarioMaestro = resultado.data;
-            // Solo actualiza caché si el tamaño es manejable
-            if (JSON.stringify(inventarioMaestro).length < 4000000) { 
-                localStorage.setItem('inventario_cache', JSON.stringify(inventarioMaestro));
+
+            // --- AJUSTE PARA iOS / ARCHIVOS PESADOS ---
+            // Solo intentamos guardar si el navegador lo permite
+            if (!cache || cache.length !== JSON.stringify(inventarioMaestro).length) {
+                try {
+                    localStorage.setItem('inventario_cache', JSON.stringify(inventarioMaestro));
+                } catch (e) {
+                    console.warn("Almacenamiento lleno o bloqueado en iOS. No se guardó caché.");
+                    // Si falla el almacenamiento, no hacemos nada, la app ya tiene los datos en memoria
+                }
             }
-            procesarDespuesDeCarga();
+            
+            // Si ya habíamos cargado desde caché, no queremos duplicar el renderizado
+            if (!cache) {
+                procesarDespuesDeCarga();
+            }
+        } else {
+            console.error("Error del servidor: " + resultado.message);
         }
-    } catch (err) { console.error("Error al actualizar:", err); }
+    } catch (err) {
+        console.error("Error al actualizar inventario:", err);
+    }
 }
 // --- FUNCIÓN PROTEGIDA PARA PROCESAR LA CARGA (ACTUALIZADA) ---
 function procesarDespuesDeCarga() {
