@@ -941,140 +941,133 @@ function filtrarProductos() {
     });
     
     renderizarTarjetasProductos(filtrados);
-}        
-        function abrirDetalleProducto(item) {
-            const sku = item.SKU || "---";
-            const titulo = item.Producto || "Sin Nombre";
-            const marca = item.Marca || 'GENÉRICO';
-            const rawImagen = item.Imagen || "";
-            const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
-            
-            // Lógica actualizada: visualización del Pr_Numero_Parte para Admin
-            let htmlInfoAdmin = "";
-            if (esAdmin && item.Pr_Numero_Parte && item.Pr_Numero_Parte !== "") {
-                htmlInfoAdmin = `<p class="text-xs font-mono text-emerald-400 font-bold bg-emerald-950/30 p-2 rounded-lg border border-emerald-900/50 mb-3">
-                                   <i class="fa-solid fa-barcode mr-2"></i> Num. Parte: ${item.Pr_Numero_Parte}
-                                 </p>`;
-            }
-            
-            const htmlImagenModal = `<img src="${urlImagenOptimizada}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" onclick="abrirZoomImagen('${urlImagenOptimizada}')" class="absolute inset-0 w-full h-full object-cover cursor-zoom-in group-hover:scale-105 transition duration-300">`;
-            const rawCompatibilidad = item.Compatibilidad || "";
+}        function abrirDetalleProducto(item) {
+    const sku = item.SKU || "---";
+    const titulo = item.Producto || "Sin Nombre";
+    const marca = item.Marca || 'GENÉRICO';
+    const rawImagen = item.Imagen || "";
+    const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
+    
+    // Seguridad: Convertimos datos a JSON para evitar que caracteres especiales rompan el JS
+    const tituloSeguro = JSON.stringify(titulo); 
+    const rawCompatibilidad = item.Compatibilidad || "";
+    const compatibilidadSegura = JSON.stringify(rawCompatibilidad);
 
-            const inventarios = item.Existencias || item.Inventarios || [];
-            let htmlInventariosModal = "";
-            
-            if (inventarios.length > 0) {
-                htmlInventariosModal = `
-                    <div class="mt-4 p-4 bg-slate-900/60 rounded-xl border border-slate-700/50 mb-4">
-                        <p class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-layer-group mr-1.5"></i> Agencias y Disponibilidad:</p>
-                        <div class="max-h-[220px] overflow-y-auto flex flex-col gap-2 pr-1">
-                            ${inventarios.map(inv => `
-                                <div class="flex flex-col gap-2 bg-slate-900 p-3 rounded-lg border border-slate-700/40">
-                                    <div class="flex justify-between items-center text-xs">
-                                        <span class="text-slate-300 font-bold"><i class="fa-solid fa-location-dot text-emerald-500 mr-1"></i> ${inv.sucursal}</span>
-                                        <span class="font-mono bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded-md font-bold">${inv.cantidad} pzas</span>
-                                    </div>
-                                    ${!esAdmin ? `
-                                    <button onclick="enviarMensajeCotizacionModal('${sku}', '${titulo.replace(/'/g, "\\'")}', '${inv.telefono || inv.whatsapp || ''}')" 
-                                            class="w-full mt-1 bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-lg transition duration-150 text-[11px] flex items-center justify-center gap-1 shadow-xs cursor-pointer">
-                                        <i class="fa-brands fa-whatsapp"></i> Solicitar Cotización
-                                    </button>
-                                    ` : ''}
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            } else {
-                htmlInventariosModal = `
-                    <div class="mt-4 p-3 text-center bg-slate-900/30 rounded-xl border border-slate-700/40 mb-4">
-                        <p class="text-xs italic text-slate-500">Sin existencias en agencias</p>
-                    </div>
-                `;
-            }
+    // Lógica visualización del Pr_Numero_Parte para Admin
+    let htmlInfoAdmin = "";
+    if (esAdmin && item.Pr_Numero_Parte && item.Pr_Numero_Parte !== "") {
+        htmlInfoAdmin = `<p class="text-xs font-mono text-emerald-400 font-bold bg-emerald-950/30 p-2 rounded-lg border border-emerald-900/50 mb-3">
+                           <i class="fa-solid fa-barcode mr-2"></i> Num. Parte: ${item.Pr_Numero_Parte}
+                         </p>`;
+    }
+    
+    const htmlImagenModal = `<img src="${urlImagenOptimizada}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)" onclick="abrirZoomImagen('${urlImagenOptimizada}')" class="absolute inset-0 w-full h-full object-cover cursor-zoom-in group-hover:scale-105 transition duration-300">`;
 
-            let htmlBotonAdmin = "";
-            if (esAdmin) {
-                const urlCompletaForm = `${URL_FORM_ADMIN}${encodeURIComponent(sku)}`;
-                htmlBotonAdmin = `
-                <a href="${urlCompletaForm}" target="_blank" rel="noopener noreferrer" onclick="alternarModal()"
-                   class="mt-6 block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg cursor-pointer text-xs uppercase tracking-wider">
-                     <i class="fa-solid fa-pen-to-square mr-2"></i> Actualizar Info / Foto
-                </a>`;
-            }
-
-            let bloquesHTML = "";
-            let contador = 0;
-            if (rawCompatibilidad && rawCompatibilidad.trim() !== "") {
-                const lineas = rawCompatibilidad.split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 0);
-                let marcaActual = "";
-                let modelosDeMarca = [];
-
-                function cerrarBloque() {
-                    if (modelosDeMarca.length > 0) {
-                        contador++;
-                        bloquesHTML += `
-                            <div class="compatibilidad-container mb-4 last:mb-0">
-                                <div class="compatibilidad-marca" onclick="alternarCompatibilidad(${contador})">
-                                    ${marcaActual || 'MODELOS'}
-                                    <i id="icono-compat-${contador}" class="fa-solid fa-chevron-down text-[10px]"></i>
-                                </div>
-                                <ul id="lista-compat-${contador}" class="lista-compatibilidad-modal hidden-element">
-                                    ${modelosDeMarca.map(m => `<li>${m}</li>`).join('')}
-                                </ul>
+    const inventarios = item.Existencias || item.Inventarios || [];
+    let htmlInventariosModal = "";
+    
+    if (inventarios.length > 0) {
+        htmlInventariosModal = `
+            <div class="mt-4 p-4 bg-slate-900/60 rounded-xl border border-slate-700/50 mb-4">
+                <p class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2"><i class="fa-solid fa-layer-group mr-1.5"></i> Agencias y Disponibilidad:</p>
+                <div class="max-h-[220px] overflow-y-auto flex flex-col gap-2 pr-1">
+                    ${inventarios.map(inv => `
+                        <div class="flex flex-col gap-2 bg-slate-900 p-3 rounded-lg border border-slate-700/40">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-slate-300 font-bold"><i class="fa-solid fa-location-dot text-emerald-500 mr-1"></i> ${inv.sucursal}</span>
+                                <span class="font-mono bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded-md font-bold">${inv.cantidad} pzas</span>
                             </div>
-                        `;
-                    }
-                }
+                            ${!esAdmin ? `
+                            <button onclick='enviarMensajeCotizacionModal("${sku}", ${tituloSeguro}, "${inv.telefono || inv.whatsapp || ''}")' 
+                                    class="w-full mt-1 bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded-lg transition duration-150 text-[11px] flex items-center justify-center gap-1 shadow-xs cursor-pointer">
+                                <i class="fa-brands fa-whatsapp"></i> Solicitar Cotización
+                            </button>` : ''}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>`;
+    } else {
+        htmlInventariosModal = `<div class="mt-4 p-3 text-center bg-slate-900/30 rounded-xl border border-slate-700/40 mb-4"><p class="text-xs italic text-slate-500">Sin existencias en agencias</p></div>`;
+    }
 
-                lineas.forEach(linea => {
-                    if (linea.includes(':')) {
-                        cerrarBloque();
-                        const partes = linea.split(':');
-                        marcaActual = partes[0].trim();
-                        modelosDeMarca = partes[1] ? [partes[1].trim()] : [];
-                    } else {
-                        if (!marcaActual) marcaActual = "MODELOS COMPATIBLES";
-                        modelosDeMarca.push(linea);
-                    }
-                });
-                cerrarBloque();
-            } else {
-                bloquesHTML = `<div class="compatibilidad-container"><p class="text-xs text-slate-500 italic py-1 text-center">No se ha capturado información.</p></div>`;
+    let htmlBotonAdmin = "";
+    if (esAdmin) {
+        const urlCompletaForm = `${URL_FORM_ADMIN}${encodeURIComponent(sku)}`;
+        htmlBotonAdmin = `
+        <a href="${urlCompletaForm}" target="_blank" rel="noopener noreferrer" onclick="alternarModal()"
+           class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg cursor-pointer text-xs uppercase tracking-wider">
+             <i class="fa-solid fa-pen-to-square mr-2"></i> Actualizar Info / Foto
+        </a>`;
+    }
+
+    let bloquesHTML = "";
+    let contador = 0;
+    if (rawCompatibilidad && rawCompatibilidad.trim() !== "") {
+        const lineas = rawCompatibilidad.split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 0);
+        let marcaActual = "";
+        let modelosDeMarca = [];
+
+        function cerrarBloque() {
+            if (modelosDeMarca.length > 0) {
+                contador++;
+                bloquesHTML += `
+                    <div class="compatibilidad-container mb-4 last:mb-0">
+                        <div class="compatibilidad-marca" onclick="alternarCompatibilidad(${contador})">
+                            ${marcaActual || 'MODELOS'}
+                            <i id="icono-compat-${contador}" class="fa-solid fa-chevron-down text-[10px]"></i>
+                        </div>
+                        <ul id="lista-compat-${contador}" class="lista-compatibilidad-modal hidden-element">
+                            ${modelosDeMarca.map(m => `<li>${m}</li>`).join('')}
+                        </ul>
+                    </div>`;
             }
-
-            document.getElementById('modal-cuerpo').innerHTML = `
-                <div class="relative pt-[65%] bg-slate-900 overflow-hidden rounded-xl mb-4 border border-slate-700 group">
-                    ${htmlImagenModal}
-                    <div class="absolute bottom-2 right-2 bg-black/60 backdrop-blur-xs text-slate-300 text-[10px] font-bold py-1 px-2 rounded-md pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                        <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> Clic para ampliar
-                    </div>
-                </div>
-                <div class="mb-4">
-                    <span class="bg-emerald-950 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase inline-block mb-2">${marca}</span>
-                    <h2 class="text-lg font-bold text-white leading-snug">${titulo}</h2>
-                    <span class="text-xs font-mono text-slate-400 block mt-1">SKU: ${sku}</span>
-                    ${htmlInfoAdmin}
-                </div>
-                
-                ${htmlInventariosModal}
-                
-                <div class="space-y-3">
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1"><i class="fa-solid fa-wrench mr-1.5"></i> Compatibilidad:</p>
-                    <div id="contenedor-compatibilidad">${bloquesHTML}</div>
-                </div>
-                
-                ${esAdmin ? `
-                    <div class="grid grid-cols-2 gap-4 mt-6">
-                        ${htmlBotonAdmin.replace('mt-6', '')}
-                        <button id="btn-edicion" onclick="habilitarEdicion('${sku}', \`${rawCompatibilidad.replace(/'/g, "\\'")}\`)" class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg cursor-pointer text-xs uppercase tracking-wider flex items-center justify-center">
-                            <i class="fa-solid fa-pen-to-square mr-2"></i> Editar Compatibilidad
-                        </button>
-                    </div>
-                ` : ""}
-            `;
-            alternarModal();
         }
+
+        lineas.forEach(linea => {
+            if (linea.includes(':')) {
+                cerrarBloque();
+                const partes = linea.split(':');
+                marcaActual = partes[0].trim();
+                modelosDeMarca = partes[1] ? [partes[1].trim()] : [];
+            } else {
+                if (!marcaActual) marcaActual = "MODELOS COMPATIBLES";
+                modelosDeMarca.push(linea);
+            }
+        });
+        cerrarBloque();
+    } else {
+        bloquesHTML = `<div class="compatibilidad-container"><p class="text-xs text-slate-500 italic py-1 text-center">No se ha capturado información.</p></div>`;
+    }
+
+    document.getElementById('modal-cuerpo').innerHTML = `
+        <div class="relative pt-[65%] bg-slate-900 overflow-hidden rounded-xl mb-4 border border-slate-700 group">
+            ${htmlImagenModal}
+            <div class="absolute bottom-2 right-2 bg-black/60 backdrop-blur-xs text-slate-300 text-[10px] font-bold py-1 px-2 rounded-md pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> Clic para ampliar
+            </div>
+        </div>
+        <div class="mb-4">
+            <span class="bg-emerald-950 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase inline-block mb-2">${marca}</span>
+            <h2 class="text-lg font-bold text-white leading-snug">${titulo}</h2>
+            <span class="text-xs font-mono text-slate-400 block mt-1">SKU: ${sku}</span>
+            ${htmlInfoAdmin}
+        </div>
+        ${htmlInventariosModal}
+        <div class="space-y-3">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1"><i class="fa-solid fa-wrench mr-1.5"></i> Compatibilidad:</p>
+            <div id="contenedor-compatibilidad">${bloquesHTML}</div>
+        </div>
+        ${esAdmin ? `
+            <div class="grid grid-cols-2 gap-4 mt-6">
+                ${htmlBotonAdmin}
+                <button id="btn-edicion" onclick='habilitarEdicion("${sku}", ${compatibilidadSegura})' class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition duration-200 shadow-lg cursor-pointer text-xs uppercase tracking-wider flex items-center justify-center">
+                    <i class="fa-solid fa-pen-to-square mr-2"></i> Editar Comp.
+                </button>
+            </div>
+        ` : ""}
+    `;
+    alternarModal();
+}
 
         function alternarCompatibilidad(id) {
             const lista = document.getElementById('lista-compat-' + id);
