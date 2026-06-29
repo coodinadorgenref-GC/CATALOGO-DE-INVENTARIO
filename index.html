@@ -883,20 +883,30 @@ function ejecutarOrdenacionYRenderizado() {
             document.getElementById('contenedor-principal-catalogo').scrollIntoView({ behavior: 'smooth' });
         }
 
-        function ejecutarBusquedaCombinada() {
-            const buscador = document.getElementById('buscador');
-            const btnLimpiar = document.getElementById('btn-limpiar-buscador');
-            
-            if (buscador.value.length > 0) {
-                btnLimpiar.classList.remove('hidden');
-            } else {
-                btnLimpiar.classList.add('hidden');
-            }
-            
-            paginaActual = 1;
-            construirDropdownMarcas(); 
-            filtrarProductos();        
-        }
+// 1. Declara esta variable global fuera de la función
+let debounceTimer;
+
+function ejecutarBusquedaCombinada() {
+    const buscador = document.getElementById('buscador');
+    const btnLimpiar = document.getElementById('btn-limpiar-buscador');
+    
+    // Mostramos el botón de limpiar inmediatamente (esto no debe esperar)
+    if (buscador.value.length > 0) {
+        btnLimpiar.classList.remove('hidden');
+    } else {
+        btnLimpiar.classList.add('hidden');
+    }
+
+    // 2. Cancelamos el temporizador anterior si el usuario sigue escribiendo
+    clearTimeout(debounceTimer);
+
+    // 3. Programamos la ejecución de la búsqueda 300ms después de que el usuario deje de teclear
+    debounceTimer = setTimeout(() => {
+        paginaActual = 1;
+        construirDropdownMarcas(); 
+        filtrarProductos();        
+    }, 300);
+}
 
         function limpiarBuscadorTexto() {
             const buscador = document.getElementById('buscador');
