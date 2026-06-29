@@ -728,59 +728,63 @@ function seleccionarMarcaDropdown(event, marca) {
             imgElement.src = 'https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto';
         }
 
-        function ejecutarOrdenacionYRenderizado() {
-            if (criterioOrdenacionActual === 'AZ') {
-                productosFiltradosGlobal.sort((a, b) => (a.Producto || '').localeCompare(b.Producto || ''));
-            } else if (criterioOrdenacionActual === 'ZA') {
-                productosFiltradosGlobal.sort((a, b) => (b.Producto || '').localeCompare(a.Producto || ''));
-            }
+function ejecutarOrdenacionYRenderizado() {
+    if (criterioOrdenacionActual === 'AZ') {
+        productosFiltradosGlobal.sort((a, b) => (a.Producto || '').localeCompare(b.Producto || ''));
+    } else if (criterioOrdenacionActual === 'ZA') {
+        productosFiltradosGlobal.sort((a, b) => (b.Producto || '').localeCompare(a.Producto || ''));
+    }
 
-            const grid = document.getElementById('grid-productos');
-            const sinResultados = document.getElementById('sin-resultados');
-            grid.innerHTML = "";
+    const grid = document.getElementById('grid-productos');
+    const sinResultados = document.getElementById('sin-resultados');
+    
+    // Usamos un Fragmento para no repintar el DOM tantas veces (Mejora drástica en iOS)
+    const fragmento = document.createDocumentFragment();
+    grid.innerHTML = "";
 
-            if (productosFiltradosGlobal.length === 0) {
-                sinResultados.classList.remove('hidden');
-                construirControlesVisualesPaginacion(0);
-                return;
-            }
-            sinResultados.classList.add('hidden');
+    if (productosFiltradosGlobal.length === 0) {
+        sinResultados.classList.remove('hidden');
+        construirControlesVisualesPaginacion(0);
+        return;
+    }
+    sinResultados.classList.add('hidden');
 
-            const indiceInicio = (paginaActual - 1) * tarjetasPorPagina;
-            const indiceFin = indiceInicio + tarjetasPorPagina;
-            const sublistaPagina = productosFiltradosGlobal.slice(indiceInicio, indiceFin);
+    const indiceInicio = (paginaActual - 1) * tarjetasPorPagina;
+    const indiceFin = indiceInicio + tarjetasPorPagina;
+    const sublistaPagina = productosFiltradosGlobal.slice(indiceInicio, indiceFin);
 
-            sublistaPagina.forEach((item) => {
-                const tarjeta = document.createElement('div');
-                tarjeta.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col justify-between transition duration-200 group border-camejo cursor-pointer";
-                tarjeta.onclick = () => {
-                    actualizarTimestampSesion();
-                    abrirDetalleProducto(item);
-                };
-                
-                const rawImagen = item.Imagen || "";
-                const urlImagenOptimizada = optimizarEnlaceImagen(rawImagen);
-                const htmlImagen = generarHtmlContenedorImagen(urlImagenOptimizada);
-
-                tarjeta.innerHTML = `
-                    <div class="flex flex-col h-full justify-between">
-                        <div>
-                            <div class="relative pt-[75%] bg-slate-900 overflow-hidden">
-                                ${htmlImagen}
-                                <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase z-10">${item.Marca || 'GENÉRICO'}</span>
-                            </div>
-                            <div class="p-4 flex flex-col gap-1">
-                                <span class="text-[11px] font-mono font-bold text-slate-400 tracking-wide block">SKU: ${item.SKU || '---'}</span>
-                                <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition duration-150">${item.Producto || 'Sin Nombre'}</h3>
-                            </div>
-                        </div>
+    sublistaPagina.forEach((item) => {
+        const tarjeta = document.createElement('div');
+        tarjeta.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col justify-between transition duration-200 group border-camejo cursor-pointer";
+        
+        // Uso de arrow function limpia para el evento
+        tarjeta.onclick = () => {
+            actualizarTimestampSesion();
+            abrirDetalleProducto(item);
+        };
+        
+        const urlImagenOptimizada = optimizarEnlaceImagen(item.Imagen || "");
+        
+        tarjeta.innerHTML = `
+            <div class="flex flex-col h-full justify-between">
+                <div>
+                    <div class="relative pt-[75%] bg-slate-900 overflow-hidden">
+                        ${generarHtmlContenedorImagen(urlImagenOptimizada)}
+                        <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase z-10">${item.Marca || 'GENÉRICO'}</span>
                     </div>
-                `;
-                grid.appendChild(tarjeta);
-            });
+                    <div class="p-4 flex flex-col gap-1">
+                        <span class="text-[11px] font-mono font-bold text-slate-400 tracking-wide block">SKU: ${item.SKU || '---'}</span>
+                        <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition duration-150">${item.Producto || 'Sin Nombre'}</h3>
+                    </div>
+                </div>
+            </div>
+        `;
+        fragmento.appendChild(tarjeta);
+    });
 
-            construirControlesVisualesPaginacion(productosFiltradosGlobal.length);
-        }
+    grid.appendChild(fragmento);
+    construirControlesVisualesPaginacion(productosFiltradosGlobal.length);
+}
 
         function renderizarTarjetasProductos(listaProductos) {
             productosFiltradosGlobal = listaProductos;
