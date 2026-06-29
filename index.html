@@ -279,8 +279,9 @@
         function normalizarTexto(texto) {
             if (!texto) return "";
             return texto.toString().toLowerCase()
-                .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Elimina acentos
-                .replace(/\s+/g, ''); // Elimina espacios
+                .normalize("NFD")             // Separa caracteres con acentos
+                .replace(/[\u0300-\u036f]/g, "") // Elimina acentos
+                .replace(/[^a-z0-9]/g, '');     // Elimina TODO lo que no sea letra o número (incluye puntos, guiones y espacios)
         }
         
         let inventarioMaestro = [];
