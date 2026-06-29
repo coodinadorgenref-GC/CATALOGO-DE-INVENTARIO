@@ -511,48 +511,39 @@ function procesarDespuesDeCarga() {
     }
 }
 
-        function construirDropdownMarcas() {
-            const contenedor = document.getElementById('lista-marcas-dropdown');
-            if (!contenedor) return;
+       function construirDropdownMarcas() {
+    const contenedor = document.getElementById('lista-marcas-dropdown');
+    if (!contenedor) return;
 
-            const consulta = document.getElementById('buscador').value.toLowerCase().trim();
+    // Normalizamos la consulta UNA SOLA VEZ fuera del bucle
+    const inputVal = document.getElementById('buscador').value;
+    const consultaNormalizada = normalizarTexto(inputVal);
 
-            // Actualización del bucle para generar marcasSet
-            const marcasSet = new Set();
-            // Normalizamos la consulta para búsqueda sin espacios
-            const consultaLimpia = consulta.replace(/\s+/g, '');
+    const marcasSet = new Set();
 
-        inventarioMaestro.forEach(item => {
-            // Unimos los campos y quitamos espacios
-            const textoParaBuscar = (
-                String(item.SKU || '') + String(item.Producto || '') + 
-                String(item.Marca || '') + String(item.Compatibilidad || '') +
-                (esAdmin ? String(item.Pr_Numero_Parte || '') : '')
-            ).toLowerCase();
-            
-            // Normalizamos: quitamos espacios para la búsqueda
-            const busquedaNormalizada = normalizarTexto(textoParaBuscar).replace(/\s+/g, '');
-            
-            // Normalizamos la consulta también
-            const consultaNormalizada = normalizarTexto(consulta).replace(/\s+/g, '');
-            
-            const coincideTexto = !consultaNormalizada || busquedaNormalizada.includes(consultaNormalizada);
-            
-            if (coincideTexto && item.Marca && item.Marca.trim() !== "") {
+    inventarioMaestro.forEach(item => {
+        // Concatenamos una sola vez
+        const textoBase = (item.SKU || '') + (item.Producto || '') + (item.Marca || '') + 
+                          (item.Compatibilidad || '') + (esAdmin ? (item.Pr_Numero_Parte || '') : '');
+        
+        const busquedaNormalizada = normalizarTexto(textoBase);
+        
+        if (busquedaNormalizada.includes(consultaNormalizada)) {
+            if (item.Marca && item.Marca.trim() !== "") {
                 marcasSet.add(item.Marca.trim().toUpperCase());
             }
-        });
-
-            const marcasOrdenadas = Array.from(marcasSet).sort();
-            
-            let htmlDropdown = `<a href="#" onclick="seleccionarMarcaDropdown(event, 'TODAS')" class="item-marca-option ${marcaSeleccionadaActual === 'TODAS' ? 'active' : ''}">TODAS</a>`;
-            
-            marcasOrdenadas.forEach(marca => {
-                htmlDropdown += `<a href="#" onclick="seleccionarMarcaDropdown(event, '${marca}')" class="item-marca-option ${marcaSeleccionadaActual === marca ? 'active' : ''}">${marca}</a>`;
-            });
-
-            contenedor.innerHTML = htmlDropdown;
         }
+    });
+
+    const marcasOrdenadas = Array.from(marcasSet).sort();
+    
+    let htmlDropdown = `<a href="#" onclick="seleccionarMarcaDropdown(event, 'TODAS')" class="item-marca-option ${marcaSeleccionadaActual === 'TODAS' ? 'active' : ''}">TODAS</a>`;
+    marcasOrdenadas.forEach(marca => {
+        htmlDropdown += `<a href="#" onclick="seleccionarMarcaDropdown(event, '${marca}')" class="item-marca-option ${marcaSeleccionadaActual === marca ? 'active' : ''}">${marca}</a>`;
+    });
+
+    contenedor.innerHTML = htmlDropdown;
+}
         // --- FUNCION PARA DIBUJAR EL FILTRO DE FAMILIAS ---
         function renderizarFiltrosFamilia() {
             const contenedor = document.getElementById('filter-familia-container');
