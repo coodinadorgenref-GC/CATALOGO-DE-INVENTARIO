@@ -784,6 +784,8 @@ function seleccionarMarcaDropdown(event, marca) {
 
         function renderizarTarjetasProductos(listaProductos) {
             productosFiltradosGlobal = listaProductos;
+            // Si la lista es muy grande, reseteamos a página 1 para evitar errores de índice
+            if ((paginaActual - 1) * tarjetasPorPagina >= listaProductos.length) paginaActual = 1;
             ejecutarOrdenacionYRenderizado();
         }
 
