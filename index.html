@@ -921,10 +921,10 @@ function ejecutarOrdenacionYRenderizado() {
 function filtrarProductos() {
     actualizarTimestampSesion();
     
-    // Normalizamos la consulta del usuario
-    const consultaNormalizada = normalizarTexto(document.getElementById('buscador').value);
+    // Convertimos la búsqueda del usuario en un array de palabras
+    const queryRaw = document.getElementById('buscador').value;
+    const palabrasBusqueda = normalizarTexto(queryRaw).split(' ').filter(p => p.length > 0);
     
-    // Si la consulta está vacía, mostramos todo para no forzar cálculos innecesarios
     const filtrados = inventarioMaestro.filter(item => {
         const marcaItem = (item.Marca || '').trim();
         const familiaItem = (item.Familia || 'Sin Familia').trim();
@@ -932,18 +932,18 @@ function filtrarProductos() {
         const cumpleMarca = marcaSeleccionadaActual.length === 0 || marcaSeleccionadaActual.includes(marcaItem);
         const cumpleFamilia = familiaSeleccionadaActual.length === 0 || familiaSeleccionadaActual.includes(familiaItem);
         
-        // Creamos el texto completo normalizado
-        const textoCompleto = (
-            (item.SKU || '') + (item.Producto || '') + (item.Marca || '') + 
-            (item.Compatibilidad || '') + (esAdmin ? (item.Pr_Numero_Parte || '') : '')
-        );
+        if (!cumpleMarca || !cumpleFamilia) return false;
+
+        // Concatenamos campos para búsqueda
+        const textoCompleto = normalizarTexto(`${item.SKU} ${item.Producto} ${item.Marca} ${item.Compatibilidad} ${esAdmin ? item.Pr_Numero_Parte : ''}`);
         
-        // Comparamos versiones normalizadas (sin acentos, puntos, guiones ni espacios)
-        return cumpleMarca && cumpleFamilia && normalizarTexto(textoCompleto).includes(consultaNormalizada);
+        // El producto es válido si CONTIENE TODAS las palabras buscadas
+        return palabrasBusqueda.every(p => textoCompleto.includes(p));
     });
     
     renderizarTarjetasProductos(filtrados);
-}        function abrirDetalleProducto(item) {
+}       
+        function abrirDetalleProducto(item) {
     const sku = item.SKU || "---";
     const titulo = item.Producto || "Sin Nombre";
     const marca = item.Marca || 'GENÉRICO';
