@@ -483,23 +483,24 @@ async function obtenerInventarioDesdeServidor() {
 // --- FUNCIÓN PROTEGIDA PARA PROCESAR LA CARGA (ACTUALIZADA) ---
 function procesarDespuesDeCarga() {
     try {
-        // 1. Renderizamos filtros primero (Son ligeros)
-        if (typeof renderizarFiltrosMarcas === 'function') renderizarFiltrosMarcas();
-        if (typeof renderizarFiltrosFamilia === 'function') renderizarFiltrosFamilia();
-        
-        // 2. Ocultamos el spinner de carga inmediatamente después de dibujar filtros
+        // 1. Mostrar estructura base inmediatamente
         const cargando = document.getElementById('cargando-datos');
         const principal = document.getElementById('contenedor-principal-catalogo');
         if (cargando) cargando.classList.add('hidden');
         if (principal) principal.classList.remove('hidden');
 
-        // 3. Escalamos el filtrado inicial para que el usuario no sienta lag al abrir
+        // 2. Renderizar filtros (son elementos pequeños, no bloquean)
+        if (typeof renderizarFiltrosMarcas === 'function') renderizarFiltrosMarcas();
+        if (typeof renderizarFiltrosFamilia === 'function') renderizarFiltrosFamilia();
+        
+        // 3. Filtrar y renderizar productos con un pequeño delay
+        // Esto permite que el navegador dibuje primero los filtros y luego los productos
         setTimeout(() => {
-            if (typeof filtrarProductos === 'function') filtrarProductos();
-        }, 150); 
+            filtrarProductos();
+        }, 300); 
         
     } catch (e) {
-        console.error("Error en el flujo de carga:", e);
+        console.error("Error en flujo de carga:", e);
     }
 }
 
