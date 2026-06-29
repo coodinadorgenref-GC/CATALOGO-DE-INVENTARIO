@@ -280,10 +280,10 @@ function normalizarTexto(texto) {
     if (!texto) return "";
     return texto.toString().toLowerCase()
         .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "") // Elimina acentos
-        .replace(/[^a-z0-9\s]/g, '')     // AHORA MANTIENE ESPACIOS
+        .replace(/[\u0300-\u036f]/g, "") // Quita acentos
+        .replace(/[^a-z0-9\s]/g, '')     // Mantiene espacios
         .trim()
-        .replace(/\s+/g, ' ');          // Unifica espacios múltiples en uno solo
+        .replace(/\s+/g, ' ');          // Unifica espacios
 }
         
         let inventarioMaestro = [];
