@@ -912,10 +912,11 @@ function ejecutarOrdenacionYRenderizado() {
 function filtrarProductos() {
     actualizarTimestampSesion();
     
-    // Convertimos la búsqueda del usuario en un array de palabras
-    const queryRaw = document.getElementById('buscador').value;
-    const palabrasBusqueda = normalizarTexto(queryRaw).split(' ').filter(p => p.length > 0);
+    // Normalizamos y dividimos la búsqueda en palabras clave (tokens)
+    const consultaNormalizada = normalizarTexto(document.getElementById('buscador').value);
+    const palabras = consultaNormalizada.split(' ').filter(p => p.length > 0);
     
+    // Filtrado eficiente
     const filtrados = inventarioMaestro.filter(item => {
         const marcaItem = (item.Marca || '').trim();
         const familiaItem = (item.Familia || 'Sin Familia').trim();
@@ -925,14 +926,17 @@ function filtrarProductos() {
         
         if (!cumpleMarca || !cumpleFamilia) return false;
 
-        // Concatenamos campos para búsqueda
+        // Comparamos contra el texto concatenado
         const textoCompleto = normalizarTexto(`${item.SKU} ${item.Producto} ${item.Marca} ${item.Compatibilidad} ${esAdmin ? item.Pr_Numero_Parte : ''}`);
         
-        // El producto es válido si CONTIENE TODAS las palabras buscadas
-        return palabrasBusqueda.every(p => textoCompleto.includes(p));
+        // Verifica que TODAS las palabras estén presentes
+        return palabras.every(p => textoCompleto.includes(p));
     });
     
-    renderizarTarjetasProductos(filtrados);
+    // Renderizado diferido para evitar lag en iPhone
+    setTimeout(() => {
+        renderizarTarjetasProductos(filtrados);
+    }, 0);
 }       
         function abrirDetalleProducto(item) {
     const sku = item.SKU || "---";
