@@ -445,12 +445,17 @@ async function obtenerInventarioDesdeServidor() {
     // 1. Intentar cargar desde el caché local al instante
     const cache = localStorage.getItem('inventario_cache');
     if (cache) {
-        inventarioMaestro = JSON.parse(cache);
-        console.log("Cargado desde caché local (instantáneo)");
-        procesarDespuesDeCarga(); 
+        try {
+            inventarioMaestro = JSON.parse(cache);
+            console.log("Cargado desde caché local");
+            procesarDespuesDeCarga(); 
+        } catch (e) {
+            console.warn("Caché corrupto, ignorando...");
+            localStorage.removeItem('inventario_cache');
+        }
     }
 
-    // 2. Hacer el fetch en segundo plano para obtener datos frescos
+    // 2. Hacer el fetch en segundo plano
     try {
         const respuesta = await fetch(API_URL, {
             method: 'POST',
@@ -463,8 +468,16 @@ async function obtenerInventarioDesdeServidor() {
 
         if (resultado.success) {
             inventarioMaestro = resultado.data;
-            // Guardar en caché para la próxima vez
-            localStorage.setItem('inventario_cache', JSON.stringify(inventarioMaestro));
+            
+            // --- AQUÍ ESTÁ EL CAMBIO PARA iOS ---
+            try {
+                localStorage.setItem('inventario_cache', JSON.stringify(inventarioMaestro));
+            } catch (e) {
+                console.warn("No se pudo guardar en caché (memoria llena):", e);
+                // No pasa nada, el catálogo funcionará igual con los datos del servidor
+            }
+            // ------------------------------------
+            
             procesarDespuesDeCarga();
         } else {
             console.error("Error al sincronizar: " + resultado.message);
