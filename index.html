@@ -415,9 +415,16 @@
         <h2 class="text-base font-black uppercase tracking-wide text-white flex items-center gap-2">
             <i class="fa-solid fa-cart-shopping text-emerald-400"></i> Mi Cotización
         </h2>
-        <button onclick="toggleCarrito()" class="text-slate-400 hover:text-white text-xl cursor-pointer">
-            <i class="fa-solid fa-xmark"></i>
-        </button>
+        <div class="flex items-center gap-2">
+            <button onclick="guardarCambiosCarritoManual()" id="btn-guardar-carrito"
+                    title="Guardar cambios"
+                    class="text-[10px] font-bold uppercase bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition">
+                <i class="fa-solid fa-floppy-disk"></i> <span class="hidden sm:inline">Guardar</span>
+            </button>
+            <button onclick="toggleCarrito()" class="text-slate-400 hover:text-white text-xl cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
     </div>
 
     <!-- Lista de items -->
@@ -497,20 +504,23 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbx2G7nttQWx0Z8WfHban8ZmldZJnKC8xwejZgNVV-CxLH6Bb8yzl1qty9Adw9sMwPVJ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycby7R0TiYnOtYB3OG1tMZShHwdAodT6SaHVk4WYal9BqErCiIcoARbtbydKRZHRrZo7Y/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
 /**
  * REGLAS DE AGENCIA
- * Define qué grupos son exclusivos (no pueden mezclarse con otras agencias).
- * Vento y Carabela comparten almacén → mismo grupo → pueden cotizar juntos.
+ * BAJAJ y SUZUKI son exclusivos (no se pueden mezclar/vender entre sucursales).
+ * VENTO y CARABELA comparten el mismo almacén lógico (pueden cerrar venta juntos),
+ * pero visualmente cada uno conserva su propio color/etiqueta:
+ *   VENTO    → morado
+ *   CARABELA → naranja
  */
 const GRUPOS_AGENCIA = {
-    BAJAJ:    { nombre: "Bajaj",    exclusivo: true,  emoji: "🏍️" },
-    SUZUKI:   { nombre: "Suzuki",   exclusivo: true,  emoji: "🔵" },
-    VENTO:    { nombre: "Vento / Carabela", exclusivo: false, emoji: "🟠" },
-    CARABELA: { nombre: "Vento / Carabela", exclusivo: false, emoji: "🟠" },
+    BAJAJ:    { nombre: "Bajaj",    exclusivo: true,  emoji: "🏍️", almacen: "BAJAJ" },
+    SUZUKI:   { nombre: "Suzuki",   exclusivo: true,  emoji: "🔵", almacen: "SUZUKI" },
+    VENTO:    { nombre: "Vento",    exclusivo: false, emoji: "🟣", almacen: "VENTO_CARABELA" },
+    CARABELA: { nombre: "Carabela", exclusivo: false, emoji: "🟠", almacen: "VENTO_CARABELA" },
 };
 
 /** Detecta a qué grupo pertenece una sucursal */
@@ -521,6 +531,11 @@ function detectarGrupoSucursal(nombreSucursal) {
     if (n.includes("VENTO"))    return "VENTO";
     if (n.includes("CARABELA")) return "CARABELA";
     return "GENERAL";
+}
+
+/** Devuelve el "almacén lógico" de un grupo — Vento y Carabela comparten el mismo */
+function almacenLogicoDeGrupo(grupo) {
+    return (GRUPOS_AGENCIA[grupo] || {}).almacen || grupo;
 }
 
 /* ══════════════════════════════════════════
@@ -982,19 +997,70 @@ let debounceSincronizarCarrito;
 function sincronizarCarritoConServidor() {
     if (esAdmin) return; // los admins no tienen carrito propio que sincronizar
     clearTimeout(debounceSincronizarCarrito);
-    debounceSincronizarCarrito = setTimeout(() => {
-        const sesion = JSON.parse(localStorage.getItem("sesion_catalogo") || "{}");
-        fetch(API_URL, {
-            method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" },
-            body: JSON.stringify({
-                action: "sincronizarCarrito",
-                correo: usuarioActual,
-                token: tokenActual,
-                nombre: sesion.nombre || "",
-                items: carrito.map(c => ({ sku: c.sku, nombre: c.nombre, cantidad: c.cantidad }))
-            })
-        }).catch(() => { /* fallo silencioso: el carrito local sigue funcionando igual */ });
-    }, 800);
+    debounceSincronizarCarrito = setTimeout(() => { enviarCarritoAlServidor(); }, 800);
+}
+
+/** Envía el carrito actual al servidor de inmediato (sin debounce) y
+ *  devuelve una Promise — usada tanto por el guardado automático como
+ *  por el botón manual de "Guardar" en el header del carrito. */
+function enviarCarritoAlServidor() {
+    if (esAdmin) return Promise.resolve();
+    const sesion = JSON.parse(localStorage.getItem("sesion_catalogo") || "{}");
+    return fetch(API_URL, {
+        method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+            action: "sincronizarCarrito",
+            correo: usuarioActual,
+            token: tokenActual,
+            nombre: sesion.nombre || "",
+            // Incluimos agenciasDisponibles para que el panel admin pueda
+            // mostrar en qué almacén/sucursal está cada SKU, y filtrar por
+            // el almacén asignado a cada admin (columna H).
+            items: carrito.map(c => ({
+                sku: c.sku,
+                nombre: c.nombre,
+                cantidad: c.cantidad,
+                agenciasDisponibles: c.agenciasDisponibles || []
+            }))
+        })
+    });
+}
+
+/** Botón manual "Guardar" — fuerza el envío inmediato (cancela el debounce
+ *  pendiente) y da feedback visual de éxito/error al usuario. */
+function guardarCambiosCarritoManual() {
+    const btn = document.getElementById("btn-guardar-carrito");
+    if (!btn) return;
+    clearTimeout(debounceSincronizarCarrito);
+
+    const textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span class="hidden sm:inline">Guardando...</span>`;
+
+    enviarCarritoAlServidor()
+        .then(r => r.json())
+        .then(rs => {
+            if (rs && rs.success) {
+                btn.innerHTML = `<i class="fa-solid fa-check"></i> <span class="hidden sm:inline">Guardado</span>`;
+                btn.classList.remove("bg-emerald-700","hover:bg-emerald-600");
+                btn.classList.add("bg-emerald-500");
+            } else {
+                btn.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <span class="hidden sm:inline">Error</span>`;
+                btn.classList.add("bg-red-700");
+            }
+        })
+        .catch(() => {
+            btn.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> <span class="hidden sm:inline">Sin conexión</span>`;
+            btn.classList.add("bg-red-700");
+        })
+        .finally(() => {
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = textoOriginal;
+                btn.classList.remove("bg-emerald-500","bg-red-700");
+                btn.classList.add("bg-emerald-700","hover:bg-emerald-600");
+            }, 1500);
+        });
 }
 
 function agregarAlCarrito(item) {
@@ -1172,21 +1238,81 @@ async function cargarCotizacionesAdmin() {
         const usuarios = rs.data || [];
         const badge = document.getElementById("badge-cotizaciones-admin");
         if (badge) {
-            badge.innerText = usuarios.length;
-            badge.classList.toggle("hidden", usuarios.length === 0);
+            const pendientes = usuarios.filter(u => (u.estado||"Pendiente") !== "Cotización enviada").length;
+            badge.innerText = pendientes;
+            badge.classList.toggle("hidden", pendientes === 0);
         }
 
+        // Aviso del almacén que este admin está visualizando (punto 7.1 / 7.2)
+        const etiquetaAlmacen = rs.almacenAdmin
+            ? (_normalizarAlmacenJS(rs.almacenAdmin).includes("ZONA VALLADOLID")
+                ? `<i class="fa-solid fa-globe mr-1"></i> Viendo TODOS los almacenes (Zona Valladolid)`
+                : `<i class="fa-solid fa-warehouse mr-1"></i> Viendo solo: <strong>${rs.almacenAdmin}</strong>`)
+            : `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Sin almacén asignado — no verás cotizaciones`;
+
+        let html = `<div class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 mb-3 text-[10px] text-blue-300 font-bold">${etiquetaAlmacen}</div>`;
+
         if (usuarios.length === 0) {
-            contenedor.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-3 text-slate-500 py-12">
+            html += `<div class="flex flex-col items-center justify-center gap-3 text-slate-500 py-12">
                 <i class="fa-solid fa-inbox text-4xl opacity-30"></i>
-                <p class="text-xs font-semibold text-center">Ningún usuario tiene productos en su carrito por ahora.</p>
+                <p class="text-xs font-semibold text-center">Ningún usuario tiene productos pendientes en tu almacén por ahora.</p>
             </div>`;
+            contenedor.innerHTML = html;
             return;
         }
 
-        let html = "";
         usuarios.forEach(u => {
             const fecha = u.ultimaActualizacion ? new Date(u.ultimaActualizacion).toLocaleString("es-MX", { dateStyle:"short", timeStyle:"short" }) : "—";
+            const estado = u.estado || "Pendiente";
+            const esEnviada = estado === "Cotización enviada";
+            const correoSeguro = String(u.correo).replace(/'/g, "\\'");
+
+            // Agrupar los items de ESTE usuario por agencia/almacén — misma composición
+            // visual que la tarjeta de "Solicitar Cotización" del usuario normal.
+            const gruposAgencia = {};
+            (u.items||[]).forEach(it => {
+                (it.agenciasDisponibles||[]).forEach(ag => {
+                    const grupo = detectarGrupoSucursal(ag.sucursal);
+                    if (!gruposAgencia[grupo]) gruposAgencia[grupo] = { sucursales: new Set(), items: [] };
+                    gruposAgencia[grupo].sucursales.add(ag.sucursal);
+                });
+                // Si el item no tiene agencias (caso raro), lo metemos en "GENERAL"
+                if (!(it.agenciasDisponibles||[]).length) {
+                    if (!gruposAgencia.GENERAL) gruposAgencia.GENERAL = { sucursales: new Set(), items: [] };
+                }
+            });
+            // Asignar cada item a TODOS los grupos donde tiene existencia
+            (u.items||[]).forEach(it => {
+                const gruposDelItem = (it.agenciasDisponibles||[]).length
+                    ? [...new Set((it.agenciasDisponibles||[]).map(ag => detectarGrupoSucursal(ag.sucursal)))]
+                    : ["GENERAL"];
+                gruposDelItem.forEach(g => { if (gruposAgencia[g]) gruposAgencia[g].items.push(it); });
+            });
+
+            const bloquesAgencia = Object.entries(gruposAgencia).map(([grupo, datos]) => {
+                const info = GRUPOS_AGENCIA[grupo] || { nombre: grupo, emoji: "📦" };
+                const sucursalesTxt = [...datos.sucursales].join(", ") || "Sin sucursal";
+                return `
+                <div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2 mb-2">
+                    <p class="text-[10px] font-black uppercase mb-1 flex items-center gap-1">
+                        <span class="tag-agencia tag-${grupo}">${info.emoji} ${info.nombre}</span>
+                        <span class="text-slate-500 font-normal normal-case">${sucursalesTxt}</span>
+                    </p>
+                    ${datos.items.map(it => `
+                        <div class="item-linea">
+                            <span>${it.nombre} <span class="text-slate-500">(${it.sku})</span></span>
+                            <span class="flex items-center gap-2">
+                                <span class="font-bold text-emerald-400">x${it.cantidad}</span>
+                                <button onclick="eliminarItemCarritoUsuarioAdmin('${correoSeguro}', '${String(it.sku).replace(/'/g,"\\'")}')"
+                                        title="Eliminar este producto (ya contactado/entregado)"
+                                        class="text-red-400 hover:text-red-300 cursor-pointer">
+                                    <i class="fa-solid fa-circle-xmark"></i>
+                                </button>
+                            </span>
+                        </div>`).join("")}
+                </div>`;
+            }).join("");
+
             html += `
             <div class="tarjeta-usuario-admin">
                 <div class="encabezado-usuario">
@@ -1194,22 +1320,96 @@ async function cargarCotizacionesAdmin() {
                         <div class="nombre-usuario-admin"><i class="fa-solid fa-user text-blue-400 mr-1"></i> ${u.nombre || "Sin nombre"}</div>
                         <div class="correo-usuario-admin">${u.correo}</div>
                     </div>
-                    <span class="bg-blue-950 text-blue-300 text-[10px] font-black px-2 py-1 rounded-md">${u.totalItems || 0} pzas</span>
+                    <span class="${esEnviada ? 'bg-emerald-950 text-emerald-300' : 'bg-amber-950 text-amber-300'} text-[10px] font-black px-2 py-1 rounded-md">
+                        ${esEnviada ? '✓ Enviada' : '⏳ Pendiente'}
+                    </span>
                 </div>
-                <div class="flex flex-col gap-0.5">
-                    ${(u.items||[]).map(it => `
-                        <div class="item-linea">
-                            <span>${it.nombre} <span class="text-slate-500">(${it.sku})</span></span>
-                            <span class="font-bold text-emerald-400">x${it.cantidad}</span>
-                        </div>`).join("")}
+
+                <div class="flex flex-col gap-0.5 mb-2">
+                    ${bloquesAgencia}
                 </div>
-                <p class="text-[9px] text-slate-500 mt-2"><i class="fa-regular fa-clock mr-1"></i> Última actualización: ${fecha}</p>
+
+                <p class="text-[9px] text-slate-500 mb-2"><i class="fa-regular fa-clock mr-1"></i> Última actualización: ${fecha}</p>
+
+                <div class="flex gap-2">
+                    <button onclick="cambiarEstadoCotizacionAdmin('${correoSeguro}', ${esEnviada ? "'Pendiente'" : "'Cotización enviada'"})"
+                            class="flex-1 ${esEnviada ? 'bg-amber-800 hover:bg-amber-700' : 'bg-emerald-700 hover:bg-emerald-600'} text-white text-[10px] font-bold py-1.5 rounded-lg cursor-pointer transition flex items-center justify-center gap-1">
+                        <i class="fa-solid ${esEnviada ? 'fa-rotate-left' : 'fa-paper-plane'}"></i>
+                        ${esEnviada ? 'Marcar pendiente' : 'Marcar enviada'}
+                    </button>
+                    <button onclick="eliminarCarritoCompletoAdmin('${correoSeguro}')"
+                            class="bg-slate-700 hover:bg-red-950 text-slate-300 hover:text-red-400 text-[10px] font-bold py-1.5 px-3 rounded-lg cursor-pointer transition">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </div>
             </div>`;
         });
 
         contenedor.innerHTML = html;
     } catch (err) {
         contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">Error de conexión al cargar las cotizaciones.</p>`;
+    }
+}
+
+/** Versión JS del normalizador de almacén (solo para mostrar la etiqueta) */
+function _normalizarAlmacenJS(texto) {
+    return (texto || "").toString().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+/** Admin: cambia el estado de la cotización completa de un usuario */
+async function cambiarEstadoCotizacionAdmin(correoUsuario, nuevoEstado) {
+    try {
+        const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+            body: JSON.stringify({ action:"marcarCotizacionEnviada", token: tokenActual, correo: usuarioActual, correoUsuario, estado: nuevoEstado }) });
+        const rs = await r.json();
+        if (rs.success) {
+            cargarCotizacionesAdmin();
+        } else {
+            alert("No se pudo actualizar el estado: " + (rs.message || "Error desconocido."));
+        }
+    } catch {
+        alert("Error de conexión al actualizar el estado.");
+    }
+}
+
+/** Admin: elimina UN producto del carrito de un usuario (ya contactado/entregado) */
+async function eliminarItemCarritoUsuarioAdmin(correoUsuario, sku) {
+    try {
+        const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+            body: JSON.stringify({ action:"eliminarItemCarritoUsuario", token: tokenActual, correo: usuarioActual, correoUsuario, sku }) });
+        const rs = await r.json();
+        if (rs.success) {
+            cargarCotizacionesAdmin();
+        } else {
+            alert("No se pudo eliminar el producto: " + (rs.message || "Error desconocido."));
+        }
+    } catch {
+        alert("Error de conexión al eliminar el producto.");
+    }
+}
+
+/** Admin: elimina el carrito COMPLETO de un usuario tras contactarlo y cerrar la venta */
+async function eliminarCarritoCompletoAdmin(correoUsuario) {
+    if (!confirm(`¿Eliminar TODOS los productos del carrito de ${correoUsuario}? Esto se hace normalmente después de contactar y cerrar la cotización.`)) return;
+    try {
+        // Reutilizamos sincronizarCarrito con items vacíos, actuando como el propio usuario
+        // sería incorrecto (cambiaría su sesión); en su lugar eliminamos item por item.
+        const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+            body: JSON.stringify({ action:"obtenerCarritosActivos", token: tokenActual, correo: usuarioActual }) });
+        const rs = await r.json();
+        if (!rs.success) { alert("No se pudo obtener el carrito actual."); return; }
+
+        const usuario = (rs.data||[]).find(u => u.correo === correoUsuario);
+        if (!usuario) { cargarCotizacionesAdmin(); return; }
+
+        for (const it of usuario.items) {
+            await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+                body: JSON.stringify({ action:"eliminarItemCarritoUsuario", token: tokenActual, correo: usuarioActual, correoUsuario, sku: it.sku }) });
+        }
+
+        cargarCotizacionesAdmin();
+    } catch {
+        alert("Error de conexión al eliminar el carrito.");
     }
 }
 
