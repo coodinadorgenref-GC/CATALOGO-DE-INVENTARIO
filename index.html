@@ -504,7 +504,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycby7R0TiYnOtYB3OG1tMZShHwdAodT6SaHVk4WYal9BqErCiIcoARbtbydKRZHRrZo7Y/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyUsauQ9AbXBZkAAjJP__Z3V4JmGvDbezC5I3d6AX0K-5OHJ7t9u6lcQ30YIupR7gmO/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -544,8 +544,19 @@ function almacenLogicoDeGrupo(grupo) {
 let inventarioMaestro        = [];
 let productosFiltradosGlobal = [];
 let usuarioActual            = "";
-let tokenActual              = "";
+let tokenActual               = "";
 let esAdmin                  = false;
+let almacenAdminActual        = ""; // Columna H del admin logueado (vacío si es usuario normal)
+
+/** Normaliza un texto de almacén: mayúsculas, sin acentos, sin espacios extra. */
+function _normalizarAlmacenJS(texto) {
+    return (texto || "").toString().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+
+/** true si el admin actual tiene asignada la "Zona Valladolid" (acceso total) */
+function esZonaValladolid() {
+    return _normalizarAlmacenJS(almacenAdminActual).includes("ZONA VALLADOLID");
+}
 let familiaSeleccionadaActual = [];
 let marcaSeleccionadaActual   = [];
 let paginaActual              = 1;
@@ -597,6 +608,7 @@ function verificarSesionGuardada() {
     const s = JSON.parse(str);
     if (new Date().getTime() - s.timestamp > TIEMPO_EXPIRACION_MS) { cerrarSesion(); return; }
     usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false;
+    almacenAdminActual = s.almacenAdmin || "";
     document.getElementById("nombre-usuario").innerText = s.nombre;
     document.getElementById("rol-usuario").innerText = s.rol || "";
     document.getElementById("rol-usuario-wrapper").classList.toggle("hidden", !s.rol);
@@ -607,8 +619,8 @@ function verificarSesionGuardada() {
     cargarCarritoDesdeStorage();
 }
 
-function guardarSesionEnDispositivo(correo, token, nombre, admin, rol) {
-    localStorage.setItem("sesion_catalogo", JSON.stringify({ correo, token, nombre, esAdmin: admin, rol: rol || "", timestamp: new Date().getTime() }));
+function guardarSesionEnDispositivo(correo, token, nombre, admin, rol, almacenAdmin) {
+    localStorage.setItem("sesion_catalogo", JSON.stringify({ correo, token, nombre, esAdmin: admin, rol: rol || "", almacenAdmin: almacenAdmin || "", timestamp: new Date().getTime() }));
 }
 function actualizarTimestampSesion() {
     const s = localStorage.getItem("sesion_catalogo");
@@ -634,10 +646,11 @@ async function manejarInicioDeSesion() {
             // y las cotizaciones siempre quedan ligadas a la misma llave única por persona.
             usuarioActual = rs.correo || valorIngresado;
             tokenActual = rs.token; esAdmin = rs.esAdmin || false;
+            almacenAdminActual = rs.almacenAdmin || "";
             document.getElementById("nombre-usuario").innerText = rs.nombre;
             document.getElementById("rol-usuario").innerText = rs.rol || "";
             document.getElementById("rol-usuario-wrapper").classList.toggle("hidden", !rs.rol);
-            guardarSesionEnDispositivo(usuarioActual, rs.token, rs.nombre, esAdmin, rs.rol);
+            guardarSesionEnDispositivo(usuarioActual, rs.token, rs.nombre, esAdmin, rs.rol, almacenAdminActual);
             document.getElementById("vista-login").classList.add("hidden");
             document.getElementById("vista-catalogo").classList.remove("hidden");
             document.getElementById("cargando-datos").classList.remove("hidden");
@@ -706,16 +719,20 @@ function procesarDespuesDeCarga() {
     if (cargando)  cargando.classList.add("hidden");
     if (principal) principal.classList.remove("hidden");
 
-    // Carrito: visible SOLO para no-admin, desde el primer momento que entra al catálogo
-    const btnFlot = document.getElementById("btn-carrito-flotante");
-    if (btnFlot) btnFlot.classList.toggle("hidden", esAdmin);
-
-    // Cotizaciones pendientes: visible SOLO para admin, desde el primer momento
+    // ── Visibilidad de las bolas flotantes (SOLO después de iniciar sesión) ──
+    // 1. Admin normal      → SOLO ve la bola azul "Cotizaciones Pendientes"
+    // 2. Usuario no-admin  → SOLO ve la bola verde "Mi Cotización"
+    // 3. Admin Zona Valladolid → ve AMBAS bolas
+    const btnFlot     = document.getElementById("btn-carrito-flotante");
     const btnCotAdmin = document.getElementById("btn-cotizaciones-admin");
-    if (btnCotAdmin) {
-        btnCotAdmin.classList.toggle("hidden", !esAdmin);
-        if (esAdmin) cargarCotizacionesAdmin();
-    }
+    const zonaTotal    = esAdmin && esZonaValladolid();
+
+    const mostrarVerde = !esAdmin || zonaTotal; // usuario normal, o admin Zona Valladolid
+    const mostrarAzul  = esAdmin;               // cualquier admin (incluyendo Zona Valladolid)
+
+    if (btnFlot)     btnFlot.classList.toggle("hidden", !mostrarVerde);
+    if (btnCotAdmin) btnCotAdmin.classList.toggle("hidden", !mostrarAzul);
+    if (esAdmin) cargarCotizacionesAdmin();
 
     // Evitar duplicar opciones si se llama más de una vez (re-sincronización)
     const sel = document.getElementById("filtro-agencia");
@@ -995,7 +1012,9 @@ function guardarCarritoEnStorage() {
  *  su panel. Con debounce para no saturar la API en cada clic. */
 let debounceSincronizarCarrito;
 function sincronizarCarritoConServidor() {
-    if (esAdmin) return; // los admins no tienen carrito propio que sincronizar
+    // Los admin normales no tienen carrito propio; un admin de "Zona Valladolid"
+    // sí puede tener su propia "Mi Cotización" (ve ambas bolas flotantes).
+    if (esAdmin && !esZonaValladolid()) return;
     clearTimeout(debounceSincronizarCarrito);
     debounceSincronizarCarrito = setTimeout(() => { enviarCarritoAlServidor(); }, 800);
 }
@@ -1004,7 +1023,7 @@ function sincronizarCarritoConServidor() {
  *  devuelve una Promise — usada tanto por el guardado automático como
  *  por el botón manual de "Guardar" en el header del carrito. */
 function enviarCarritoAlServidor() {
-    if (esAdmin) return Promise.resolve();
+    if (esAdmin && !esZonaValladolid()) return Promise.resolve();
     const sesion = JSON.parse(localStorage.getItem("sesion_catalogo") || "{}");
     return fetch(API_URL, {
         method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" },
@@ -1238,9 +1257,13 @@ async function cargarCotizacionesAdmin() {
         const usuarios = rs.data || [];
         const badge = document.getElementById("badge-cotizaciones-admin");
         if (badge) {
-            const pendientes = usuarios.filter(u => (u.estado||"Pendiente") !== "Cotización enviada").length;
-            badge.innerText = pendientes;
-            badge.classList.toggle("hidden", pendientes === 0);
+            // Sumamos las PIEZAS (no usuarios) de los carritos pendientes, para que
+            // la cifra de la bola azul coincida en unidad con la bola verde del usuario.
+            const piezasPendientes = usuarios
+                .filter(u => (u.estado||"Pendiente") !== "Cotización enviada")
+                .reduce((s,u) => s + Number(u.totalItems||0), 0);
+            badge.innerText = piezasPendientes;
+            badge.classList.toggle("hidden", piezasPendientes === 0);
         }
 
         // Aviso del almacén que este admin está visualizando (punto 7.1 / 7.2)
@@ -1349,11 +1372,6 @@ async function cargarCotizacionesAdmin() {
     } catch (err) {
         contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">Error de conexión al cargar las cotizaciones.</p>`;
     }
-}
-
-/** Versión JS del normalizador de almacén (solo para mostrar la etiqueta) */
-function _normalizarAlmacenJS(texto) {
-    return (texto || "").toString().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }
 
 /** Admin: cambia el estado de la cotización completa de un usuario */
