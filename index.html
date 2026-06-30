@@ -85,6 +85,48 @@
             border: 2px solid #0f172a; pointer-events: none;
         }
 
+        /* ── BOTÓN COTIZACIONES PENDIENTES (admin) ───── */
+        #btn-cotizaciones-admin {
+            position: fixed; bottom: 28px; right: 96px; z-index: 200;
+            background: #1d4ed8; color: #fff; border-radius: 50%; width: 58px; height: 58px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 24px rgba(29,78,216,.5); cursor: pointer; transition: transform .2s;
+            border: none; outline: none;
+        }
+        #btn-cotizaciones-admin:hover { transform: scale(1.08); }
+        #badge-cotizaciones-admin {
+            position: absolute; top: -4px; right: -4px;
+            background: #ef4444; color: #fff; border-radius: 999px;
+            font-size: 10px; font-weight: 900; min-width: 20px; height: 20px;
+            display: flex; align-items: center; justify-content: center; padding: 0 4px;
+            border: 2px solid #0f172a; pointer-events: none;
+        }
+
+        /* ── PANEL ADMIN: COTIZACIONES POR USUARIO ───── */
+        #panel-cotizaciones-admin {
+            position: fixed; top: 0; right: -440px; width: 440px; max-width: 100vw;
+            height: 100vh; background: #1e293b; border-left: 1px solid #334155;
+            z-index: 300; display: flex; flex-direction: column;
+            transition: right .3s cubic-bezier(.4,0,.2,1);
+            box-shadow: -8px 0 32px rgba(0,0,0,.4);
+        }
+        #panel-cotizaciones-admin.abierto { right: 0; }
+        .tarjeta-usuario-admin {
+            background: #0f172a; border: 1px solid #334155; border-radius: 12px;
+            padding: 12px; margin-bottom: 10px;
+        }
+        .tarjeta-usuario-admin .encabezado-usuario {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #1e293b;
+        }
+        .tarjeta-usuario-admin .nombre-usuario-admin { font-size: 13px; font-weight: 800; color: #f1f5f9; }
+        .tarjeta-usuario-admin .correo-usuario-admin { font-size: 10px; color: #64748b; font-family: monospace; }
+        .tarjeta-usuario-admin .item-linea {
+            font-size: 11px; color: #cbd5e1; display: flex; justify-content: space-between;
+            padding: 3px 0; border-bottom: 1px dashed #1e293b;
+        }
+        .tarjeta-usuario-admin .item-linea:last-child { border-bottom: none; }
+
         /* ── PANEL LATERAL CARRITO ───────────────────── */
         #panel-carrito {
             position: fixed; top: 0; right: -420px; width: 420px; max-width: 100vw;
@@ -182,11 +224,12 @@
         <div class="text-4xl text-emerald-500 mb-3"><i class="fa-solid fa-motorcycle"></i></div>
         <h1 class="text-2xl font-black text-white tracking-tight uppercase">La Barata del Hogar</h1>
         <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-6">Catálogo de Refacciones</p>
-        <p class="text-sm text-slate-400 mb-6">Ingresa tu correo autorizado para acceder.</p>
+        <p class="text-sm text-slate-400 mb-6">Ingresa tu correo o número telefónico autorizado para acceder.</p>
         <div class="text-left mb-4">
-            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico</label>
-            <input type="email" id="input-correo" onkeydown="manejarTecladoLogin(event)"
-                   placeholder="ejemplo@gmail.com"
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico o Teléfono</label>
+            <input type="text" id="input-correo" onkeydown="manejarTecladoLogin(event)"
+                   placeholder="ejemplo@gmail.com o 5512345678"
+                   autocomplete="off" autocapitalize="off" spellcheck="false"
                    class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
         </div>
         <div id="error-login" class="hidden bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 border border-red-900/50"></div>
@@ -208,7 +251,7 @@
             <div>
                 <h2 class="text-lg font-black tracking-tight uppercase">La Barata del Hogar</h2>
                 <p class="text-xs text-slate-400">Usuario: <span id="nombre-usuario" class="text-emerald-400 font-bold">---</span></p>
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wide" id="rol-usuario-wrapper">Rol: <span id="rol-usuario" class="text-slate-300">---</span></p>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wide" id="rol-usuario-wrapper"><span id="rol-usuario" class="text-slate-300">---</span></p>
             </div>
             <div class="flex items-center gap-2 w-full md:w-auto">
                 <button id="btn-sincronizar" onclick="forzarSincronizacionDatos()" title="Actualizar datos"
@@ -354,6 +397,14 @@
 </button>
 
 <!-- ════════════════════════════════════════════════
+     BOTÓN COTIZACIONES PENDIENTES (solo admin)
+═════════════════════════════════════════════════ -->
+<button id="btn-cotizaciones-admin" onclick="toggleCotizacionesAdmin()" class="hidden" title="Ver cotizaciones pendientes">
+    <i class="fa-solid fa-users-gear text-xl"></i>
+    <span id="badge-cotizaciones-admin" class="hidden">0</span>
+</button>
+
+<!-- ════════════════════════════════════════════════
      OVERLAY + PANEL LATERAL CARRITO
 ═════════════════════════════════════════════════ -->
 <div id="overlay-carrito" onclick="toggleCarrito()"></div>
@@ -391,6 +442,34 @@
 </div>
 
 <!-- ════════════════════════════════════════════════
+     PANEL ADMIN — COTIZACIONES PENDIENTES POR USUARIO
+═════════════════════════════════════════════════ -->
+<div id="panel-cotizaciones-admin">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-700 bg-slate-800 shrink-0">
+        <h2 class="text-base font-black uppercase tracking-wide text-white flex items-center gap-2">
+            <i class="fa-solid fa-users-gear text-blue-400"></i> Cotizaciones Pendientes
+        </h2>
+        <button onclick="toggleCotizacionesAdmin()" class="text-slate-400 hover:text-white text-xl cursor-pointer">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+
+    <div class="px-4 pt-3">
+        <button onclick="cargarCotizacionesAdmin()"
+                class="w-full bg-slate-700 hover:bg-blue-900 text-white text-xs font-bold py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-2">
+            <i class="fa-solid fa-rotate"></i> Actualizar lista
+        </button>
+    </div>
+
+    <div id="lista-cotizaciones-admin" class="flex-1 overflow-y-auto px-4 py-3">
+        <div class="flex flex-col items-center justify-center h-full gap-3 text-slate-500 py-12">
+            <i class="fa-solid fa-spinner fa-spin text-3xl opacity-40"></i>
+            <p class="text-xs font-semibold text-center">Cargando carritos de usuarios...</p>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
      MODAL SELECCIÓN DE AGENCIA PARA COTIZAR
 ═════════════════════════════════════════════════ -->
 <div id="modal-cotizacion" onclick="cerrarModalCotizacionExterno(event)">
@@ -418,7 +497,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbz5yqa-UFPvg8OKsBHiLIbK4hB108b4Qv0Ke6XzqjYErIV7w7GphKFVd08erBqxs3o5/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbx2G7nttQWx0Z8WfHban8ZmldZJnKC8xwejZgNVV-CxLH6Bb8yzl1qty9Adw9sMwPVJ/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -504,7 +583,8 @@ function verificarSesionGuardada() {
     if (new Date().getTime() - s.timestamp > TIEMPO_EXPIRACION_MS) { cerrarSesion(); return; }
     usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false;
     document.getElementById("nombre-usuario").innerText = s.nombre;
-    document.getElementById("rol-usuario").innerText = s.rol || (esAdmin ? "Administrador" : "Sin rol");
+    document.getElementById("rol-usuario").innerText = s.rol || "";
+    document.getElementById("rol-usuario-wrapper").classList.toggle("hidden", !s.rol);
     document.getElementById("vista-login").classList.add("hidden");
     document.getElementById("vista-catalogo").classList.remove("hidden");
     actualizarTimestampSesion();
@@ -525,19 +605,24 @@ async function manejarInicioDeSesion() {
     const correoEl = document.getElementById("input-correo");
     const errorEl  = document.getElementById("error-login");
     const btnEl    = document.getElementById("btn-login");
-    const correo   = correoEl.value.trim();
+    const valorIngresado = correoEl.value.trim();
 
-    if (!correo) { mostrarErrorLogin(errorEl, "Por favor, ingresa tu correo electrónico."); return; }
+    if (!valorIngresado) { mostrarErrorLogin(errorEl, "Por favor, ingresa tu correo o número telefónico."); return; }
     ocultarErrorLogin(errorEl); btnEl.disabled = true; btnEl.innerText = "Verificando...";
 
     try {
-        const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"}, body: JSON.stringify({ action:"login", correo }) });
+        const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"}, body: JSON.stringify({ action:"login", correo: valorIngresado }) });
         const rs = await r.json();
         if (rs.success) {
-            usuarioActual = correo; tokenActual = rs.token; esAdmin = rs.esAdmin || false;
+            // Usamos el identificador REAL que regresa el backend (correo dado de alta),
+            // sin importar si el usuario tecleó su correo o su teléfono — así el carrito
+            // y las cotizaciones siempre quedan ligadas a la misma llave única por persona.
+            usuarioActual = rs.correo || valorIngresado;
+            tokenActual = rs.token; esAdmin = rs.esAdmin || false;
             document.getElementById("nombre-usuario").innerText = rs.nombre;
-            document.getElementById("rol-usuario").innerText = rs.rol || (esAdmin ? "Administrador" : "Sin rol");
-            guardarSesionEnDispositivo(correo, rs.token, rs.nombre, esAdmin, rs.rol);
+            document.getElementById("rol-usuario").innerText = rs.rol || "";
+            document.getElementById("rol-usuario-wrapper").classList.toggle("hidden", !rs.rol);
+            guardarSesionEnDispositivo(usuarioActual, rs.token, rs.nombre, esAdmin, rs.rol);
             document.getElementById("vista-login").classList.add("hidden");
             document.getElementById("vista-catalogo").classList.remove("hidden");
             document.getElementById("cargando-datos").classList.remove("hidden");
@@ -609,6 +694,13 @@ function procesarDespuesDeCarga() {
     // Carrito: visible SOLO para no-admin, desde el primer momento que entra al catálogo
     const btnFlot = document.getElementById("btn-carrito-flotante");
     if (btnFlot) btnFlot.classList.toggle("hidden", esAdmin);
+
+    // Cotizaciones pendientes: visible SOLO para admin, desde el primer momento
+    const btnCotAdmin = document.getElementById("btn-cotizaciones-admin");
+    if (btnCotAdmin) {
+        btnCotAdmin.classList.toggle("hidden", !esAdmin);
+        if (esAdmin) cargarCotizacionesAdmin();
+    }
 
     // Evitar duplicar opciones si se llama más de una vez (re-sincronización)
     const sel = document.getElementById("filtro-agencia");
@@ -863,15 +955,46 @@ function cambiarPagina(n) {
 }
 
 /* ══════════════════════════════════════════
-   CARRITO — LÓGICA CENTRAL
+   CARRITO — LÓGICA CENTRAL (independiente por usuario)
 ══════════════════════════════════════════ */
+
+/** Genera una llave de localStorage única por usuario, para que dos
+ *  personas en el mismo dispositivo/navegador NUNCA compartan carrito. */
+function clavesCarritoUsuario() {
+    const id = normalizarTexto(usuarioActual || "anonimo").replace(/\s+/g, "_");
+    return `carrito_catalogo__${id}`;
+}
+
 function cargarCarritoDesdeStorage() {
-    try { carrito = JSON.parse(localStorage.getItem("carrito_catalogo")||"[]"); } catch { carrito=[]; }
+    try { carrito = JSON.parse(localStorage.getItem(clavesCarritoUsuario())||"[]"); } catch { carrito=[]; }
     actualizarUICarrito();
 }
 
 function guardarCarritoEnStorage() {
-    try { localStorage.setItem("carrito_catalogo", JSON.stringify(carrito)); } catch {}
+    try { localStorage.setItem(clavesCarritoUsuario(), JSON.stringify(carrito)); } catch {}
+    sincronizarCarritoConServidor();
+}
+
+/** Sincroniza el carrito del usuario actual a Google Sheets (hoja
+ *  "Carritos_Activos") para que SOLO el admin pueda consultarlo desde
+ *  su panel. Con debounce para no saturar la API en cada clic. */
+let debounceSincronizarCarrito;
+function sincronizarCarritoConServidor() {
+    if (esAdmin) return; // los admins no tienen carrito propio que sincronizar
+    clearTimeout(debounceSincronizarCarrito);
+    debounceSincronizarCarrito = setTimeout(() => {
+        const sesion = JSON.parse(localStorage.getItem("sesion_catalogo") || "{}");
+        fetch(API_URL, {
+            method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({
+                action: "sincronizarCarrito",
+                correo: usuarioActual,
+                token: tokenActual,
+                nombre: sesion.nombre || "",
+                items: carrito.map(c => ({ sku: c.sku, nombre: c.nombre, cantidad: c.cantidad }))
+            })
+        }).catch(() => { /* fallo silencioso: el carrito local sigue funcionando igual */ });
+    }, 800);
 }
 
 function agregarAlCarrito(item) {
@@ -1018,6 +1141,76 @@ function toggleCarrito() {
     const overlay = document.getElementById("overlay-carrito");
     panel.classList.toggle("abierto");
     overlay.classList.toggle("visible");
+}
+
+/* ══════════════════════════════════════════
+   PANEL ADMIN — COTIZACIONES PENDIENTES (carritos en vivo)
+══════════════════════════════════════════ */
+function toggleCotizacionesAdmin() {
+    const panel = document.getElementById("panel-cotizaciones-admin");
+    panel.classList.toggle("abierto");
+    if (panel.classList.contains("abierto")) cargarCotizacionesAdmin();
+}
+
+async function cargarCotizacionesAdmin() {
+    const contenedor = document.getElementById("lista-cotizaciones-admin");
+    contenedor.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-3 text-slate-500 py-12">
+        <i class="fa-solid fa-spinner fa-spin text-3xl opacity-40"></i>
+        <p class="text-xs font-semibold text-center">Cargando carritos de usuarios...</p>
+    </div>`;
+
+    try {
+        const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+                                          body: JSON.stringify({ action:"obtenerCarritosActivos", token: tokenActual, correo: usuarioActual }) });
+        const rs = await r.json();
+
+        if (!rs.success) {
+            contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">${rs.message || "No se pudo cargar la información."}</p>`;
+            return;
+        }
+
+        const usuarios = rs.data || [];
+        const badge = document.getElementById("badge-cotizaciones-admin");
+        if (badge) {
+            badge.innerText = usuarios.length;
+            badge.classList.toggle("hidden", usuarios.length === 0);
+        }
+
+        if (usuarios.length === 0) {
+            contenedor.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-3 text-slate-500 py-12">
+                <i class="fa-solid fa-inbox text-4xl opacity-30"></i>
+                <p class="text-xs font-semibold text-center">Ningún usuario tiene productos en su carrito por ahora.</p>
+            </div>`;
+            return;
+        }
+
+        let html = "";
+        usuarios.forEach(u => {
+            const fecha = u.ultimaActualizacion ? new Date(u.ultimaActualizacion).toLocaleString("es-MX", { dateStyle:"short", timeStyle:"short" }) : "—";
+            html += `
+            <div class="tarjeta-usuario-admin">
+                <div class="encabezado-usuario">
+                    <div>
+                        <div class="nombre-usuario-admin"><i class="fa-solid fa-user text-blue-400 mr-1"></i> ${u.nombre || "Sin nombre"}</div>
+                        <div class="correo-usuario-admin">${u.correo}</div>
+                    </div>
+                    <span class="bg-blue-950 text-blue-300 text-[10px] font-black px-2 py-1 rounded-md">${u.totalItems || 0} pzas</span>
+                </div>
+                <div class="flex flex-col gap-0.5">
+                    ${(u.items||[]).map(it => `
+                        <div class="item-linea">
+                            <span>${it.nombre} <span class="text-slate-500">(${it.sku})</span></span>
+                            <span class="font-bold text-emerald-400">x${it.cantidad}</span>
+                        </div>`).join("")}
+                </div>
+                <p class="text-[9px] text-slate-500 mt-2"><i class="fa-regular fa-clock mr-1"></i> Última actualización: ${fecha}</p>
+            </div>`;
+        });
+
+        contenedor.innerHTML = html;
+    } catch (err) {
+        contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">Error de conexión al cargar las cotizaciones.</p>`;
+    }
 }
 
 /* ══════════════════════════════════════════
