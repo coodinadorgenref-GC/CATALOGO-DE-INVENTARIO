@@ -119,7 +119,15 @@
             font-size: 14px; transition: background .15s;
         }
         .btn-qty:hover { background: #334155; }
-        .qty-display { font-size: 13px; font-weight: 800; color: #f1f5f9; min-width: 24px; text-align: center; }
+        .qty-input {
+            width: 44px; height: 28px; border-radius: 8px;
+            background: #1e293b; border: 1px solid #475569; color: #f1f5f9;
+            font-size: 13px; font-weight: 800; text-align: center;
+            outline: none; -moz-appearance: textfield;
+        }
+        .qty-input::-webkit-outer-spin-button,
+        .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .qty-input:focus { border-color: #059669; box-shadow: 0 0 0 2px rgba(5,150,105,.25); }
         .btn-eliminar-item {
             width: 26px; height: 26px; border-radius: 8px; color: #f87171;
             background: transparent; border: 1px solid #450a0a; cursor: pointer;
@@ -200,6 +208,7 @@
             <div>
                 <h2 class="text-lg font-black tracking-tight uppercase">La Barata del Hogar</h2>
                 <p class="text-xs text-slate-400">Usuario: <span id="nombre-usuario" class="text-emerald-400 font-bold">---</span></p>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wide" id="rol-usuario-wrapper">Rol: <span id="rol-usuario" class="text-slate-300">---</span></p>
             </div>
             <div class="flex items-center gap-2 w-full md:w-auto">
                 <button id="btn-sincronizar" onclick="forzarSincronizacionDatos()" title="Actualizar datos"
@@ -243,13 +252,24 @@
                 <i class="fa-solid fa-sliders mr-2 text-emerald-500"></i> Filtros
             </h3>
 
+            <!-- Agencia — PRIMERO -->
+            <div id="filtro-agencia-wrapper">
+                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Sucursal / Agencia</label>
+                <select id="filtro-agencia" onchange="filtrarProductos()"
+                        class="w-full mt-2 p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer">
+                    <option value="">Todas las agencias</option>
+                </select>
+            </div>
+
             <!-- Orden -->
-            <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Dirección Alfabética</label>
-            <select id="orden-alfabetico" onchange="filtrarProductos()"
-                    class="w-full mt-2 p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer">
-                <option value="AZ">Nombre: A → Z</option>
-                <option value="ZA">Nombre: Z → A</option>
-            </select>
+            <div class="mt-4">
+                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Dirección Alfabética</label>
+                <select id="orden-alfabetico" onchange="filtrarProductos()"
+                        class="w-full mt-2 p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer">
+                    <option value="AZ">Nombre: A → Z</option>
+                    <option value="ZA">Nombre: Z → A</option>
+                </select>
+            </div>
 
             <!-- Familia -->
             <div class="mt-4">
@@ -284,15 +304,6 @@
                     Borrar selecciones
                 </button>
                 <div id="filter-marca-container" class="mt-2 bg-slate-900 border border-slate-700 rounded-xl max-h-[200px] overflow-y-auto p-2"></div>
-            </div>
-
-            <!-- Agencia (solo no-admin) -->
-            <div class="mt-4" id="filtro-agencia-wrapper">
-                <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Sucursal / Agencia</label>
-                <select id="filtro-agencia" onchange="filtrarProductos()"
-                        class="w-full mt-2 p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer">
-                    <option value="">Todas las agencias</option>
-                </select>
             </div>
         </aside>
 
@@ -407,7 +418,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbxZzX-W3dbNE8bs9Lyg-jHkD58PUQxJuNgBOmFWQrIFkugaLJLSE_Tuu3vvnBvZCr5d/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbz5yqa-UFPvg8OKsBHiLIbK4hB108b4Qv0Ke6XzqjYErIV7w7GphKFVd08erBqxs3o5/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -493,6 +504,7 @@ function verificarSesionGuardada() {
     if (new Date().getTime() - s.timestamp > TIEMPO_EXPIRACION_MS) { cerrarSesion(); return; }
     usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false;
     document.getElementById("nombre-usuario").innerText = s.nombre;
+    document.getElementById("rol-usuario").innerText = s.rol || (esAdmin ? "Administrador" : "Sin rol");
     document.getElementById("vista-login").classList.add("hidden");
     document.getElementById("vista-catalogo").classList.remove("hidden");
     actualizarTimestampSesion();
@@ -500,8 +512,8 @@ function verificarSesionGuardada() {
     cargarCarritoDesdeStorage();
 }
 
-function guardarSesionEnDispositivo(correo, token, nombre, admin) {
-    localStorage.setItem("sesion_catalogo", JSON.stringify({ correo, token, nombre, esAdmin: admin, timestamp: new Date().getTime() }));
+function guardarSesionEnDispositivo(correo, token, nombre, admin, rol) {
+    localStorage.setItem("sesion_catalogo", JSON.stringify({ correo, token, nombre, esAdmin: admin, rol: rol || "", timestamp: new Date().getTime() }));
 }
 function actualizarTimestampSesion() {
     const s = localStorage.getItem("sesion_catalogo");
@@ -524,7 +536,8 @@ async function manejarInicioDeSesion() {
         if (rs.success) {
             usuarioActual = correo; tokenActual = rs.token; esAdmin = rs.esAdmin || false;
             document.getElementById("nombre-usuario").innerText = rs.nombre;
-            guardarSesionEnDispositivo(correo, rs.token, rs.nombre, esAdmin);
+            document.getElementById("rol-usuario").innerText = rs.rol || (esAdmin ? "Administrador" : "Sin rol");
+            guardarSesionEnDispositivo(correo, rs.token, rs.nombre, esAdmin, rs.rol);
             document.getElementById("vista-login").classList.add("hidden");
             document.getElementById("vista-catalogo").classList.remove("hidden");
             document.getElementById("cargando-datos").classList.remove("hidden");
@@ -553,33 +566,58 @@ function manejarTecladoLogin(e) { if (e.key === "Enter") manejarInicioDeSesion()
 async function obtenerInventarioDesdeServidor() {
     const cache = localStorage.getItem("inventario_cache");
     if (cache) {
-        setTimeout(() => { inventarioMaestro = JSON.parse(cache); procesarDespuesDeCarga(); }, 0);
+        // Render from cache immediately — no setTimeout so iOS paints right away
+        try {
+            inventarioMaestro = JSON.parse(cache);
+            procesarDespuesDeCarga();
+        } catch(e) {
+            localStorage.removeItem("inventario_cache");
+        }
     }
     try {
         const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
                                           body: JSON.stringify({ action:"obtenerInventario", token: tokenActual, correo: usuarioActual }) });
         const rs = await r.json();
         if (rs.success) {
-            inventarioMaestro = rs.data;
-            try { localStorage.setItem("inventario_cache", JSON.stringify(rs.data)); } catch {}
-            if (!cache) procesarDespuesDeCarga();
+            const dataStr = JSON.stringify(rs.data);
+            // Solo re-renderizar si los datos cambiaron (evita doble render en iOS)
+            if (!cache || cache !== dataStr) {
+                inventarioMaestro = rs.data;
+                try { localStorage.setItem("inventario_cache", dataStr); } catch {}
+                // Si ya había caché visible, solo actualizamos filtros y catálogo sin mostrar spinner
+                if (cache) {
+                    renderizarFiltrosFamilia();
+                    renderizarFiltrosMarcas();
+                    const sel = document.getElementById("filtro-agencia");
+                    if (sel) { while(sel.options.length>1) sel.remove(1); poblarSelectAgencias(); }
+                    requestAnimationFrame(() => filtrarProductos());
+                } else {
+                    procesarDespuesDeCarga();
+                }
+            }
         }
     } catch (e) { console.error("Error red:", e); }
 }
 
 function procesarDespuesDeCarga() {
-    document.getElementById("cargando-datos").classList.add("hidden");
-    document.getElementById("contenedor-principal-catalogo").classList.remove("hidden");
+    // Mostrar catálogo sin delay — mejora crítica para iOS
+    const cargando  = document.getElementById("cargando-datos");
+    const principal = document.getElementById("contenedor-principal-catalogo");
+    if (cargando)  cargando.classList.add("hidden");
+    if (principal) principal.classList.remove("hidden");
 
-    // Mostrar carrito flotante solo a no-admin
-    if (!esAdmin) document.getElementById("btn-carrito-flotante").classList.remove("hidden");
+    // Carrito: visible SOLO para no-admin, desde el primer momento que entra al catálogo
+    const btnFlot = document.getElementById("btn-carrito-flotante");
+    if (btnFlot) btnFlot.classList.toggle("hidden", esAdmin);
 
-    // Poblar select de agencias
-    poblarSelectAgencias();
+    // Evitar duplicar opciones si se llama más de una vez (re-sincronización)
+    const sel = document.getElementById("filtro-agencia");
+    if (sel && sel.options.length <= 1) poblarSelectAgencias();
 
     renderizarFiltrosFamilia();
     renderizarFiltrosMarcas();
-    setTimeout(() => filtrarProductos(), 300);
+    // requestAnimationFrame deja que el navegador pinte primero los filtros, luego renderiza productos
+    requestAnimationFrame(() => filtrarProductos());
 }
 
 function forzarSincronizacionDatos() {
@@ -875,6 +913,16 @@ function cambiarCantidadCarrito(sku, delta) {
     actualizarUICarrito();
 }
 
+function establecerCantidadCarrito(sku, valor) {
+    const item = carrito.find(c=>c.sku===sku);
+    if (!item) return;
+    const nueva = parseInt(valor, 10);
+    if (isNaN(nueva) || nueva < 1) { eliminarDelCarrito(sku); return; }
+    item.cantidad = Math.min(nueva, item.stockMax || 9999);
+    guardarCarritoEnStorage();
+    actualizarUICarrito();
+}
+
 function eliminarDelCarrito(sku) {
     carrito = carrito.filter(c=>c.sku!==sku);
     guardarCarritoEnStorage();
@@ -941,7 +989,10 @@ function actualizarUICarrito() {
                 </div>
                 <div class="controles">
                     <button class="btn-qty" onclick="cambiarCantidadCarrito('${item.sku}',-1)">−</button>
-                    <span class="qty-display">${item.cantidad}</span>
+                    <input type="number" class="qty-input" value="${item.cantidad}" min="1" max="${item.stockMax}"
+                           onchange="establecerCantidadCarrito('${item.sku}', this.value)"
+                           oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                           inputmode="numeric" pattern="[0-9]*">
                     <button class="btn-qty" onclick="cambiarCantidadCarrito('${item.sku}',1)">+</button>
                     <button class="btn-eliminar-item" onclick="eliminarDelCarrito('${item.sku}')"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
@@ -1063,6 +1114,10 @@ function cerrarModalCotizacionExterno(e) { if (e.target.id==="modal-cotizacion")
    MODAL DETALLE PRODUCTO
 ══════════════════════════════════════════ */
 function abrirDetalleProducto(item) {
+    if (guardadoCompatibilidadPendiente) {
+        alert("Espera a que se confirme el guardado de la compatibilidad actual antes de abrir otro producto.");
+        return;
+    }
     const sku             = item.SKU || "---";
     const titulo          = item.Producto || "Sin Nombre";
     const marca           = item.Marca || "GENÉRICO";
@@ -1210,21 +1265,69 @@ function habilitarEdicion(sku, contenido) {
     btn.onclick = () => guardarCompatibilidad(sku);
 }
 
+/** Bandera global: true mientras hay un guardado de compatibilidad en curso */
+let guardadoCompatibilidadPendiente = false;
+
 function guardarCompatibilidad(sku) {
     const texto = document.getElementById("edit-compat").value;
     const btn   = document.getElementById("btn-edicion");
+
+    guardadoCompatibilidadPendiente = true;
     btn.innerText = "Guardando..."; btn.disabled = true;
-    fetch(API_URL, { method:"POST", mode:"no-cors", headers:{"Content-Type":"application/json"},
+    bloquearNavegacionCatalogo(true);
+
+    // IMPORTANTE: usamos mode "cors" (no "no-cors") para poder confirmar
+    // de verdad que Google Sheets recibió y procesó el cambio antes de
+    // permitir que el admin capture otro SKU.
+    fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
                      body: JSON.stringify({ action:"actualizarCompatibilidad", token:tokenActual, correo:usuarioActual, sku, nuevaCompatibilidad:texto }) })
-    .then(() => { alternarModal(); forzarSincronizacionDatos(); alert("¡Cambios enviados!"); })
-    .catch(() => alert("Error de conexión al guardar."))
-    .finally(() => { btn.innerText="Guardar Cambios"; btn.disabled=false; });
+    .then(r => r.json())
+    .then(rs => {
+        if (rs && rs.success) {
+            guardadoCompatibilidadPendiente = false;
+            bloquearNavegacionCatalogo(false);
+            alternarModal();
+            forzarSincronizacionDatos();
+            alert("¡Cambios guardados correctamente en Google Sheets!");
+        } else {
+            // Si el servidor respondió pero con error, dejamos reintentar el mismo SKU
+            guardadoCompatibilidadPendiente = false;
+            bloquearNavegacionCatalogo(false);
+            btn.innerText = "Guardar Cambios"; btn.disabled = false;
+            alert("No se pudo guardar: " + (rs && rs.message ? rs.message : "Error desconocido. Intenta de nuevo."));
+        }
+    })
+    .catch(() => {
+        // Error de red real: permitimos reintentar el mismo SKU, pero seguimos bloqueando
+        // la navegación a OTRO producto hasta que el admin decida reintentar o cancelar.
+        btn.innerText = "Reintentar Guardado"; btn.disabled = false;
+        alert("Error de conexión al guardar. Verifica tu internet e intenta de nuevo (no cierres esta tarjeta).");
+    });
+}
+
+/**
+ * Bloquea/desbloquea la posibilidad de navegar a otro producto o cerrar
+ * el modal mientras hay una actualización de compatibilidad en curso.
+ */
+function bloquearNavegacionCatalogo(bloquear) {
+    const grid = document.getElementById("grid-productos");
+    if (grid) grid.style.pointerEvents = bloquear ? "none" : "";
+    if (grid) grid.style.opacity = bloquear ? "0.5" : "";
+
+    // También deshabilitamos el botón de cerrar (X) del modal mientras se guarda
+    const btnCerrar = document.querySelector('#modal-detalles button[onclick="alternarModal()"]');
+    if (btnCerrar) {
+        btnCerrar.disabled = bloquear;
+        btnCerrar.style.opacity = bloquear ? "0.3" : "";
+        btnCerrar.style.pointerEvents = bloquear ? "none" : "";
+    }
 }
 
 /* ══════════════════════════════════════════
    MODALES — HELPERS
 ══════════════════════════════════════════ */
 function alternarModal() {
+    if (guardadoCompatibilidadPendiente) return; // bloqueado hasta confirmar guardado
     const modal     = document.getElementById("modal-detalles");
     const contenido = document.getElementById("modal-contenido");
     if (modal.classList.contains("opacity-0")) {
@@ -1233,7 +1336,7 @@ function alternarModal() {
         modal.classList.add("opacity-0","pointer-events-none"); contenido.classList.add("translate-y-4");
     }
 }
-function cerrarModalExterno(e) { if (e.target.id==="modal-detalles") alternarModal(); }
+function cerrarModalExterno(e) { if (e.target.id==="modal-detalles" && !guardadoCompatibilidadPendiente) alternarModal(); }
 
 function abrirZoomImagen(url) {
     const m=document.getElementById("modal-zoom-imagen"), i=document.getElementById("img-ampliada");
