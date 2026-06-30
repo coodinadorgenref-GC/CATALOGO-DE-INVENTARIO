@@ -504,7 +504,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbyUsauQ9AbXBZkAAjJP__Z3V4JmGvDbezC5I3d6AX0K-5OHJ7t9u6lcQ30YIupR7gmO/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwxclw2DfeoLWRkHHwgI7neKxjfoTGz0owJKXUabVyok9urpcpDQPWz78E6AnZZh11R/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -1012,9 +1012,10 @@ function guardarCarritoEnStorage() {
  *  su panel. Con debounce para no saturar la API en cada clic. */
 let debounceSincronizarCarrito;
 function sincronizarCarritoConServidor() {
-    // Los admin normales no tienen carrito propio; un admin de "Zona Valladolid"
-    // sí puede tener su propia "Mi Cotización" (ve ambas bolas flotantes).
-    if (esAdmin && !esZonaValladolid()) return;
+    // REGLA: solo usuarios NO-admin (columna H vacía en Usuarios_Autorizados)
+    // tienen carrito propio / "Mi Cotización". NINGÚN admin —tampoco el de
+    // Zona Valladolid— tiene carrito; su rol es solo gestionar cotizaciones.
+    if (esAdmin) return;
     clearTimeout(debounceSincronizarCarrito);
     debounceSincronizarCarrito = setTimeout(() => { enviarCarritoAlServidor(); }, 800);
 }
@@ -1023,7 +1024,7 @@ function sincronizarCarritoConServidor() {
  *  devuelve una Promise — usada tanto por el guardado automático como
  *  por el botón manual de "Guardar" en el header del carrito. */
 function enviarCarritoAlServidor() {
-    if (esAdmin && !esZonaValladolid()) return Promise.resolve();
+    if (esAdmin) return Promise.resolve();
     const sesion = JSON.parse(localStorage.getItem("sesion_catalogo") || "{}");
     return fetch(API_URL, {
         method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" },
@@ -1231,6 +1232,8 @@ function toggleCarrito() {
 /* ══════════════════════════════════════════
    PANEL ADMIN — COTIZACIONES PENDIENTES (carritos en vivo)
 ══════════════════════════════════════════ */
+let ultimosCarritosAdminCargados = []; // cache del último fetch, usado para acciones masivas instantáneas
+
 function toggleCotizacionesAdmin() {
     const panel = document.getElementById("panel-cotizaciones-admin");
     panel.classList.toggle("abierto");
@@ -1241,93 +1244,91 @@ async function cargarCotizacionesAdmin() {
     const contenedor = document.getElementById("lista-cotizaciones-admin");
     contenedor.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-3 text-slate-500 py-12">
         <i class="fa-solid fa-spinner fa-spin text-3xl opacity-40"></i>
-        <p class="text-xs font-semibold text-center">Cargando carritos de usuarios...</p>
+        <p class="text-xs font-semibold text-center">Cargando cotizaciones...</p>
     </div>`;
-
     try {
         const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-                                          body: JSON.stringify({ action:"obtenerCarritosActivos", token: tokenActual, correo: usuarioActual }) });
+            body: JSON.stringify({ action:"obtenerCarritosActivos", token:tokenActual, correo:usuarioActual }) });
         const rs = await r.json();
-
         if (!rs.success) {
-            contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">${rs.message || "No se pudo cargar la información."}</p>`;
+            contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">${rs.message||"No autorizado."}</p>`;
             return;
         }
-
         const usuarios = rs.data || [];
+        ultimosCarritosAdminCargados = usuarios;
+
+        // Badge: suma piezas pendientes
         const badge = document.getElementById("badge-cotizaciones-admin");
         if (badge) {
-            // Sumamos las PIEZAS (no usuarios) de los carritos pendientes, para que
-            // la cifra de la bola azul coincida en unidad con la bola verde del usuario.
-            const piezasPendientes = usuarios
-                .filter(u => (u.estado||"Pendiente") !== "Cotización enviada")
-                .reduce((s,u) => s + Number(u.totalItems||0), 0);
-            badge.innerText = piezasPendientes;
-            badge.classList.toggle("hidden", piezasPendientes === 0);
+            const pzas = usuarios.filter(u=>u.estado!=="Cotización enviada").reduce((s,u)=>s+Number(u.totalItems||0),0);
+            badge.innerText = pzas;
+            badge.classList.toggle("hidden", pzas===0);
         }
 
-        // Aviso del almacén que este admin está visualizando (punto 7.1 / 7.2)
-        const etiquetaAlmacen = rs.almacenAdmin
+        const etAlmacen = rs.almacenAdmin
             ? (_normalizarAlmacenJS(rs.almacenAdmin).includes("ZONA VALLADOLID")
-                ? `<i class="fa-solid fa-globe mr-1"></i> Viendo TODOS los almacenes (Zona Valladolid)`
-                : `<i class="fa-solid fa-warehouse mr-1"></i> Viendo solo: <strong>${rs.almacenAdmin}</strong>`)
-            : `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Sin almacén asignado — no verás cotizaciones`;
+                ? `<i class="fa-solid fa-globe mr-1"></i> Todos los almacenes (Zona Valladolid)`
+                : `<i class="fa-solid fa-warehouse mr-1"></i> Almacén: <strong>${rs.almacenAdmin}</strong>`)
+            : `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Sin almacén asignado`;
+        let html = `<div class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 mb-3 text-[10px] text-blue-300 font-bold">${etAlmacen}</div>`;
 
-        let html = `<div class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 mb-3 text-[10px] text-blue-300 font-bold">${etiquetaAlmacen}</div>`;
-
-        if (usuarios.length === 0) {
+        if (!usuarios.length) {
             html += `<div class="flex flex-col items-center justify-center gap-3 text-slate-500 py-12">
                 <i class="fa-solid fa-inbox text-4xl opacity-30"></i>
-                <p class="text-xs font-semibold text-center">Ningún usuario tiene productos pendientes en tu almacén por ahora.</p>
-            </div>`;
-            contenedor.innerHTML = html;
-            return;
+                <p class="text-xs font-semibold text-center">Sin cotizaciones pendientes.</p></div>`;
+            contenedor.innerHTML = html; return;
         }
 
         usuarios.forEach(u => {
-            const fecha = u.ultimaActualizacion ? new Date(u.ultimaActualizacion).toLocaleString("es-MX", { dateStyle:"short", timeStyle:"short" }) : "—";
-            const estado = u.estado || "Pendiente";
-            const esEnviada = estado === "Cotización enviada";
-            const correoSeguro = String(u.correo).replace(/'/g, "\\'");
+            const fecha = u.ultimaActualizacion
+                ? new Date(u.ultimaActualizacion).toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"}) : "—";
+            const estadoGen    = u.estado || "Pendiente";
+            const esEnviadaTodo = estadoGen === "Cotización enviada";
+            const estadosPG    = u.estadosPorGrupo || {};
+            const correoSeg    = String(u.correo).replace(/'/g,"\'");
 
-            // Agrupar los items de ESTE usuario por agencia/almacén — misma composición
-            // visual que la tarjeta de "Solicitar Cotización" del usuario normal.
-            const gruposAgencia = {};
+            // Agrupar items por almacén/grupo
+            const grupos = {};
             (u.items||[]).forEach(it => {
-                (it.agenciasDisponibles||[]).forEach(ag => {
-                    const grupo = detectarGrupoSucursal(ag.sucursal);
-                    if (!gruposAgencia[grupo]) gruposAgencia[grupo] = { sucursales: new Set(), items: [] };
-                    gruposAgencia[grupo].sucursales.add(ag.sucursal);
+                const ags = it.agenciasDisponibles||[];
+                if (!ags.length) { if(!grupos.GENERAL) grupos.GENERAL={suc:new Set(),items:[]}; return; }
+                ags.forEach(ag => {
+                    const g = detectarGrupoSucursal(ag.sucursal);
+                    if (!grupos[g]) grupos[g]={suc:new Set(),items:[]};
+                    grupos[g].suc.add(ag.sucursal);
                 });
-                // Si el item no tiene agencias (caso raro), lo metemos en "GENERAL"
-                if (!(it.agenciasDisponibles||[]).length) {
-                    if (!gruposAgencia.GENERAL) gruposAgencia.GENERAL = { sucursales: new Set(), items: [] };
-                }
             });
-            // Asignar cada item a TODOS los grupos donde tiene existencia
             (u.items||[]).forEach(it => {
-                const gruposDelItem = (it.agenciasDisponibles||[]).length
-                    ? [...new Set((it.agenciasDisponibles||[]).map(ag => detectarGrupoSucursal(ag.sucursal)))]
-                    : ["GENERAL"];
-                gruposDelItem.forEach(g => { if (gruposAgencia[g]) gruposAgencia[g].items.push(it); });
+                const ags = it.agenciasDisponibles||[];
+                const gs = ags.length ? [...new Set(ags.map(a=>detectarGrupoSucursal(a.sucursal)))] : ["GENERAL"];
+                gs.forEach(g => { if(grupos[g]) grupos[g].items.push(it); });
             });
 
-            const bloquesAgencia = Object.entries(gruposAgencia).map(([grupo, datos]) => {
-                const info = GRUPOS_AGENCIA[grupo] || { nombre: grupo, emoji: "📦" };
-                const sucursalesTxt = [...datos.sucursales].join(", ") || "Sin sucursal";
-                return `
-                <div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2 mb-2">
-                    <p class="text-[10px] font-black uppercase mb-1 flex items-center gap-1">
-                        <span class="tag-agencia tag-${grupo}">${info.emoji} ${info.nombre}</span>
-                        <span class="text-slate-500 font-normal normal-case">${sucursalesTxt}</span>
-                    </p>
-                    ${datos.items.map(it => `
+            // Un bloque por grupo, con su propio botón "Enviar / Marcar pendiente"
+            const bloques = Object.entries(grupos).map(([grupo, datos]) => {
+                const info      = GRUPOS_AGENCIA[grupo]||{nombre:grupo,emoji:"📦"};
+                const sucTxt    = [...datos.suc].join(", ")||"Sin sucursal";
+                const estGrupo  = estadosPG[grupo]||"Pendiente";
+                const enviado   = estGrupo==="Cotización enviada";
+                return `<div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2 mb-2">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-[10px] font-black uppercase flex items-center gap-1">
+                            <span class="tag-agencia tag-${grupo}">${info.emoji} ${info.nombre}</span>
+                            <span class="text-slate-500 font-normal normal-case text-[9px]">${sucTxt}</span>
+                        </p>
+                        <button onclick="cambiarEstadoGrupoAdmin('${correoSeg}','${grupo}','${enviado?'Pendiente':'Cotización enviada'}')"
+                                class="${enviado?'bg-amber-800 hover:bg-amber-700':'bg-emerald-700 hover:bg-emerald-600'} text-white text-[9px] font-bold px-2 py-1 rounded-lg cursor-pointer transition flex items-center gap-1">
+                            <i class="fa-solid ${enviado?'fa-rotate-left':'fa-paper-plane'}"></i>
+                            ${enviado?'Pendiente':'Enviada'}
+                        </button>
+                    </div>
+                    ${datos.items.map(it=>`
                         <div class="item-linea">
                             <span>${it.nombre} <span class="text-slate-500">(${it.sku})</span></span>
                             <span class="flex items-center gap-2">
                                 <span class="font-bold text-emerald-400">x${it.cantidad}</span>
-                                <button onclick="eliminarItemCarritoUsuarioAdmin('${correoSeguro}', '${String(it.sku).replace(/'/g,"\\'")}')"
-                                        title="Eliminar este producto (ya contactado/entregado)"
+                                <button onclick="eliminarItemCarritoUsuarioAdmin('${correoSeg}','${String(it.sku).replace(/'/g,"\\'")}' )"
+                                        title="Eliminar (ya entregado)"
                                         class="text-red-400 hover:text-red-300 cursor-pointer">
                                     <i class="fa-solid fa-circle-xmark"></i>
                                 </button>
@@ -1336,98 +1337,79 @@ async function cargarCotizacionesAdmin() {
                 </div>`;
             }).join("");
 
-            html += `
-            <div class="tarjeta-usuario-admin">
+            html += `<div class="tarjeta-usuario-admin" data-correo-tarjeta="${correoSeg}">
                 <div class="encabezado-usuario">
                     <div>
-                        <div class="nombre-usuario-admin"><i class="fa-solid fa-user text-blue-400 mr-1"></i> ${u.nombre || "Sin nombre"}</div>
+                        <div class="nombre-usuario-admin"><i class="fa-solid fa-user text-blue-400 mr-1"></i> ${u.nombre||"Sin nombre"}</div>
                         <div class="correo-usuario-admin">${u.correo}</div>
                     </div>
-                    <span class="${esEnviada ? 'bg-emerald-950 text-emerald-300' : 'bg-amber-950 text-amber-300'} text-[10px] font-black px-2 py-1 rounded-md">
-                        ${esEnviada ? '✓ Enviada' : '⏳ Pendiente'}
+                    <span class="${esEnviadaTodo?'bg-emerald-950 text-emerald-300':'bg-amber-950 text-amber-300'} text-[10px] font-black px-2 py-1 rounded-md">
+                        ${esEnviadaTodo?'✓ Todo enviado':'⏳ Pendiente'}
                     </span>
                 </div>
-
-                <div class="flex flex-col gap-0.5 mb-2">
-                    ${bloquesAgencia}
-                </div>
-
-                <p class="text-[9px] text-slate-500 mb-2"><i class="fa-regular fa-clock mr-1"></i> Última actualización: ${fecha}</p>
-
-                <div class="flex gap-2">
-                    <button onclick="cambiarEstadoCotizacionAdmin('${correoSeguro}', ${esEnviada ? "'Pendiente'" : "'Cotización enviada'"})"
-                            class="flex-1 ${esEnviada ? 'bg-amber-800 hover:bg-amber-700' : 'bg-emerald-700 hover:bg-emerald-600'} text-white text-[10px] font-bold py-1.5 rounded-lg cursor-pointer transition flex items-center justify-center gap-1">
-                        <i class="fa-solid ${esEnviada ? 'fa-rotate-left' : 'fa-paper-plane'}"></i>
-                        ${esEnviada ? 'Marcar pendiente' : 'Marcar enviada'}
-                    </button>
-                    <button onclick="eliminarCarritoCompletoAdmin('${correoSeguro}')"
-                            class="bg-slate-700 hover:bg-red-950 text-slate-300 hover:text-red-400 text-[10px] font-bold py-1.5 px-3 rounded-lg cursor-pointer transition">
-                        <i class="fa-solid fa-trash"></i>
-                    </button>
-                </div>
+                <div class="flex flex-col gap-0.5 mb-2">${bloques}</div>
+                <p class="text-[9px] text-slate-500 mb-2"><i class="fa-regular fa-clock mr-1"></i> ${fecha}</p>
+                <button onclick="eliminarCarritoCompletoAdmin('${correoSeg}')"
+                        class="w-full bg-slate-700 hover:bg-red-950 text-slate-300 hover:text-red-400 text-[10px] font-bold py-1.5 rounded-lg cursor-pointer transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-trash"></i> Eliminar cotización completa
+                </button>
             </div>`;
         });
-
         contenedor.innerHTML = html;
-    } catch (err) {
-        contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">Error de conexión al cargar las cotizaciones.</p>`;
+    } catch(err) {
+        contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">Error de conexión.</p>`;
     }
 }
 
-/** Admin: cambia el estado de la cotización completa de un usuario */
-async function cambiarEstadoCotizacionAdmin(correoUsuario, nuevoEstado) {
+/** Admin: cambia el estado de UN GRUPO de agencia (por almacén) dentro
+ *  del carrito de un usuario. Cada almacén puede marcar su parte como
+ *  enviada de forma independiente (punto 3 del sistema). */
+async function cambiarEstadoGrupoAdmin(correoUsuario, grupo, nuevoEstado) {
     try {
         const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-            body: JSON.stringify({ action:"marcarCotizacionEnviada", token: tokenActual, correo: usuarioActual, correoUsuario, estado: nuevoEstado }) });
+            body: JSON.stringify({ action:"marcarCotizacionEnviada", token:tokenActual, correo:usuarioActual,
+                                   correoUsuario, estado:nuevoEstado, grupo }) });
         const rs = await r.json();
-        if (rs.success) {
-            cargarCotizacionesAdmin();
-        } else {
-            alert("No se pudo actualizar el estado: " + (rs.message || "Error desconocido."));
-        }
-    } catch {
-        alert("Error de conexión al actualizar el estado.");
-    }
+        if (rs.success) { cargarCotizacionesAdmin(); }
+        else { alert("No se pudo actualizar: " + (rs.message||"Error.")); }
+    } catch { alert("Error de conexión al actualizar estado."); }
 }
 
-/** Admin: elimina UN producto del carrito de un usuario (ya contactado/entregado) */
+/** Admin: cambia el estado GLOBAL del carrito de un usuario (acceso legacy
+ *  para compatibilidad; ahora se prefiere cambiarEstadoGrupoAdmin). */
+async function cambiarEstadoCotizacionAdmin(correoUsuario, nuevoEstado) {
+    await cambiarEstadoGrupoAdmin(correoUsuario, "__TODOS__", nuevoEstado);
+}
+
+/** Admin: elimina UN producto del carrito de un usuario */
 async function eliminarItemCarritoUsuarioAdmin(correoUsuario, sku) {
     try {
         const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-            body: JSON.stringify({ action:"eliminarItemCarritoUsuario", token: tokenActual, correo: usuarioActual, correoUsuario, sku }) });
+            body: JSON.stringify({ action:"eliminarItemCarritoUsuario", token:tokenActual, correo:usuarioActual, correoUsuario, sku }) });
         const rs = await r.json();
-        if (rs.success) {
-            cargarCotizacionesAdmin();
-        } else {
-            alert("No se pudo eliminar el producto: " + (rs.message || "Error desconocido."));
-        }
-    } catch {
-        alert("Error de conexión al eliminar el producto.");
-    }
+        if (rs.success) { cargarCotizacionesAdmin(); }
+        else { alert("No se pudo eliminar: " + (rs.message||"Error.")); }
+    } catch { alert("Error de conexión al eliminar."); }
 }
 
-/** Admin: elimina el carrito COMPLETO de un usuario tras contactarlo y cerrar la venta */
+/** Admin: elimina el carrito COMPLETO de un usuario en un solo request
+ *  (punto 12 — antes fallaba por requests en paralelo que desplazaban filas). */
 async function eliminarCarritoCompletoAdmin(correoUsuario) {
-    if (!confirm(`¿Eliminar TODOS los productos del carrito de ${correoUsuario}? Esto se hace normalmente después de contactar y cerrar la cotización.`)) return;
+    if (!confirm(`¿Eliminar TODA la cotización de ${correoUsuario}?\nHaz esto solo después de contactar y cerrar el pedido.`)) return;
+
+    // Marcar tarjeta como cargando
+    const tarjeta = document.querySelector(`[data-correo-tarjeta="${CSS.escape(correoUsuario)}"]`);
+    if (tarjeta) { tarjeta.style.opacity = "0.5"; tarjeta.style.pointerEvents = "none"; }
+
     try {
-        // Reutilizamos sincronizarCarrito con items vacíos, actuando como el propio usuario
-        // sería incorrecto (cambiaría su sesión); en su lugar eliminamos item por item.
         const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-            body: JSON.stringify({ action:"obtenerCarritosActivos", token: tokenActual, correo: usuarioActual }) });
+            body: JSON.stringify({ action:"eliminarCarritoCompleto", token:tokenActual, correo:usuarioActual, correoUsuario }) });
         const rs = await r.json();
-        if (!rs.success) { alert("No se pudo obtener el carrito actual."); return; }
-
-        const usuario = (rs.data||[]).find(u => u.correo === correoUsuario);
-        if (!usuario) { cargarCotizacionesAdmin(); return; }
-
-        for (const it of usuario.items) {
-            await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-                body: JSON.stringify({ action:"eliminarItemCarritoUsuario", token: tokenActual, correo: usuarioActual, correoUsuario, sku: it.sku }) });
-        }
-
+        if (!rs.success) { alert("No se pudo eliminar: " + (rs.message||"Error.")); }
         cargarCotizacionesAdmin();
     } catch {
-        alert("Error de conexión al eliminar el carrito.");
+        alert("Error de conexión al eliminar.");
+        cargarCotizacionesAdmin();
     }
 }
 
