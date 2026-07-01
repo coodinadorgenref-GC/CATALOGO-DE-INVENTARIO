@@ -507,7 +507,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzlBe-qPCwlLfOgdE61lBCiMGBtKJQhOhmbE4h_bKqJ41Hste6Ol22z_GtgdDBNicXf/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbw6_uoKIkH52ujtqVw0lMURcGWAORAca8tFxjACSOySY3N8ts1Szgeia8jzdGH3wYht/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -1142,6 +1142,25 @@ function cambiarCantidadCarrito(sku, delta) {
     actualizarUICarrito();
 }
 
+/** Versión de cambio por botón +/−: lee primero el valor actual del
+ *  input (por si el usuario lo editó manualmente sin hacer blur),
+ *  lo aplica al array, y luego suma/resta el delta. */
+function cambiarCantidadDesdeBoton(sku, delta) {
+    const item = carrito.find(c=>c.sku===sku);
+    if (!item) return;
+    // Leer el valor actual del input por si cambió sin disparar onchange
+    const inputEl = document.getElementById(`qty-${sku}`);
+    if (inputEl) {
+        const valorInput = parseInt(inputEl.value, 10);
+        if (!isNaN(valorInput) && valorInput > 0) item.cantidad = valorInput;
+    }
+    const nueva = item.cantidad + delta;
+    if (nueva < 1) { eliminarDelCarrito(sku); return; }
+    item.cantidad = Math.min(nueva, item.stockMax || 9999);
+    guardarCarritoEnStorage();
+    actualizarUICarrito();
+}
+
 function establecerCantidadCarrito(sku, valor) {
     const item = carrito.find(c=>c.sku===sku);
     if (!item) return;
@@ -1217,12 +1236,12 @@ function actualizarUICarrito() {
                     <span class="tag-agencia tag-${grupo}">${(GRUPOS_AGENCIA[grupo]||{}).nombre||grupo}</span>
                 </div>
                 <div class="controles">
-                    <button class="btn-qty" onclick="cambiarCantidadCarrito('${item.sku}',-1)">−</button>
-                    <input type="number" class="qty-input" value="${item.cantidad}" min="1" max="${item.stockMax}"
-                           onchange="establecerCantidadCarrito('${item.sku}', this.value)"
-                           oninput="this.value=this.value.replace(/[^0-9]/g,'')"
+                    <button class="btn-qty" onclick="cambiarCantidadDesdeBoton('${item.sku}', -1)">−</button>
+                    <input type="number" class="qty-input" id="qty-${item.sku}" value="${item.cantidad}" min="1" max="${item.stockMax}"
+                           oninput="this.value=this.value.replace(/[^0-9]/g,''); establecerCantidadCarrito('${item.sku}', this.value)"
+                           onblur="if(!this.value||this.value<1) this.value=1; establecerCantidadCarrito('${item.sku}', this.value)"
                            inputmode="numeric" pattern="[0-9]*">
-                    <button class="btn-qty" onclick="cambiarCantidadCarrito('${item.sku}',1)">+</button>
+                    <button class="btn-qty" onclick="cambiarCantidadDesdeBoton('${item.sku}', 1)">+</button>
                     <button class="btn-eliminar-item" onclick="eliminarDelCarrito('${item.sku}')"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
             </div>`;
