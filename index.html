@@ -507,7 +507,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbw6_uoKIkH52ujtqVw0lMURcGWAORAca8tFxjACSOySY3N8ts1Szgeia8jzdGH3wYht/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwxrrxuRcn8u51yK1fFrei5I6d4u5vDcr14V6dpCqEZVPxy_vqtUMFCUFM-mUXkpoLE/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -1066,12 +1066,24 @@ function enviarCarritoAlServidor() {
     });
 }
 
-/** Botón manual "Guardar" — fuerza el envío inmediato (cancela el debounce
- *  pendiente) y da feedback visual de éxito/error al usuario. */
+/** Botón manual "Guardar" — lee primero TODOS los inputs de cantidad visibles
+ *  (por si el usuario editó alguno sin salir del campo), actualiza el array
+ *  en memoria, luego fuerza el envío inmediato al servidor. */
 function guardarCambiosCarritoManual() {
     const btn = document.getElementById("btn-guardar-carrito");
     if (!btn) return;
     clearTimeout(debounceSincronizarCarrito);
+
+    // Leer todos los inputs visibles y sincronizar al array antes de enviar
+    carrito.forEach(item => {
+        const inp = document.getElementById(`qty-${item.sku}`);
+        if (inp) {
+            const val = parseInt(inp.value, 10);
+            if (!isNaN(val) && val > 0) item.cantidad = Math.min(val, item.stockMax || 9999);
+        }
+    });
+    // Guardar el estado definitivo en localStorage
+    try { localStorage.setItem(clavesCarritoUsuario(), JSON.stringify(carrito)); } catch {}
 
     const textoOriginal = btn.innerHTML;
     btn.disabled = true;
@@ -1137,9 +1149,12 @@ function cambiarCantidadCarrito(sku, delta) {
     if (!item) return;
     const nueva = item.cantidad + delta;
     if (nueva < 1) { eliminarDelCarrito(sku); return; }
-    item.cantidad = Math.min(nueva, item.stockMax);
+    item.cantidad = Math.min(nueva, item.stockMax || 9999);
+    // Actualizar solo el input visual sin redibujar todo el carrito
+    const inp = document.getElementById(`qty-${sku}`);
+    if (inp) inp.value = item.cantidad;
+    actualizarBadgeCarrito();
     guardarCarritoEnStorage();
-    actualizarUICarrito();
 }
 
 /** Versión de cambio por botón +/−: lee primero el valor actual del
@@ -1157,8 +1172,10 @@ function cambiarCantidadDesdeBoton(sku, delta) {
     const nueva = item.cantidad + delta;
     if (nueva < 1) { eliminarDelCarrito(sku); return; }
     item.cantidad = Math.min(nueva, item.stockMax || 9999);
+    // Actualizar solo el input visual, no redibujar todo el carrito
+    if (inputEl) inputEl.value = item.cantidad;
+    actualizarBadgeCarrito();
     guardarCarritoEnStorage();
-    actualizarUICarrito();
 }
 
 function establecerCantidadCarrito(sku, valor) {
@@ -1167,8 +1184,21 @@ function establecerCantidadCarrito(sku, valor) {
     const nueva = parseInt(valor, 10);
     if (isNaN(nueva) || nueva < 1) { eliminarDelCarrito(sku); return; }
     item.cantidad = Math.min(nueva, item.stockMax || 9999);
+    // NO redibujar el carrito — solo actualizar el array, el badge y sincronizar.
+    // Redibujar causaría que el input pierda el foco en iOS mientras el usuario escribe.
+    actualizarBadgeCarrito();
     guardarCarritoEnStorage();
-    actualizarUICarrito();
+}
+
+/** Actualiza SOLO el badge (número en la bola flotante) sin redibujar
+ *  todo el panel del carrito. Llamado desde las funciones de cantidad. */
+function actualizarBadgeCarrito() {
+    const total = totalItemsCarrito();
+    const badge = document.getElementById("badge-carrito");
+    if (badge) {
+        badge.innerText = total;
+        badge.style.display = total > 0 ? "flex" : "none";
+    }
 }
 
 function eliminarDelCarrito(sku) {
@@ -1267,8 +1297,16 @@ function toggleCarrito() {
     const estaAbierto = panel.classList.contains("abierto");
 
     if (estaAbierto) {
-        // Al CERRAR: forzar sincronización inmediata para que las cantidades
-        // editadas queden registradas en Sheets antes de que el admin consulte.
+        // Al CERRAR: leer todos los inputs de cantidad por si el usuario
+        // editó alguno sin hacer blur/onchange, y sincronizar de inmediato.
+        carrito.forEach(item => {
+            const inp = document.getElementById(`qty-${item.sku}`);
+            if (inp) {
+                const val = parseInt(inp.value, 10);
+                if (!isNaN(val) && val > 0) item.cantidad = Math.min(val, item.stockMax || 9999);
+            }
+        });
+        try { localStorage.setItem(clavesCarritoUsuario(), JSON.stringify(carrito)); } catch {}
         clearTimeout(debounceSincronizarCarrito);
         enviarCarritoAlServidor();
     }
