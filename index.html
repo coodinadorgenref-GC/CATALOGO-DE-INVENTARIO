@@ -69,10 +69,12 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         /* ── CARRITO FLOTANTE ────────────────────────── */
+        /* IMPORTANTE: display se controla 100% desde JS.
+           El CSS NO pone display:flex para no pisar el ocultado inicial. */
         #btn-carrito-flotante {
             position: fixed; bottom: 28px; right: 24px; z-index: 200;
             background: #059669; color: #fff; border-radius: 50%; width: 58px; height: 58px;
-            display: flex; align-items: center; justify-content: center;
+            align-items: center; justify-content: center;
             box-shadow: 0 8px 24px rgba(5,150,105,.5); cursor: pointer; transition: transform .2s;
             border: none; outline: none;
         }
@@ -86,10 +88,11 @@
         }
 
         /* ── BOTÓN COTIZACIONES PENDIENTES (admin) ───── */
+        /* IMPORTANTE: display se controla 100% desde JS. */
         #btn-cotizaciones-admin {
             position: fixed; bottom: 28px; right: 96px; z-index: 200;
             background: #1d4ed8; color: #fff; border-radius: 50%; width: 58px; height: 58px;
-            display: flex; align-items: center; justify-content: center;
+            align-items: center; justify-content: center;
             box-shadow: 0 8px 24px rgba(29,78,216,.5); cursor: pointer; transition: transform .2s;
             border: none; outline: none;
         }
@@ -391,17 +394,17 @@
 <!-- ════════════════════════════════════════════════
      BOTÓN CARRITO FLOTANTE (solo no-admin)
 ═════════════════════════════════════════════════ -->
-<button id="btn-carrito-flotante" onclick="toggleCarrito()" class="hidden" title="Ver carrito">
+<button id="btn-carrito-flotante" onclick="toggleCarrito()" style="display:none" title="Ver carrito">
     <i class="fa-solid fa-cart-shopping text-xl"></i>
-    <span id="badge-carrito" class="hidden">0</span>
+    <span id="badge-carrito" style="display:none">0</span>
 </button>
 
 <!-- ════════════════════════════════════════════════
      BOTÓN COTIZACIONES PENDIENTES (solo admin)
 ═════════════════════════════════════════════════ -->
-<button id="btn-cotizaciones-admin" onclick="toggleCotizacionesAdmin()" class="hidden" title="Ver cotizaciones pendientes">
+<button id="btn-cotizaciones-admin" onclick="toggleCotizacionesAdmin()" style="display:none" title="Ver cotizaciones pendientes">
     <i class="fa-solid fa-users-gear text-xl"></i>
-    <span id="badge-cotizaciones-admin" class="hidden">0</span>
+    <span id="badge-cotizaciones-admin" style="display:none">0</span>
 </button>
 
 <!-- ════════════════════════════════════════════════
@@ -504,7 +507,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwxclw2DfeoLWRkHHwgI7neKxjfoTGz0owJKXUabVyok9urpcpDQPWz78E6AnZZh11R/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzlBe-qPCwlLfOgdE61lBCiMGBtKJQhOhmbE4h_bKqJ41Hste6Ol22z_GtgdDBNicXf/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -598,7 +601,20 @@ function generarHtmlContenedorImagen(url) {
 /* ══════════════════════════════════════════
    SESIÓN
 ══════════════════════════════════════════ */
+
+/** Función centralizada para mostrar/ocultar los botones flotantes.
+ *  Usa style.display en lugar de classList para máxima compatibilidad
+ *  con iOS Safari, donde el CSS del #id puede ganar a la clase .hidden. */
+function _mostrarBotonFlotante(id, visible, usarFlex) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.display = visible ? (usarFlex ? "flex" : "block") : "none";
+}
+
 window.onload = function () {
+    // Ocultado inicial con style.display para que iOS Safari no lo ignore
+    _mostrarBotonFlotante("btn-carrito-flotante", false);
+    _mostrarBotonFlotante("btn-cotizaciones-admin", false);
     verificarSesionGuardada();
 };
 
@@ -719,28 +735,33 @@ function procesarDespuesDeCarga() {
     if (cargando)  cargando.classList.add("hidden");
     if (principal) principal.classList.remove("hidden");
 
-    // ── Visibilidad de las bolas flotantes (SOLO después de iniciar sesión) ──
-    // 1. Admin normal      → SOLO ve la bola azul "Cotizaciones Pendientes"
-    // 2. Usuario no-admin  → SOLO ve la bola verde "Mi Cotización"
-    // 3. Admin Zona Valladolid → ve AMBAS bolas
-    const btnFlot     = document.getElementById("btn-carrito-flotante");
-    const btnCotAdmin = document.getElementById("btn-cotizaciones-admin");
-    const zonaTotal    = esAdmin && esZonaValladolid();
+    // ── Botones flotantes: SOLO se muestran cuando hay sesión autenticada ──
+    // Verificamos que haya una sesión activa en localStorage antes de mostrar
+    // cualquier bola flotante — esto evita que aparezcan en el login cuando
+    // procesarDespuesDeCarga se dispara desde el caché del inventario.
+    const sesionActiva = !!localStorage.getItem("sesion_catalogo") && !!usuarioActual;
 
-    const mostrarVerde = !esAdmin || zonaTotal; // usuario normal, o admin Zona Valladolid
-    const mostrarAzul  = esAdmin;               // cualquier admin (incluyendo Zona Valladolid)
+    if (!sesionActiva) {
+        // Sin sesión: garantizamos que ambos botones estén ocultos con display:none
+        _mostrarBotonFlotante("btn-carrito-flotante", false);
+        _mostrarBotonFlotante("btn-cotizaciones-admin", false);
+    } else {
+        // Con sesión: mostramos según el rol (display:flex para que el ícono esté centrado)
+        const zonaTotal    = esAdmin && esZonaValladolid();
+        const mostrarVerde = !esAdmin || zonaTotal;
+        const mostrarAzul  = esAdmin;
 
-    if (btnFlot)     btnFlot.classList.toggle("hidden", !mostrarVerde);
-    if (btnCotAdmin) btnCotAdmin.classList.toggle("hidden", !mostrarAzul);
-    if (esAdmin) cargarCotizacionesAdmin();
+        _mostrarBotonFlotante("btn-carrito-flotante", mostrarVerde, true);
+        _mostrarBotonFlotante("btn-cotizaciones-admin", mostrarAzul, true);
+        if (esAdmin) cargarCotizacionesAdmin();
+    }
 
-    // Evitar duplicar opciones si se llama más de una vez (re-sincronización)
+    // Evitar duplicar opciones si se llama más de una vez
     const sel = document.getElementById("filtro-agencia");
     if (sel && sel.options.length <= 1) poblarSelectAgencias();
 
     renderizarFiltrosFamilia();
     renderizarFiltrosMarcas();
-    // requestAnimationFrame deja que el navegador pinte primero los filtros, luego renderiza productos
     requestAnimationFrame(() => filtrarProductos());
 }
 
@@ -1012,12 +1033,11 @@ function guardarCarritoEnStorage() {
  *  su panel. Con debounce para no saturar la API en cada clic. */
 let debounceSincronizarCarrito;
 function sincronizarCarritoConServidor() {
-    // REGLA: solo usuarios NO-admin (columna H vacía en Usuarios_Autorizados)
-    // tienen carrito propio / "Mi Cotización". NINGÚN admin —tampoco el de
-    // Zona Valladolid— tiene carrito; su rol es solo gestionar cotizaciones.
+    // REGLA: solo usuarios NO-admin (columna H vacía) tienen carrito propio.
     if (esAdmin) return;
     clearTimeout(debounceSincronizarCarrito);
-    debounceSincronizarCarrito = setTimeout(() => { enviarCarritoAlServidor(); }, 800);
+    // 300ms: lo bastante rápido para no perder cambios al cerrar el panel
+    debounceSincronizarCarrito = setTimeout(() => { enviarCarritoAlServidor(); }, 300);
 }
 
 /** Envía el carrito actual al servidor de inmediato (sin debounce) y
@@ -1221,10 +1241,19 @@ function mostrarToastCarrito(nombre) {
     setTimeout(() => t.remove(), 2000);
 }
 
-/* ── Toggle panel ── */
+/* ── Toggle panel carrito ── */
 function toggleCarrito() {
     const panel   = document.getElementById("panel-carrito");
     const overlay = document.getElementById("overlay-carrito");
+    const estaAbierto = panel.classList.contains("abierto");
+
+    if (estaAbierto) {
+        // Al CERRAR: forzar sincronización inmediata para que las cantidades
+        // editadas queden registradas en Sheets antes de que el admin consulte.
+        clearTimeout(debounceSincronizarCarrito);
+        enviarCarritoAlServidor();
+    }
+
     panel.classList.toggle("abierto");
     overlay.classList.toggle("visible");
 }
@@ -1260,7 +1289,9 @@ async function cargarCotizacionesAdmin() {
         // Badge: suma piezas pendientes
         const badge = document.getElementById("badge-cotizaciones-admin");
         if (badge) {
-            const pzas = usuarios.filter(u=>u.estado!=="Cotización enviada").reduce((s,u)=>s+Number(u.totalItems||0),0);
+            const pzas = usuarios
+                .filter(u => u.estado !== "Pedido listo" && u.estado !== "Cotización enviada")
+                .reduce((s,u)=>s+Number(u.totalItems||0),0);
             badge.innerText = pzas;
             badge.classList.toggle("hidden", pzas===0);
         }
@@ -1283,7 +1314,7 @@ async function cargarCotizacionesAdmin() {
             const fecha = u.ultimaActualizacion
                 ? new Date(u.ultimaActualizacion).toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"}) : "—";
             const estadoGen    = u.estado || "Pendiente";
-            const esEnviadaTodo = estadoGen === "Cotización enviada";
+            const esEnviadaTodo = estadoGen === "Cotización enviada" || estadoGen === "Pedido listo";
             const estadosPG    = u.estadosPorGrupo || {};
             const correoSeg    = String(u.correo).replace(/'/g,"\'");
 
@@ -1308,18 +1339,18 @@ async function cargarCotizacionesAdmin() {
             const bloques = Object.entries(grupos).map(([grupo, datos]) => {
                 const info      = GRUPOS_AGENCIA[grupo]||{nombre:grupo,emoji:"📦"};
                 const sucTxt    = [...datos.suc].join(", ")||"Sin sucursal";
-                const estGrupo  = estadosPG[grupo]||"Pendiente";
-                const enviado   = estGrupo==="Cotización enviada";
+                const estGrupo  = estadosPG[grupo]||"Por cotizar";
+                const enviado   = estGrupo==="Pedido listo" || estGrupo==="Cotización enviada";
                 return `<div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2 mb-2">
                     <div class="flex items-center justify-between mb-1">
                         <p class="text-[10px] font-black uppercase flex items-center gap-1">
                             <span class="tag-agencia tag-${grupo}">${info.emoji} ${info.nombre}</span>
                             <span class="text-slate-500 font-normal normal-case text-[9px]">${sucTxt}</span>
                         </p>
-                        <button onclick="cambiarEstadoGrupoAdmin('${correoSeg}','${grupo}','${enviado?'Pendiente':'Cotización enviada'}')"
-                                class="${enviado?'bg-amber-800 hover:bg-amber-700':'bg-emerald-700 hover:bg-emerald-600'} text-white text-[9px] font-bold px-2 py-1 rounded-lg cursor-pointer transition flex items-center gap-1">
-                            <i class="fa-solid ${enviado?'fa-rotate-left':'fa-paper-plane'}"></i>
-                            ${enviado?'Pendiente':'Enviada'}
+                        <button onclick="cambiarEstadoGrupoAdmin('${correoSeg}','${grupo}','${enviado?'Por cotizar':'Pedido listo'}')"
+                                class="${enviado?'bg-emerald-700 hover:bg-emerald-600':'bg-orange-600 hover:bg-orange-500'} text-white text-[9px] font-bold px-2 py-1 rounded-lg cursor-pointer transition flex items-center gap-1">
+                            <i class="fa-solid ${enviado?'fa-check-circle':'fa-clock'}"></i>
+                            ${enviado?'Pedido listo':'Por cotizar'}
                         </button>
                     </div>
                     ${datos.items.map(it=>`
@@ -1343,8 +1374,8 @@ async function cargarCotizacionesAdmin() {
                         <div class="nombre-usuario-admin"><i class="fa-solid fa-user text-blue-400 mr-1"></i> ${u.nombre||"Sin nombre"}</div>
                         <div class="correo-usuario-admin">${u.correo}</div>
                     </div>
-                    <span class="${esEnviadaTodo?'bg-emerald-950 text-emerald-300':'bg-amber-950 text-amber-300'} text-[10px] font-black px-2 py-1 rounded-md">
-                        ${esEnviadaTodo?'✓ Todo enviado':'⏳ Pendiente'}
+                    <span class="${esEnviadaTodo?'bg-emerald-950 text-emerald-300':'bg-orange-950 text-orange-300'} text-[10px] font-black px-2 py-1 rounded-md">
+                        ${esEnviadaTodo?'✓ Pedido listo':'⏳ Por cotizar'}
                     </span>
                 </div>
                 <div class="flex flex-col gap-0.5 mb-2">${bloques}</div>
