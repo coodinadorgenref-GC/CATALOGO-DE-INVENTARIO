@@ -68,41 +68,76 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* ── CARRITO FLOTANTE ────────────────────────── */
-        /* IMPORTANTE: display se controla 100% desde JS.
-           El CSS NO pone display:flex para no pisar el ocultado inicial. */
-        #btn-carrito-flotante {
-            position: fixed; bottom: 28px; right: 24px; z-index: 200;
-            background: #059669; color: #fff; border-radius: 50%; width: 58px; height: 58px;
+        /* ══════════════════════════════════════════════════
+           BOTONES FLOTANTES — ESTILO ÍCONO iOS
+           IMPORTANTE: display se controla 100% desde JS.
+           El CSS NO define display para no pisar el ocultado inicial.
+        ══════════════════════════════════════════════════ */
+
+        /* Estilos compartidos por ambos botones */
+        #btn-carrito-flotante,
+        #btn-cotizaciones-admin {
+            position: fixed; bottom: 28px; z-index: 200;
+            width: 64px; height: 64px;
+            /* Cuadrado con esquinas redondeadas estilo iOS (no círculo) */
+            border-radius: 16px;
             align-items: center; justify-content: center;
-            box-shadow: 0 8px 24px rgba(5,150,105,.5); cursor: pointer; transition: transform .2s;
-            border: none; outline: none;
+            cursor: pointer; border: none; outline: none;
+            transition: transform .15s, box-shadow .15s;
+            flex-direction: column; gap: 3px;
+            font-size: 11px; font-weight: 800;
+            letter-spacing: 0;
         }
-        #btn-carrito-flotante:hover { transform: scale(1.08); }
-        #badge-carrito {
-            position: absolute; top: -4px; right: -4px;
-            background: #ef4444; color: #fff; border-radius: 999px;
-            font-size: 10px; font-weight: 900; min-width: 20px; height: 20px;
-            display: flex; align-items: center; justify-content: center; padding: 0 4px;
-            border: 2px solid #0f172a; pointer-events: none;
+        #btn-carrito-flotante:active,
+        #btn-cotizaciones-admin:active { transform: scale(0.92); }
+        #btn-carrito-flotante:hover,
+        #btn-cotizaciones-admin:hover  { transform: scale(1.06); }
+
+        /* ── Bola verde: Mi Cotización ── */
+        #btn-carrito-flotante {
+            right: 24px;
+            background: linear-gradient(145deg, #10b981, #047857);
+            box-shadow: 0 6px 20px rgba(5,150,105,.55), 0 2px 6px rgba(0,0,0,.3);
         }
 
-        /* ── BOTÓN COTIZACIONES PENDIENTES (admin) ───── */
-        /* IMPORTANTE: display se controla 100% desde JS. */
+        /* ── Bola azul: Cotizaciones Pendientes ── */
         #btn-cotizaciones-admin {
-            position: fixed; bottom: 28px; right: 96px; z-index: 200;
-            background: #1d4ed8; color: #fff; border-radius: 50%; width: 58px; height: 58px;
-            align-items: center; justify-content: center;
-            box-shadow: 0 8px 24px rgba(29,78,216,.5); cursor: pointer; transition: transform .2s;
-            border: none; outline: none;
+            right: 100px;
+            background: linear-gradient(145deg, #3b82f6, #1d4ed8);
+            box-shadow: 0 6px 20px rgba(29,78,216,.55), 0 2px 6px rgba(0,0,0,.3);
         }
-        #btn-cotizaciones-admin:hover { transform: scale(1.08); }
+
+        /* ── BADGE rojo (esquina superior derecha) ── */
+        #badge-carrito,
         #badge-cotizaciones-admin {
-            position: absolute; top: -4px; right: -4px;
-            background: #ef4444; color: #fff; border-radius: 999px;
-            font-size: 10px; font-weight: 900; min-width: 20px; height: 20px;
-            display: flex; align-items: center; justify-content: center; padding: 0 4px;
-            border: 2px solid #0f172a; pointer-events: none;
+            position: absolute;
+            top: -8px; right: -8px;
+            background: #ef4444;
+            color: #fff;
+            border-radius: 999px;
+            font-size: 12px; font-weight: 900;
+            min-width: 24px; height: 24px;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0 6px;
+            /* Borde blanco grueso igual que iOS */
+            border: 2.5px solid #fff;
+            box-shadow: 0 2px 6px rgba(0,0,0,.35);
+            pointer-events: none;
+            line-height: 1;
+        }
+
+        /* Ícono dentro del botón */
+        #btn-carrito-flotante   .btn-flotante-icon,
+        #btn-cotizaciones-admin .btn-flotante-icon {
+            font-size: 22px;
+            line-height: 1;
+        }
+        /* Etiqueta de texto debajo del ícono */
+        #btn-carrito-flotante   .btn-flotante-label,
+        #btn-cotizaciones-admin .btn-flotante-label {
+            font-size: 8px; font-weight: 800;
+            text-transform: uppercase; letter-spacing: .4px;
+            opacity: .9; line-height: 1;
         }
 
         /* ── PANEL ADMIN: COTIZACIONES POR USUARIO ───── */
@@ -394,16 +429,18 @@
 <!-- ════════════════════════════════════════════════
      BOTÓN CARRITO FLOTANTE (solo no-admin)
 ═════════════════════════════════════════════════ -->
-<button id="btn-carrito-flotante" onclick="toggleCarrito()" style="display:none" title="Ver carrito">
-    <i class="fa-solid fa-cart-shopping text-xl"></i>
+<button id="btn-carrito-flotante" onclick="toggleCarrito()" style="display:none" title="Mi Cotización">
+    <span class="btn-flotante-icon"><i class="fa-solid fa-cart-shopping"></i></span>
+    <span class="btn-flotante-label">Cotización</span>
     <span id="badge-carrito" style="display:none">0</span>
 </button>
 
 <!-- ════════════════════════════════════════════════
      BOTÓN COTIZACIONES PENDIENTES (solo admin)
 ═════════════════════════════════════════════════ -->
-<button id="btn-cotizaciones-admin" onclick="toggleCotizacionesAdmin()" style="display:none" title="Ver cotizaciones pendientes">
-    <i class="fa-solid fa-users-gear text-xl"></i>
+<button id="btn-cotizaciones-admin" onclick="toggleCotizacionesAdmin()" style="display:none" title="Cotizaciones Pendientes">
+    <span class="btn-flotante-icon"><i class="fa-solid fa-users-gear"></i></span>
+    <span class="btn-flotante-label">Pendientes</span>
     <span id="badge-cotizaciones-admin" style="display:none">0</span>
 </button>
 
@@ -507,7 +544,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwxrrxuRcn8u51yK1fFrei5I6d4u5vDcr14V6dpCqEZVPxy_vqtUMFCUFM-mUXkpoLE/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyh5NReHUXuJ3L6mMwhHyVXOxrPj6FWtluSjSNsBUqH42Z1mkA4JFMIsxHsE4wh7qjY/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -1193,11 +1230,12 @@ function establecerCantidadCarrito(sku, valor) {
 /** Actualiza SOLO el badge (número en la bola flotante) sin redibujar
  *  todo el panel del carrito. Llamado desde las funciones de cantidad. */
 function actualizarBadgeCarrito() {
-    const total = totalItemsCarrito();
+    // Muestra la cantidad de PRODUCTOS DISTINTOS en el carrito del usuario
+    const totalProductos = carrito.length;
     const badge = document.getElementById("badge-carrito");
     if (badge) {
-        badge.innerText = total;
-        badge.style.display = total > 0 ? "flex" : "none";
+        badge.innerText = totalProductos;
+        badge.style.display = totalProductos > 0 ? "flex" : "none";
     }
 }
 
@@ -1224,8 +1262,8 @@ function actualizarUICarrito() {
     const btnVac   = document.getElementById("btn-vaciar-carrito");
     const msgPie   = document.getElementById("msg-pie-carrito");
 
-    // Badge
-    if (badge) { badge.innerText=total; badge.classList.toggle("hidden", total===0); }
+    // Badge: número de productos distintos (SKUs únicos)
+    if (badge) { badge.innerText = carrito.length; badge.classList.toggle("hidden", carrito.length === 0); }
 
     // Vacío
     if (carrito.length === 0) {
@@ -1343,14 +1381,15 @@ async function cargarCotizacionesAdmin() {
         const usuarios = rs.data || [];
         ultimosCarritosAdminCargados = usuarios;
 
-        // Badge: suma piezas pendientes
+        // Badge: número de USUARIOS con cotizaciones pendientes ("Por cotizar")
         const badge = document.getElementById("badge-cotizaciones-admin");
         if (badge) {
-            const pzas = usuarios
+            const usuariosPendientes = usuarios
                 .filter(u => u.estado !== "Pedido listo" && u.estado !== "Cotización enviada")
-                .reduce((s,u)=>s+Number(u.totalItems||0),0);
-            badge.innerText = pzas;
-            badge.classList.toggle("hidden", pzas===0);
+                .length;
+            badge.innerText = usuariosPendientes;
+            badge.classList.toggle("hidden", usuariosPendientes === 0);
+            badge.style.display = usuariosPendientes > 0 ? "flex" : "none";
         }
 
         const etAlmacen = rs.almacenAdmin
