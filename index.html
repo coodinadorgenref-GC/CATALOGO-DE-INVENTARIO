@@ -68,6 +68,49 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+        /* ══ DRAWER DE FILTROS (móvil) ══════════════════════════ */
+        /* En desktop: aside normal. En móvil: panel deslizante desde la izquierda */
+        @media (max-width: 1023px) {
+            #sidebar-filtros {
+                position: fixed;
+                top: 0; left: -100%; bottom: 0;
+                width: min(85vw, 320px);
+                z-index: 160;
+                border-radius: 0;
+                overflow-y: auto;
+                transition: left .28s cubic-bezier(.4,0,.2,1);
+                box-shadow: 4px 0 32px rgba(0,0,0,.5);
+            }
+            #sidebar-filtros.drawer-abierto {
+                left: 0;
+            }
+        }
+
+        /* ══ TARJETAS DEL CATÁLOGO — COMPACTAS EN MÓVIL ════════ */
+        /* En móvil mostramos 2 columnas compactas desde el inicio */
+        @media (max-width: 639px) {
+            #grid-productos .card-producto .card-nombre {
+                font-size: 11px;
+                -webkit-line-clamp: 2;
+            }
+            #grid-productos .card-producto .card-sku {
+                font-size: 9px;
+            }
+        }
+
+        /* ══ BARRA MÓVIL: sticky debajo del header ══════════════ */
+        #barra-movil {
+            display: none; /* JS lo muestra al cargar en móvil */
+        }
+        @media (max-width: 1023px) {
+            /* En móvil ocultamos el buscador del header para no duplicarlo */
+            #buscador-header-wrapper { display: none !important; }
+        }
+        @media (min-width: 1024px) {
+            /* En desktop ocultamos la barra móvil */
+            #barra-movil { display: none !important; }
+        }
+
         /* ══════════════════════════════════════════════════
            BOTONES FLOTANTES — ESTILO ÍCONO iOS
            IMPORTANTE: display se controla 100% desde JS.
@@ -291,7 +334,7 @@
                 <p class="text-xs text-slate-400">Usuario: <span id="nombre-usuario" class="text-emerald-400 font-bold">---</span></p>
                 <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wide" id="rol-usuario-wrapper"><span id="rol-usuario" class="text-slate-300">---</span></p>
             </div>
-            <div class="flex items-center gap-2 w-full md:w-auto">
+            <div class="flex items-center gap-2 w-full md:w-auto" id="buscador-header-wrapper">
                 <button id="btn-sincronizar" onclick="forzarSincronizacionDatos()" title="Actualizar datos"
                         class="bg-slate-700 hover:bg-emerald-600 text-white text-sm font-bold p-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1 h-[38px]">
                     <i class="fa-solid fa-rotate" id="icono-sincronizar"></i>
@@ -324,19 +367,61 @@
         <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Cargando inventario...</p>
     </div>
 
-    <!-- CONTENEDOR PRINCIPAL -->
-    <div id="contenedor-principal-catalogo" class="hidden flex-1 max-w-7xl w-full mx-auto flex flex-col lg:flex-row gap-6 p-6">
+    <!-- ── BARRA STICKY MÓVIL: búsqueda + botón filtrar (solo visible en móvil) ── -->
+    <div id="barra-movil" class="hidden lg:hidden sticky top-[72px] z-40 bg-slate-800/95 backdrop-blur border-b border-slate-700 px-3 py-2 gap-2" style="display:none">
+        <div class="flex items-center gap-2">
+            <button onclick="abrirDrawerFiltros()"
+                    id="btn-abrir-filtros"
+                    class="flex items-center gap-2 bg-slate-700 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer shrink-0">
+                <i class="fa-solid fa-sliders"></i>
+                <span>Filtros</span>
+                <span id="badge-filtros-activos" style="display:none"
+                      class="bg-emerald-500 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">0</span>
+            </button>
+            <div class="relative flex-1">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 z-10">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </span>
+                <input type="text" id="buscador-movil" oninput="sincronizarBuscadorMovil(this.value)"
+                       onkeydown="manejarTecladoBuscador(event)"
+                       placeholder="Buscar SKU, refacción..."
+                       class="w-full pl-8 pr-8 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs h-[36px]">
+                <span id="btn-limpiar-buscador-movil" onclick="limpiarBuscadorMovil()"
+                      class="hidden absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-red-400 cursor-pointer z-10">
+                    <i class="fa-solid fa-circle-xmark text-sm"></i>
+                </span>
+            </div>
+        </div>
+        <!-- Chips de filtros activos -->
+        <div id="chips-filtros-activos" class="flex gap-1.5 flex-wrap mt-1.5 empty:hidden"></div>
+    </div>
 
-        <!-- SIDEBAR FILTROS -->
-        <aside class="w-full lg:w-64 shrink-0 bg-slate-800 border border-slate-700 rounded-2xl p-4 h-fit sticky lg:top-24">
-            <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4 pb-2 border-b border-slate-700">
-                <i class="fa-solid fa-sliders mr-2 text-emerald-500"></i> Filtros
-            </h3>
+    <!-- ── OVERLAY del drawer de filtros ── -->
+    <div id="overlay-filtros" onclick="cerrarDrawerFiltros()"
+         style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:150;"></div>
+
+    <!-- CONTENEDOR PRINCIPAL -->
+    <div id="contenedor-principal-catalogo" class="hidden flex-1 max-w-7xl w-full mx-auto flex flex-col lg:flex-row gap-6 p-4 lg:p-6">
+
+        <!-- SIDEBAR FILTROS (desktop: lateral fijo / móvil: drawer deslizante) -->
+        <aside id="sidebar-filtros"
+               class="w-full lg:w-64 shrink-0 bg-slate-800 border border-slate-700 rounded-2xl p-4 h-fit lg:sticky lg:top-24">
+
+            <!-- Cabecera del drawer (solo en móvil) -->
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-700">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    <i class="fa-solid fa-sliders mr-2 text-emerald-500"></i> Filtros
+                </h3>
+                <button onclick="cerrarDrawerFiltros()" id="btn-cerrar-filtros"
+                        class="lg:hidden text-slate-400 hover:text-white text-lg cursor-pointer bg-slate-700 hover:bg-slate-600 w-7 h-7 rounded-lg flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
 
             <!-- Agencia — PRIMERO -->
             <div id="filtro-agencia-wrapper">
                 <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Sucursal / Agencia</label>
-                <select id="filtro-agencia" onchange="filtrarProductos()"
+                <select id="filtro-agencia" onchange="filtrarProductos(); actualizarChipsFiltros()"
                         class="w-full mt-2 p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer">
                     <option value="">Todas las agencias</option>
                 </select>
@@ -364,7 +449,7 @@
                         <i class="fa-solid fa-circle-xmark"></i>
                     </span>
                 </div>
-                <button onclick="limpiarSeleccionFamilias()" class="text-[9px] text-emerald-500 font-bold uppercase mt-1 hover:underline">
+                <button onclick="limpiarSeleccionFamilias(); actualizarChipsFiltros()" class="text-[9px] text-emerald-500 font-bold uppercase mt-1 hover:underline">
                     Borrar selecciones
                 </button>
                 <div id="filter-familia-container" class="mt-2 bg-slate-900 border border-slate-700 rounded-xl max-h-[200px] overflow-y-auto p-2"></div>
@@ -381,17 +466,23 @@
                         <i class="fa-solid fa-circle-xmark"></i>
                     </span>
                 </div>
-                <button onclick="limpiarSeleccionMarcas()" class="text-[9px] text-emerald-500 font-bold uppercase mt-1 hover:underline">
+                <button onclick="limpiarSeleccionMarcas(); actualizarChipsFiltros()" class="text-[9px] text-emerald-500 font-bold uppercase mt-1 hover:underline">
                     Borrar selecciones
                 </button>
                 <div id="filter-marca-container" class="mt-2 bg-slate-900 border border-slate-700 rounded-xl max-h-[200px] overflow-y-auto p-2"></div>
             </div>
+
+            <!-- Botón "Aplicar y cerrar" — solo en móvil, al fondo del drawer -->
+            <button onclick="cerrarDrawerFiltros()"
+                    class="lg:hidden mt-5 w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm cursor-pointer transition">
+                <i class="fa-solid fa-check mr-2"></i> Ver resultados
+            </button>
         </aside>
 
-        <!-- CONTENIDO CATÁLOGO -->
-        <main id="contenido-catalogo" class="flex-1 flex flex-col gap-4">
+        <!-- CONTENIDO CATÁLOGO — aparece primero en móvil gracias a order -->
+        <main id="contenido-catalogo" class="flex-1 flex flex-col gap-4 min-w-0">
             <div id="paginacion-superior" class="flex justify-center items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 overflow-x-auto gap-2"></div>
-            <div id="grid-productos" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+            <div id="grid-productos" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 lg:gap-6"></div>
             <div id="sin-resultados" class="hidden text-center py-16">
                 <div class="text-4xl text-slate-600 mb-3"><i class="fa-solid fa-box-open"></i></div>
                 <p class="text-base font-semibold text-slate-400">No encontramos refacciones con ese criterio.</p>
@@ -399,7 +490,6 @@
             <div id="paginacion-inferior" class="flex justify-center items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 overflow-x-auto gap-2"></div>
         </main>
     </div><!-- /contenedor-principal-catalogo -->
-</div><!-- /vista-catalogo -->
 
 <!-- ════════════════════════════════════════════════
      MODAL DETALLE PRODUCTO
@@ -544,7 +634,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbyf-DcEJrP7df4DKB9MN2SsmdKz5IISfMxUEyp0OqD3WH7jctxkE36IrgghU9PU2hlX/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzYH7jdwkxbIDjT8uaSvRm8ATAAoN17i7-zxLPR452h0J9Hm2livFOQj1qnyJqZdOB-/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -797,6 +887,9 @@ function procesarDespuesDeCarga() {
     const sel = document.getElementById("filtro-agencia");
     if (sel && sel.options.length <= 1) poblarSelectAgencias();
 
+    // Mostrar barra móvil de búsqueda + filtros
+    actualizarBarraMovil();
+
     renderizarFiltrosFamilia();
     renderizarFiltrosMarcas();
     requestAnimationFrame(() => filtrarProductos());
@@ -907,7 +1000,9 @@ function ejecutarBusquedaCombinada() {
 
 function limpiarBuscadorTexto() {
     const b = document.getElementById("buscador"); b.value = "";
+    const bm = document.getElementById("buscador-movil"); if(bm) bm.value = "";
     document.getElementById("btn-limpiar-buscador").classList.add("hidden");
+    document.getElementById("btn-limpiar-buscador-movil")?.classList.add("hidden");
     b.focus(); paginaActual = 1; filtrarProductos();
 }
 
@@ -1354,8 +1449,83 @@ function toggleCarrito() {
 }
 
 /* ══════════════════════════════════════════
-   PANEL ADMIN — COTIZACIONES PENDIENTES (carritos en vivo)
+   DRAWER DE FILTROS (móvil)
 ══════════════════════════════════════════ */
+function abrirDrawerFiltros() {
+    document.getElementById("sidebar-filtros").classList.add("drawer-abierto");
+    document.getElementById("overlay-filtros").style.display = "block";
+    document.body.style.overflow = "hidden"; // evitar scroll del fondo
+}
+
+function cerrarDrawerFiltros() {
+    document.getElementById("sidebar-filtros").classList.remove("drawer-abierto");
+    document.getElementById("overlay-filtros").style.display = "none";
+    document.body.style.overflow = "";
+}
+
+/** Muestra/oculta la barra móvil según el ancho de pantalla */
+function actualizarBarraMovil() {
+    const barra = document.getElementById("barra-movil");
+    if (!barra) return;
+    const esMobil = window.innerWidth < 1024;
+    barra.style.display = esMobil ? "block" : "none";
+}
+
+/** Sincroniza el input del buscador móvil con el del header (desktop) */
+function sincronizarBuscadorMovil(valor) {
+    const buscadorDesktop = document.getElementById("buscador");
+    const btnLimpiar = document.getElementById("btn-limpiar-buscador-movil");
+    if (buscadorDesktop) buscadorDesktop.value = valor;
+    if (btnLimpiar) btnLimpiar.classList.toggle("hidden", !valor);
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => { paginaActual = 1; filtrarProductos(); }, 300);
+}
+
+function limpiarBuscadorMovil() {
+    const inp = document.getElementById("buscador-movil");
+    const buscadorDesktop = document.getElementById("buscador");
+    if (inp) inp.value = "";
+    if (buscadorDesktop) buscadorDesktop.value = "";
+    document.getElementById("btn-limpiar-buscador-movil").classList.add("hidden");
+    paginaActual = 1; filtrarProductos();
+}
+
+/** Muestra chips de filtros activos debajo del botón "Filtros" en móvil */
+function actualizarChipsFiltros() {
+    const contenedor = document.getElementById("chips-filtros-activos");
+    const badge      = document.getElementById("badge-filtros-activos");
+    if (!contenedor) return;
+
+    const chips = [];
+    familiaSeleccionadaActual.forEach(f => chips.push({ label: f, tipo: "familia" }));
+    marcaSeleccionadaActual.forEach(m => chips.push({ label: m, tipo: "marca" }));
+    const agencia = (document.getElementById("filtro-agencia")||{}).value;
+    if (agencia) chips.push({ label: agencia, tipo: "agencia" });
+
+    contenedor.innerHTML = chips.map(c => `
+        <span class="flex items-center gap-1 bg-emerald-900/60 text-emerald-300 text-[9px] font-bold px-2 py-1 rounded-lg">
+            ${c.label}
+            <button onclick="eliminarChip('${c.tipo}','${c.label.replace(/'/g,"\\'")}'); actualizarChipsFiltros()"
+                    class="text-emerald-400 hover:text-white cursor-pointer ml-0.5">×</button>
+        </span>`).join("");
+
+    if (badge) {
+        badge.innerText = chips.length;
+        badge.style.display = chips.length > 0 ? "flex" : "none";
+    }
+}
+
+function eliminarChip(tipo, valor) {
+    if (tipo === "familia") { familiaSeleccionadaActual = familiaSeleccionadaActual.filter(f=>f!==valor); renderizarFiltrosFamilia(); }
+    if (tipo === "marca")   { marcaSeleccionadaActual   = marcaSeleccionadaActual.filter(m=>m!==valor);   renderizarFiltrosMarcas(); }
+    if (tipo === "agencia") { const sel = document.getElementById("filtro-agencia"); if(sel) sel.value=""; }
+    filtrarProductos();
+}
+
+// Escuchar resize para mostrar/ocultar barra móvil
+window.addEventListener("resize", actualizarBarraMovil);
+
+
 let ultimosCarritosAdminCargados = []; // cache del último fetch, usado para acciones masivas instantáneas
 
 function toggleCotizacionesAdmin() {
