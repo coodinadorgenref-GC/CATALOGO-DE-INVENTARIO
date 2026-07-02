@@ -68,47 +68,48 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* ══ DRAWER DE FILTROS (móvil) ══════════════════════════ */
-        /* En desktop: aside normal. En móvil: panel deslizante desde la izquierda */
+        /* ══ DRAWER DE FILTROS (móvil) ════════════════════════════
+           Desliza desde la izquierda. CRÍTICO para iOS:
+           - overflow-y: scroll (no "auto" — iOS ignora "auto" en position:fixed)
+           - -webkit-overflow-scrolling: touch para momentum scroll nativo
+           - overscroll-behavior: contain para que el scroll no traspase al body
+        ════════════════════════════════════════════════════════════ */
         @media (max-width: 1023px) {
             #sidebar-filtros {
                 position: fixed;
-                top: 0; left: -100%; bottom: 0;
-                width: min(85vw, 320px);
-                z-index: 160;
-                border-radius: 0;
-                overflow-y: auto;
+                top: 0; left: -110%; bottom: 0;
+                width: min(88vw, 310px);
+                z-index: 260;
+                border-radius: 0 20px 20px 0;
+                /* Scroll interno iOS */
+                overflow-y: scroll;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
                 transition: left .28s cubic-bezier(.4,0,.2,1);
-                box-shadow: 4px 0 32px rgba(0,0,0,.5);
+                box-shadow: 6px 0 40px rgba(0,0,0,.6);
+                /* Padding inferior para que el botón "Ver resultados"
+                   nunca quede tapado por la barra de navegación del browser */
+                padding-bottom: env(safe-area-inset-bottom, 24px);
             }
-            #sidebar-filtros.drawer-abierto {
-                left: 0;
-            }
+            #sidebar-filtros.drawer-abierto { left: 0; }
         }
 
-        /* ══ TARJETAS DEL CATÁLOGO — COMPACTAS EN MÓVIL ════════ */
-        /* En móvil mostramos 2 columnas compactas desde el inicio */
-        @media (max-width: 639px) {
-            #grid-productos .card-producto .card-nombre {
-                font-size: 11px;
-                -webkit-line-clamp: 2;
-            }
-            #grid-productos .card-producto .card-sku {
-                font-size: 9px;
-            }
-        }
+        /* ══ BARRA MÓVIL — segunda fila del header sticky ══════════
+           No es un elemento aparte: está DENTRO del <header> para que
+           herede el sticky y quede siempre fija sin cálculos de top.  */
+        #barra-movil { display: none; }
 
-        /* ══ BARRA MÓVIL: sticky debajo del header ══════════════ */
-        #barra-movil {
-            display: none; /* JS lo muestra al cargar en móvil */
-        }
         @media (max-width: 1023px) {
-            /* En móvil ocultamos el buscador del header para no duplicarlo */
             #buscador-header-wrapper { display: none !important; }
+            #barra-movil             { display: block !important; }
         }
         @media (min-width: 1024px) {
-            /* En desktop ocultamos la barra móvil */
             #barra-movil { display: none !important; }
+        }
+
+        /* ══ TARJETAS 2 COLUMNAS EN MÓVIL ══════════════════════════ */
+        @media (max-width: 639px) {
+            #grid-productos { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
         }
 
         /* ══════════════════════════════════════════════════
@@ -326,22 +327,42 @@
 ═════════════════════════════════════════════════ -->
 <div id="vista-catalogo" class="hidden min-h-screen flex flex-col">
 
-    <!-- HEADER -->
-    <header class="bg-slate-800 border-b border-slate-700 px-6 py-4 sticky top-0 z-50 shadow-md">
-        <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-            <div>
-                <h2 class="text-lg font-black tracking-tight uppercase">La Barata del Hogar</h2>
-                <p class="text-xs text-slate-400">Usuario: <span id="nombre-usuario" class="text-emerald-400 font-bold">---</span></p>
-                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wide" id="rol-usuario-wrapper"><span id="rol-usuario" class="text-slate-300">---</span></p>
+    <!-- HEADER — sticky en todas las pantallas -->
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-md">
+
+        <!-- Fila 1: Logo + usuario + buscador (desktop) + cerrar sesión -->
+        <div class="max-w-7xl mx-auto flex flex-row items-center justify-between gap-2 px-3 py-2 lg:px-6 lg:py-4">
+
+            <!-- Logo + usuario -->
+            <div class="flex items-center gap-2 min-w-0">
+                <div class="min-w-0">
+                    <h2 class="text-sm lg:text-lg font-black tracking-tight uppercase leading-tight">La Barata del Hogar</h2>
+                    <!-- Info desktop -->
+                    <div id="header-info-usuario" class="hidden lg:block">
+                        <p class="text-xs text-slate-400 leading-tight">
+                            Usuario: <span id="nombre-usuario" class="text-emerald-400 font-bold">---</span>
+                        </p>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wide" id="rol-usuario-wrapper">
+                            <span id="rol-usuario" class="text-slate-300">---</span>
+                        </p>
+                    </div>
+                    <!-- Info móvil: nombre + rol en una línea compacta -->
+                    <p class="lg:hidden text-[10px] leading-tight truncate max-w-[160px]">
+                        <span id="nombre-usuario-movil" class="text-emerald-400 font-bold"></span>
+                        <span id="rol-usuario-movil" class="text-slate-400 ml-1"></span>
+                    </p>
+                </div>
             </div>
-            <div class="flex items-center gap-2 w-full md:w-auto" id="buscador-header-wrapper">
+
+            <!-- Buscador + Actualizar (solo desktop) -->
+            <div class="hidden lg:flex items-center gap-2 w-80" id="buscador-header-wrapper">
                 <button id="btn-sincronizar" onclick="forzarSincronizacionDatos()" title="Actualizar datos"
                         class="bg-slate-700 hover:bg-emerald-600 text-white text-sm font-bold p-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1 h-[38px]">
                     <i class="fa-solid fa-rotate" id="icono-sincronizar"></i>
                     <span id="texto-sincronizar" class="hidden sm:inline">Actualizar</span>
                 </button>
-                <div class="relative w-full md:w-80">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 hover:text-emerald-400 transition-colors cursor-pointer z-10">
+                <div class="relative flex-1">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 z-10">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </span>
                     <input type="text" id="buscador" oninput="ejecutarBusquedaCombinada()"
@@ -354,46 +375,55 @@
                     </span>
                 </div>
             </div>
-            <button onclick="cerrarSesion()"
-                    class="bg-slate-700 hover:bg-red-900 text-white text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer">
-                <i class="fa-solid fa-right-from-bracket mr-1"></i> Cerrar Sesión
-            </button>
+
+            <!-- Acciones: Actualizar (móvil) + Cerrar sesión -->
+            <div class="flex items-center gap-1.5 shrink-0">
+                <button onclick="forzarSincronizacionDatos()" title="Actualizar"
+                        class="lg:hidden bg-slate-700 hover:bg-emerald-600 text-white font-bold p-0 rounded-xl transition cursor-pointer flex items-center justify-center h-[32px] w-[32px]">
+                    <i class="fa-solid fa-rotate text-sm" id="icono-sincronizar-movil"></i>
+                </button>
+                <button onclick="cerrarSesion()"
+                        class="bg-slate-700 hover:bg-red-900 text-white text-[10px] font-bold py-1.5 px-2.5 rounded-xl transition cursor-pointer whitespace-nowrap">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span class="hidden sm:inline ml-1">Cerrar Sesión</span>
+                </button>
+            </div>
         </div>
-    </header>
 
-    <!-- CARGANDO -->
-    <div id="cargando-datos" class="flex-1 flex flex-col items-center justify-center p-8">
-        <i class="fa-solid fa-rotate animate-spin text-4xl text-emerald-500 mb-4"></i>
-        <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Cargando inventario...</p>
-    </div>
-
-    <!-- ── BARRA STICKY MÓVIL: búsqueda + botón filtrar (solo visible en móvil) ── -->
-    <div id="barra-movil" class="hidden lg:hidden sticky top-[72px] z-40 bg-slate-800/95 backdrop-blur border-b border-slate-700 px-3 py-2 gap-2" style="display:none">
-        <div class="flex items-center gap-2">
-            <button onclick="abrirDrawerFiltros()"
-                    id="btn-abrir-filtros"
-                    class="flex items-center gap-2 bg-slate-700 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer shrink-0">
-                <i class="fa-solid fa-sliders"></i>
+        <!-- Fila 2: Búsqueda + Filtros (SOLO MÓVIL — dentro del sticky header) -->
+        <div id="barra-movil" class="px-3 pb-2.5 pt-0 flex items-center gap-2">
+            <button onclick="abrirDrawerFiltros()" id="btn-abrir-filtros"
+                    class="flex items-center gap-1.5 bg-slate-700 hover:bg-emerald-700 text-white text-xs font-bold px-3 rounded-xl transition cursor-pointer shrink-0 h-[38px]">
+                <i class="fa-solid fa-sliders text-emerald-400 text-sm"></i>
                 <span>Filtros</span>
                 <span id="badge-filtros-activos" style="display:none"
-                      class="bg-emerald-500 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">0</span>
+                      class="bg-emerald-500 text-white text-[9px] font-black rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center leading-none">0</span>
             </button>
             <div class="relative flex-1">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 z-10">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 z-10 pointer-events-none">
                     <i class="fa-solid fa-magnifying-glass text-xs"></i>
                 </span>
-                <input type="text" id="buscador-movil" oninput="sincronizarBuscadorMovil(this.value)"
+                <input type="text" id="buscador-movil"
+                       oninput="sincronizarBuscadorMovil(this.value)"
                        onkeydown="manejarTecladoBuscador(event)"
                        placeholder="Buscar SKU, refacción..."
-                       class="w-full pl-8 pr-8 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs h-[36px]">
+                       class="w-full pl-8 pr-8 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs h-[38px]">
                 <span id="btn-limpiar-buscador-movil" onclick="limpiarBuscadorMovil()"
                       class="hidden absolute inset-y-0 right-0 flex items-center pr-3 text-slate-500 hover:text-red-400 cursor-pointer z-10">
                     <i class="fa-solid fa-circle-xmark text-sm"></i>
                 </span>
             </div>
         </div>
-        <!-- Chips de filtros activos -->
-        <div id="chips-filtros-activos" class="flex gap-1.5 flex-wrap mt-1.5 empty:hidden"></div>
+
+        <!-- Chips de filtros activos debajo de la barra de búsqueda -->
+        <div id="chips-filtros-activos" class="hidden px-3 pb-2 flex-wrap gap-1.5"></div>
+
+    </header>
+
+    <!-- CARGANDO -->
+    <div id="cargando-datos" class="flex-1 flex flex-col items-center justify-center p-8">
+        <i class="fa-solid fa-rotate animate-spin text-4xl text-emerald-500 mb-4"></i>
+        <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Cargando inventario...</p>
     </div>
 
     <!-- ── OVERLAY del drawer de filtros ── -->
@@ -634,7 +664,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzYH7jdwkxbIDjT8uaSvRm8ATAAoN17i7-zxLPR452h0J9Hm2livFOQj1qnyJqZdOB-/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyB3KcLmeh-pi2X_pHJcsOGUtlP-llYKz7DPYBb-ZhoMb2F9NV4GMupNDQcS7wj6oOG/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -754,6 +784,11 @@ function verificarSesionGuardada() {
     almacenAdminActual = s.almacenAdmin || "";
     document.getElementById("nombre-usuario").innerText = s.nombre;
     document.getElementById("rol-usuario").innerText = s.rol || "";
+    // Móvil: nombre + rol en línea compacta
+    const _nm = document.getElementById("nombre-usuario-movil");
+    const _rm = document.getElementById("rol-usuario-movil");
+    if(_nm) _nm.innerText = s.nombre || "";
+    if(_rm) _rm.innerText = s.rol ? "· " + s.rol : "";
     document.getElementById("rol-usuario-wrapper").classList.toggle("hidden", !s.rol);
     document.getElementById("vista-login").classList.add("hidden");
     document.getElementById("vista-catalogo").classList.remove("hidden");
@@ -792,6 +827,11 @@ async function manejarInicioDeSesion() {
             almacenAdminActual = rs.almacenAdmin || "";
             document.getElementById("nombre-usuario").innerText = rs.nombre;
             document.getElementById("rol-usuario").innerText = rs.rol || "";
+            // Móvil: nombre + rol en línea compacta
+            const _nm2 = document.getElementById("nombre-usuario-movil");
+            const _rm2 = document.getElementById("rol-usuario-movil");
+            if(_nm2) _nm2.innerText = rs.nombre || "";
+            if(_rm2) _rm2.innerText = rs.rol ? "· " + rs.rol : "";
             document.getElementById("rol-usuario-wrapper").classList.toggle("hidden", !rs.rol);
             guardarSesionEnDispositivo(usuarioActual, rs.token, rs.nombre, esAdmin, rs.rol, almacenAdminActual);
             document.getElementById("vista-login").classList.add("hidden");
