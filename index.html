@@ -683,7 +683,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbyhR-_E7Nh-yAz3GKsxPUVcNjiXaGIS52HhOy826nYbgwAMmeZfpzzoP3-uHgorkDXa/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxZShQRSor6Lc9Ogxsab6qjhbqMmMagfxZ07QLxNnXIjdT1lcWKmVFWoabTb3q4nv4P/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -1219,6 +1219,19 @@ function guardarCarritoEnStorage() {
     sincronizarCarritoConServidor();
 }
 
+/** Igual que guardarCarritoEnStorage(), pero SIN debounce: se usa en
+ *  acciones puntuales y decisivas (eliminar un producto, vaciar el
+ *  carrito, tocar + / −) para que el cambio llegue al servidor de
+ *  inmediato y el admin lo vea apenas actualice su panel — en vez de
+ *  esperar los 300ms del debounce (pensado solo para no saturar la API
+ *  mientras el usuario está escribiendo una cantidad a mano). */
+function guardarCarritoInmediato() {
+    try { localStorage.setItem(clavesCarritoUsuario(), JSON.stringify(carrito)); } catch {}
+    clearTimeout(debounceSincronizarCarrito);
+    if (esAdmin) return;
+    enviarCarritoAlServidor();
+}
+
 /** Sincroniza el carrito del usuario actual a Google Sheets (hoja
  *  "Carritos_Activos") para que SOLO el admin pueda consultarlo desde
  *  su panel. Con debounce para no saturar la API en cada clic. */
@@ -1383,7 +1396,7 @@ function cambiarCantidadCarrito(sku, delta) {
     const inp = document.getElementById(`qty-${sku}`);
     if (inp) inp.value = item.cantidad;
     actualizarBadgeCarrito();
-    guardarCarritoEnStorage();
+    guardarCarritoInmediato();
 }
 
 /** Versión de cambio por botón +/−: lee primero el valor actual del
@@ -1404,7 +1417,7 @@ function cambiarCantidadDesdeBoton(sku, delta) {
     // Actualizar solo el input visual, no redibujar todo el carrito
     if (inputEl) inputEl.value = item.cantidad;
     actualizarBadgeCarrito();
-    guardarCarritoEnStorage();
+    guardarCarritoInmediato();
 }
 
 function establecerCantidadCarrito(sku, valor) {
@@ -1433,13 +1446,13 @@ function actualizarBadgeCarrito() {
 
 function eliminarDelCarrito(sku) {
     carrito = carrito.filter(c=>c.sku!==sku);
-    guardarCarritoEnStorage();
+    guardarCarritoInmediato();
     actualizarUICarrito();
 }
 
 function vaciarCarrito() {
     if (!confirm("¿Vaciar todo el carrito?")) return;
-    carrito = []; guardarCarritoEnStorage(); actualizarUICarrito();
+    carrito = []; guardarCarritoInmediato(); actualizarUICarrito();
 }
 
 function totalItemsCarrito() { return carrito.reduce((s,c)=>s+c.cantidad,0); }
@@ -1624,11 +1637,20 @@ window.addEventListener("resize", actualizarBarraMovil);
 
 
 let ultimosCarritosAdminCargados = []; // cache del último fetch, usado para acciones masivas instantáneas
+let intervaloAutoRefrescoAdmin = null;
 
 function toggleCotizacionesAdmin() {
     const panel = document.getElementById("panel-cotizaciones-admin");
     panel.classList.toggle("abierto");
-    if (panel.classList.contains("abierto")) cargarCotizacionesAdmin();
+    clearInterval(intervaloAutoRefrescoAdmin);
+    if (panel.classList.contains("abierto")) {
+        cargarCotizacionesAdmin();
+        // Auto-refresco cada 10s mientras el panel esté abierto, para que el
+        // admin vea casi al instante los cambios que hagan los usuarios
+        // (productos agregados, eliminados o cantidades ajustadas) sin
+        // depender de que dé clic manual en "Actualizar lista".
+        intervaloAutoRefrescoAdmin = setInterval(cargarCotizacionesAdmin, 10000);
+    }
 }
 
 async function cargarCotizacionesAdmin() {
