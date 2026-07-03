@@ -683,7 +683,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbyAvRDXp0xWN_RNNpS___1LSR_5KfnvhINJOS3xLUkDSjdGlRKbIZHtYpup30yrcVdQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyuq04A65jtqksHBLRnCMxpwng3Wdt8Wam5s1vHJ7AYH7T3RO8eizT9aU-NY1Mi2DWR/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -798,7 +798,17 @@ function verificarSesionGuardada() {
     const str = localStorage.getItem("sesion_catalogo");
     if (!str) { document.getElementById("cargando-datos").classList.add("hidden"); return; }
     const s = JSON.parse(str);
-    if (new Date().getTime() - s.timestamp > TIEMPO_EXPIRACION_MS) { cerrarSesion(); return; }
+    if (new Date().getTime() - s.timestamp > TIEMPO_EXPIRACION_MS) {
+        // Liberamos el lugar de esa sesión vencida usando sus propios datos
+        // (usuarioActual/tokenActual todavía no se han asignado en esta carga).
+        try {
+            const payload = JSON.stringify({ action: "cerrarSesionServidor", correo: s.correo, token: s.token });
+            navigator.sendBeacon(API_URL, new Blob([payload], { type: "text/plain" }));
+        } catch {}
+        localStorage.removeItem("sesion_catalogo");
+        location.reload();
+        return;
+    }
     usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false;
     almacenAdminActual = s.almacenAdmin || "";
     document.getElementById("nombre-usuario").innerText = s.nombre;
@@ -812,8 +822,9 @@ function verificarSesionGuardada() {
     document.getElementById("vista-login").classList.add("hidden");
     document.getElementById("vista-catalogo").classList.remove("hidden");
     actualizarTimestampSesion();
-    obtenerInventarioDesdeServidor();
     cargarCarritoDesdeStorage();
+    obtenerInventarioDesdeServidor();
+    iniciarControlDeSesion();
 }
 
 function guardarSesionEnDispositivo(correo, token, nombre, admin, rol, almacenAdmin) {
@@ -823,7 +834,81 @@ function actualizarTimestampSesion() {
     const s = localStorage.getItem("sesion_catalogo");
     if (s) { const o = JSON.parse(s); o.timestamp = new Date().getTime(); localStorage.setItem("sesion_catalogo", JSON.stringify(o)); }
 }
-function cerrarSesion() { localStorage.removeItem("sesion_catalogo"); location.reload(); }
+
+/* ══════════════════════════════════════════
+   CONTROL DE SESIONES (puntos 3 y 4)
+   ══════════════════════════════════════════
+   - Punto 3: si el usuario (cualquier cuenta, admin o no) no interactúa
+     con la página por 15 min, la sesión se cierra sola.
+   - Punto 4: máximo 2 sesiones simultáneas por cuenta. El servidor lo
+     hace cumplir en el login; aquí mandamos un "heartbeat" periódico
+     para mantener viva la sesión mientras la pestaña está abierta y
+     para enterarnos si el servidor la cerró (p.ej. expiró por
+     inactividad en otro momento, o fue liberada manualmente). */
+const EVENTOS_ACTIVIDAD_SESION = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"];
+const HEARTBEAT_SESION_MS = 3 * 60 * 1000; // 3 min: bastante menor a los 15 min de expiración
+let temporizadorInactividad   = null;
+let intervaloHeartbeatSesion  = null;
+
+/** Envía (best-effort, sin bloquear) la orden de liberar esta sesión en
+ *  el servidor — se usa tanto en logout manual como en el cierre
+ *  automático por inactividad. */
+function _liberarSesionEnServidor() {
+    if (!usuarioActual || !tokenActual) return;
+    try {
+        const payload = JSON.stringify({ action: "cerrarSesionServidor", correo: usuarioActual, token: tokenActual });
+        navigator.sendBeacon(API_URL, new Blob([payload], { type: "text/plain" }));
+    } catch {}
+}
+
+function reiniciarTemporizadorInactividad() {
+    actualizarTimestampSesion();
+    clearTimeout(temporizadorInactividad);
+    temporizadorInactividad = setTimeout(cerrarSesionPorInactividad, TIEMPO_EXPIRACION_MS);
+}
+
+function cerrarSesionPorInactividad() {
+    _liberarSesionEnServidor();
+    detenerControlDeSesion();
+    localStorage.removeItem("sesion_catalogo");
+    alert("Tu sesión se cerró automáticamente por 15 minutos de inactividad.");
+    location.reload();
+}
+
+async function heartbeatSesion() {
+    if (!usuarioActual || !tokenActual) return;
+    try {
+        const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+            body: JSON.stringify({ action:"validarSesion", correo:usuarioActual, token:tokenActual }) });
+        const rs = await r.json();
+        if (!rs.success) {
+            detenerControlDeSesion();
+            localStorage.removeItem("sesion_catalogo");
+            alert(rs.message || "Tu sesión ha sido cerrada. Vuelve a iniciar sesión.");
+            location.reload();
+        }
+    } catch { /* sin conexión: se reintenta en el siguiente ciclo */ }
+}
+
+function iniciarControlDeSesion() {
+    detenerControlDeSesion();
+    reiniciarTemporizadorInactividad();
+    EVENTOS_ACTIVIDAD_SESION.forEach(ev => document.addEventListener(ev, reiniciarTemporizadorInactividad, { passive: true }));
+    intervaloHeartbeatSesion = setInterval(heartbeatSesion, HEARTBEAT_SESION_MS);
+}
+
+function detenerControlDeSesion() {
+    clearTimeout(temporizadorInactividad);
+    clearInterval(intervaloHeartbeatSesion);
+    EVENTOS_ACTIVIDAD_SESION.forEach(ev => document.removeEventListener(ev, reiniciarTemporizadorInactividad));
+}
+
+function cerrarSesion() {
+    _liberarSesionEnServidor();
+    detenerControlDeSesion();
+    localStorage.removeItem("sesion_catalogo");
+    location.reload();
+}
 
 async function manejarInicioDeSesion() {
     const correoEl = document.getElementById("input-correo");
@@ -835,7 +920,7 @@ async function manejarInicioDeSesion() {
     ocultarErrorLogin(errorEl); btnEl.disabled = true; btnEl.innerText = "Verificando...";
 
     try {
-        const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"}, body: JSON.stringify({ action:"login", correo: valorIngresado }) });
+        const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"}, body: JSON.stringify({ action:"login", correo: valorIngresado, dispositivo: (navigator.userAgent||"").slice(0,180) }) });
         const rs = await r.json();
         if (rs.success) {
             // Usamos el identificador REAL que regresa el backend (correo dado de alta),
@@ -857,6 +942,7 @@ async function manejarInicioDeSesion() {
             document.getElementById("vista-catalogo").classList.remove("hidden");
             document.getElementById("cargando-datos").classList.remove("hidden");
             cargarCarritoDesdeStorage();
+            iniciarControlDeSesion();
             await obtenerInventarioDesdeServidor();
         } else {
             mostrarErrorLogin(errorEl, rs.message);
@@ -1441,7 +1527,13 @@ function establecerCantidadCarrito(sku, valor) {
     const item = carrito.find(c=>String(c.sku)===String(sku));
     if (!item) return;
     const nueva = parseInt(valor, 10);
-    if (isNaN(nueva) || nueva < 1) { eliminarDelCarrito(sku); return; }
+    // IMPORTANTE (punto 1): un producto SOLO se elimina con el botón de la
+    // papelera (ver eliminarDelCarrito). Mientras el usuario borra el campo
+    // con Backspace para escribir una nueva cantidad, el valor pasa por
+    // "" (inválido) momentáneamente — en ese caso NO tocamos el producto,
+    // simplemente esperamos a que termine de teclear. El onblur del input
+    // ya se encarga de dejar la cantidad en 1 como mínimo si la deja vacía.
+    if (isNaN(nueva) || nueva < 1) { return; }
     item.cantidad = Math.min(nueva, item.stockMax || 9999);
     // NO redibujar el carrito — solo actualizar el array, el badge y sincronizar.
     // Redibujar causaría que el input pierda el foco en iOS mientras el usuario escribe.
@@ -1509,7 +1601,6 @@ async function reconciliarCarritoConServidor() {
     // todavía desactualizado y podría borrar por error algo que el propio
     // usuario acaba de agregar/cambiar.
     if (hayCambioCarritoPendiente || enviandoCarritoAlServidor) return;
-    if (carrito.length === 0) return;
 
     try {
         const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
@@ -1519,28 +1610,57 @@ async function reconciliarCarritoConServidor() {
 
         const itemsServidor = rs.items || [];
         const skusServidor  = new Set(itemsServidor.map(it => String(it.sku)));
+        let huboCambios = false;
 
-        // Productos que SÍ tengo localmente pero que el servidor ya no tiene
-        const faltantes = carrito.filter(it => !skusServidor.has(String(it.sku)));
-        // Productos que el servidor tiene y yo NO tengo localmente todavía
-        // (indicio de que mi última sincronización no llegó a completarse)
-        const sobranEnServidor = itemsServidor.some(it => !carrito.find(c => String(c.sku) === String(it.sku)));
+        // 1) Productos que SÍ tengo localmente pero que el servidor ya no
+        //    tiene (el admin los gestionó/eliminó) → los quito también aquí.
+        if (carrito.length > 0) {
+            const faltantes = carrito.filter(it => !skusServidor.has(String(it.sku)));
+            if (faltantes.length > 0) {
+                const skusAQuitar = new Set(faltantes.map(f => String(f.sku)));
+                carrito = carrito.filter(it => !skusAQuitar.has(String(it.sku)));
+                huboCambios = true;
 
-        // Solo reconciliamos cuando el servidor es un subconjunto claro de
-        // lo local (el admin quitó algo). Si además "sobran" cosas en el
-        // servidor que no tengo local, es señal de una carrera con mi
-        // propia sincronización — mejor no tocar nada y esperar al
-        // siguiente ciclo, ya que ahí sí se resolverá solo.
-        if (faltantes.length > 0 && !sobranEnServidor) {
-            const skusAQuitar = new Set(faltantes.map(f => String(f.sku)));
-            carrito = carrito.filter(it => !skusAQuitar.has(String(it.sku)));
+                const mensaje = faltantes.length === 1
+                    ? `"${(faltantes[0].nombre||"Producto").slice(0,40)}" ya fue gestionado y se quitó de tu cotización.`
+                    : `El equipo ya gestionó ${faltantes.length} productos y se quitaron de tu cotización.`;
+                mostrarToastInfo(mensaje);
+            }
+        }
+
+        // 2) Productos que el servidor tiene y yo NO tengo localmente todavía
+        //    (punto 2: los capturó desde otro dispositivo — pc/celular) →
+        //    los agrego aquí, completando los datos (imagen, marca, stock)
+        //    desde el inventario ya cargado.
+        const skusLocales = new Set(carrito.map(it => String(it.sku)));
+        let productosAgregados = 0;
+        itemsServidor.forEach(srv => {
+            if (skusLocales.has(String(srv.sku))) return;
+            const prod = inventarioMaestro.find(p => String(p.SKU) === String(srv.sku));
+            const exs  = prod ? (prod.Existencias || []) : [];
+            const stockMax = exs.reduce((s,e)=>s+Number(e.cantidad||0),0);
+            carrito.push({
+                sku: srv.sku,
+                nombre: srv.nombre || (prod ? prod.Producto : "Producto"),
+                marca: prod ? (prod.Marca || "GENÉRICO") : "GENÉRICO",
+                imagen: prod ? optimizarEnlaceImagen(prod.Imagen||"") : "",
+                cantidad: Number(srv.cantidad) || 1,
+                stockMax: stockMax || Number(srv.cantidad) || 9999,
+                agenciasDisponibles: srv.agenciasDisponibles || exs.map(e=>({sucursal:e.sucursal,cantidad:e.cantidad,telefono:e.telefono||""}))
+            });
+            huboCambios = true;
+            productosAgregados++;
+        });
+
+        if (huboCambios) {
             try { localStorage.setItem(clavesCarritoUsuario(), JSON.stringify(carrito)); } catch {}
             actualizarUICarrito();
-
-            const mensaje = faltantes.length === 1
-                ? `"${(faltantes[0].nombre||"Producto").slice(0,40)}" ya fue gestionado y se quitó de tu cotización.`
-                : `El equipo ya gestionó ${faltantes.length} productos y se quitaron de tu cotización.`;
-            mostrarToastInfo(mensaje);
+            if (productosAgregados > 0) {
+                const mensaje = productosAgregados === 1
+                    ? "Se agregó 1 producto capturado desde otro dispositivo."
+                    : `Se agregaron ${productosAgregados} productos capturados desde otro dispositivo.`;
+                mostrarToastInfo(mensaje);
+            }
         }
     } catch { /* sin conexión: se reintenta en el siguiente ciclo */ }
 }
