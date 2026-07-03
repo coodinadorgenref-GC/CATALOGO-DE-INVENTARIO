@@ -108,7 +108,7 @@
 
         @media (max-width: 1023px) {
             #buscador-header-wrapper { display: none !important; }
-            #barra-movil             { display: block !important; }
+            #barra-movil             { display: flex !important; }
         }
         @media (min-width: 1024px) {
             #barra-movil { display: none !important; }
@@ -683,7 +683,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbxS0oQjyA-tGYhRVYApwqIZimobbUtEszsUUXn1byScY7jMp4ISQm52BzAjZ5bxm0dK/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyhR-_E7Nh-yAz3GKsxPUVcNjiXaGIS52HhOy826nYbgwAMmeZfpzzoP3-uHgorkDXa/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -1230,6 +1230,44 @@ function sincronizarCarritoConServidor() {
     // 300ms: lo bastante rápido para no perder cambios al cerrar el panel
     debounceSincronizarCarrito = setTimeout(() => { enviarCarritoAlServidor(); }, 300);
 }
+
+/** Red de seguridad: si el usuario cierra la pestaña/app o la manda a
+ *  segundo plano justo después de vaciar el carrito o borrar el último
+ *  producto, el debounce de 300ms puede no alcanzar a dispararse y la
+ *  fila en "Carritos_Activos" queda huérfana con datos viejos.
+ *  sendBeacon() SÍ se garantiza que se envíe aunque la página se cierre
+ *  de inmediato, así que lo usamos como respaldo en esos eventos. */
+function enviarCarritoConBeacon() {
+    if (esAdmin || !usuarioActual) return;
+    try {
+        const sesion = JSON.parse(localStorage.getItem("sesion_catalogo") || "{}");
+        const payload = JSON.stringify({
+            action: "sincronizarCarrito",
+            correo: usuarioActual,
+            token: tokenActual,
+            nombre: sesion.nombre || "",
+            items: carrito.map(c => ({
+                sku: c.sku,
+                nombre: c.nombre,
+                cantidad: c.cantidad,
+                agenciasDisponibles: c.agenciasDisponibles || []
+            }))
+        });
+        navigator.sendBeacon(API_URL, new Blob([payload], { type: "text/plain" }));
+    } catch {}
+}
+
+function _flushCarritoPendiente() {
+    if (!debounceSincronizarCarrito) return;
+    clearTimeout(debounceSincronizarCarrito);
+    debounceSincronizarCarrito = null;
+    enviarCarritoConBeacon();
+}
+
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") _flushCarritoPendiente();
+});
+window.addEventListener("pagehide", _flushCarritoPendiente);
 
 /** Envía el carrito actual al servidor de inmediato (sin debounce) y
  *  devuelve una Promise — usada tanto por el guardado automático como
