@@ -683,7 +683,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzjPFx0ITgerTqkMWGAjC3V0AUe23VFascra0ppjvAMIDBOAROZwlWlhuuWZ0jXG7C_/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyAvRDXp0xWN_RNNpS___1LSR_5KfnvhINJOS3xLUkDSjdGlRKbIZHtYpup30yrcVdQ/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -1215,48 +1215,55 @@ function cargarCarritoDesdeStorage() {
     actualizarUICarrito();
 }
 
-function guardarCarritoEnStorage() {
+function guardarCarritoLocal() {
     try { localStorage.setItem(clavesCarritoUsuario(), JSON.stringify(carrito)); } catch {}
-    sincronizarCarritoConServidor();
 }
 
-/** Igual que guardarCarritoEnStorage(), pero SIN debounce: se usa en
- *  acciones puntuales y decisivas (eliminar un producto, vaciar el
- *  carrito, tocar + / −) para que el cambio llegue al servidor de
- *  inmediato y el admin lo vea apenas actualice su panel — en vez de
- *  esperar los 300ms del debounce (pensado solo para no saturar la API
- *  mientras el usuario está escribiendo una cantidad a mano). */
-function guardarCarritoInmediato() {
-    try { localStorage.setItem(clavesCarritoUsuario(), JSON.stringify(carrito)); } catch {}
-    clearTimeout(debounceSincronizarCarrito);
-    hayGuardadoCarritoPendiente = false;
+/* ══════════════════════════════════════════
+   MOTOR DE SINCRONIZACIÓN — SIN CONDICIONES DE CARRERA
+   ══════════════════════════════════════════
+   Las peticiones al servidor se envían SIEMPRE de una en una (serializadas).
+   Si el usuario hace varios cambios (+, −, eliminar) mientras ya hay una
+   petición en curso, esos cambios se agrupan y en cuanto la petición
+   anterior TERMINA se manda automáticamente el estado más reciente. Así
+   cada acción se siente instantánea para el admin, pero nunca hay dos
+   escrituras en paralelo pisándose en Sheets (que es lo que causaba
+   productos "no eliminados" o cantidades inconsistentes). */
+let enviandoCarritoAlServidor  = false;
+let hayCambioCarritoPendiente  = false;
+
+function sincronizarCarritoInstantaneo() {
     if (esAdmin) return;
-    enviarCarritoAlServidor();
+    hayCambioCarritoPendiente = true;
+    _bombeoSincronizacionCarrito();
 }
 
-/** Sincroniza el carrito del usuario actual a Google Sheets (hoja
- *  "Carritos_Activos") para que SOLO el admin pueda consultarlo desde
- *  su panel. Con debounce para no saturar la API en cada clic. */
-let debounceSincronizarCarrito;
-let hayGuardadoCarritoPendiente = false;
-function sincronizarCarritoConServidor() {
-    // REGLA: solo usuarios NO-admin (columna H vacía) tienen carrito propio.
+async function _bombeoSincronizacionCarrito() {
+    if (enviandoCarritoAlServidor) return; // ya hay una petición en curso; se recogerá el cambio cuando termine
+    enviandoCarritoAlServidor = true;
+    while (hayCambioCarritoPendiente) {
+        hayCambioCarritoPendiente = false;
+        try { await enviarCarritoAlServidor(); } catch {}
+    }
+    enviandoCarritoAlServidor = false;
+}
+
+/** Debounce CORTO — se usa ÚNICAMENTE cuando el usuario está escribiendo
+ *  una cantidad a mano (oninput dispara en cada tecla), para no mandar
+ *  una petición por cada dígito. Los botones +/−, eliminar y vaciar NO
+ *  usan esto: llaman a sincronizarCarritoInstantaneo() directo. */
+let debounceEscrituraCantidad;
+function sincronizarCarritoConDebounceCorto() {
     if (esAdmin) return;
-    clearTimeout(debounceSincronizarCarrito);
-    hayGuardadoCarritoPendiente = true;
-    // 300ms: lo bastante rápido para no perder cambios al cerrar el panel
-    debounceSincronizarCarrito = setTimeout(() => {
-        hayGuardadoCarritoPendiente = false;
-        enviarCarritoAlServidor();
-    }, 300);
+    clearTimeout(debounceEscrituraCantidad);
+    debounceEscrituraCantidad = setTimeout(sincronizarCarritoInstantaneo, 400);
 }
 
-/** Red de seguridad: si el usuario cierra la pestaña/app o la manda a
- *  segundo plano justo después de vaciar el carrito o borrar el último
- *  producto, el debounce de 300ms puede no alcanzar a dispararse y la
- *  fila en "Carritos_Activos" queda huérfana con datos viejos.
- *  sendBeacon() SÍ se garantiza que se envíe aunque la página se cierre
- *  de inmediato, así que lo usamos como respaldo en esos eventos. */
+/** Red de seguridad: si el usuario cierra la pestaña/app justo después de
+ *  escribir una cantidad (debounce de 400ms aún sin disparar), o justo
+ *  cuando una petición ya está en curso, forzamos un sendBeacon con el
+ *  estado más reciente — sendBeacon() SÍ se garantiza que se envíe aunque
+ *  la página se cierre de inmediato, a diferencia de un fetch normal. */
 function enviarCarritoConBeacon() {
     if (esAdmin || !usuarioActual) return;
     try {
@@ -1278,9 +1285,10 @@ function enviarCarritoConBeacon() {
 }
 
 function _flushCarritoPendiente() {
-    if (!hayGuardadoCarritoPendiente) return;
-    clearTimeout(debounceSincronizarCarrito);
-    hayGuardadoCarritoPendiente = false;
+    const habiaAlgoPendiente = hayCambioCarritoPendiente || enviandoCarritoAlServidor || debounceEscrituraCantidad;
+    clearTimeout(debounceEscrituraCantidad);
+    if (!habiaAlgoPendiente) return;
+    hayCambioCarritoPendiente = false;
     enviarCarritoConBeacon();
 }
 
@@ -1289,9 +1297,8 @@ document.addEventListener("visibilitychange", () => {
 });
 window.addEventListener("pagehide", _flushCarritoPendiente);
 
-/** Envía el carrito actual al servidor de inmediato (sin debounce) y
- *  devuelve una Promise — usada tanto por el guardado automático como
- *  por el botón manual de "Guardar" en el header del carrito. */
+/** Envía el carrito actual al servidor (siempre awaited desde el motor
+ *  de sincronización de arriba, nunca en paralelo consigo mismo). */
 function enviarCarritoAlServidor() {
     if (esAdmin) return Promise.resolve();
     const sesion = JSON.parse(localStorage.getItem("sesion_catalogo") || "{}");
@@ -1321,7 +1328,7 @@ function enviarCarritoAlServidor() {
 function guardarCambiosCarritoManual() {
     const btn = document.getElementById("btn-guardar-carrito");
     if (!btn) return;
-    clearTimeout(debounceSincronizarCarrito);
+    clearTimeout(debounceEscrituraCantidad);
 
     // Leer todos los inputs visibles y sincronizar al array antes de enviar
     carrito.forEach(item => {
@@ -1367,7 +1374,7 @@ function guardarCambiosCarritoManual() {
 function agregarAlCarrito(item) {
     const sku  = item.SKU || "";
     const exs  = item.Existencias || [];
-    const ya   = carrito.find(c => c.sku === sku);
+    const ya   = carrito.find(c => String(c.sku) === String(sku));
 
     if (ya) {
         ya.cantidad = Math.min(ya.cantidad+1, ya.stockMax);
@@ -1388,13 +1395,14 @@ function agregarAlCarrito(item) {
         });
     }
 
-    guardarCarritoEnStorage();
+    guardarCarritoLocal();
+    sincronizarCarritoInstantaneo();
     actualizarUICarrito();
     mostrarToastCarrito(item.Producto);
 }
 
 function cambiarCantidadCarrito(sku, delta) {
-    const item = carrito.find(c=>c.sku===sku);
+    const item = carrito.find(c=>String(c.sku)===String(sku));
     if (!item) return;
     const nueva = item.cantidad + delta;
     if (nueva < 1) { eliminarDelCarrito(sku); return; }
@@ -1403,19 +1411,15 @@ function cambiarCantidadCarrito(sku, delta) {
     const inp = document.getElementById(`qty-${sku}`);
     if (inp) inp.value = item.cantidad;
     actualizarBadgeCarrito();
-    // Debounce (no inmediato): si el usuario da varios clics seguidos en
-    // +/-, coalescemos en UNA sola petición al servidor. Enviar una
-    // petición por cada clic puede causar que dos lecturas/escrituras en
-    // paralelo se pisen entre sí en Apps Script y la cantidad final
-    // guardada quede mal.
-    guardarCarritoEnStorage();
+    guardarCarritoLocal();
+    sincronizarCarritoInstantaneo();
 }
 
 /** Versión de cambio por botón +/−: lee primero el valor actual del
  *  input (por si el usuario lo editó manualmente sin hacer blur),
  *  lo aplica al array, y luego suma/resta el delta. */
 function cambiarCantidadDesdeBoton(sku, delta) {
-    const item = carrito.find(c=>c.sku===sku);
+    const item = carrito.find(c=>String(c.sku)===String(sku));
     if (!item) return;
     // Leer el valor actual del input por si cambió sin disparar onchange
     const inputEl = document.getElementById(`qty-${sku}`);
@@ -1429,11 +1433,12 @@ function cambiarCantidadDesdeBoton(sku, delta) {
     // Actualizar solo el input visual, no redibujar todo el carrito
     if (inputEl) inputEl.value = item.cantidad;
     actualizarBadgeCarrito();
-    guardarCarritoEnStorage();
+    guardarCarritoLocal();
+    sincronizarCarritoInstantaneo();
 }
 
 function establecerCantidadCarrito(sku, valor) {
-    const item = carrito.find(c=>c.sku===sku);
+    const item = carrito.find(c=>String(c.sku)===String(sku));
     if (!item) return;
     const nueva = parseInt(valor, 10);
     if (isNaN(nueva) || nueva < 1) { eliminarDelCarrito(sku); return; }
@@ -1441,7 +1446,10 @@ function establecerCantidadCarrito(sku, valor) {
     // NO redibujar el carrito — solo actualizar el array, el badge y sincronizar.
     // Redibujar causaría que el input pierda el foco en iOS mientras el usuario escribe.
     actualizarBadgeCarrito();
-    guardarCarritoEnStorage();
+    guardarCarritoLocal();
+    // Aquí SÍ usamos el debounce corto: el usuario puede estar tecleando
+    // varios dígitos seguidos y no queremos una petición por cada uno.
+    sincronizarCarritoConDebounceCorto();
 }
 
 /** Actualiza SOLO el badge (número en la bola flotante) sin redibujar
@@ -1457,14 +1465,18 @@ function actualizarBadgeCarrito() {
 }
 
 function eliminarDelCarrito(sku) {
-    carrito = carrito.filter(c=>c.sku!==sku);
-    guardarCarritoInmediato();
+    carrito = carrito.filter(c=>String(c.sku)!==String(sku));
+    guardarCarritoLocal();
+    sincronizarCarritoInstantaneo();
     actualizarUICarrito();
 }
 
 function vaciarCarrito() {
     if (!confirm("¿Vaciar todo el carrito?")) return;
-    carrito = []; guardarCarritoInmediato(); actualizarUICarrito();
+    carrito = [];
+    guardarCarritoLocal();
+    sincronizarCarritoInstantaneo();
+    actualizarUICarrito();
 }
 
 /* ══════════════════════════════════════════
@@ -1491,11 +1503,12 @@ function iniciarReconciliacionCarrito() {
 async function reconciliarCarritoConServidor() {
     if (esAdmin || !usuarioActual) return;
     if (document.visibilityState === "hidden") return;
-    // Si hay un guardado local pendiente (debounce activo), esperamos al
-    // siguiente ciclo — comparar contra el servidor ahora mismo compararía
-    // contra un estado todavía desactualizado y podría borrar por error
-    // algo que el propio usuario acaba de agregar/cambiar.
-    if (hayGuardadoCarritoPendiente) return;
+    // Si hay una sincronización en curso o pendiente (incluyendo el
+    // debounce corto del tecleo manual), esperamos al siguiente ciclo —
+    // comparar contra el servidor ahora mismo compararía contra un estado
+    // todavía desactualizado y podría borrar por error algo que el propio
+    // usuario acaba de agregar/cambiar.
+    if (hayCambioCarritoPendiente || enviandoCarritoAlServidor) return;
     if (carrito.length === 0) return;
 
     try {
@@ -1642,8 +1655,8 @@ function toggleCarrito() {
             }
         });
         try { localStorage.setItem(clavesCarritoUsuario(), JSON.stringify(carrito)); } catch {}
-        clearTimeout(debounceSincronizarCarrito);
-        enviarCarritoAlServidor();
+        clearTimeout(debounceEscrituraCantidad);
+        sincronizarCarritoInstantaneo();
     }
 
     panel.classList.toggle("abierto");
@@ -1773,8 +1786,9 @@ async function cargarCotizacionesAdmin() {
             badge.style.display = usuariosPendientes > 0 ? "flex" : "none";
         }
 
+        const esZonaValladolidPanel = _normalizarAlmacenJS(rs.almacenAdmin).includes("ZONA VALLADOLID");
         const etAlmacen = rs.almacenAdmin
-            ? (_normalizarAlmacenJS(rs.almacenAdmin).includes("ZONA VALLADOLID")
+            ? (esZonaValladolidPanel
                 ? `<i class="fa-solid fa-globe mr-1"></i> Todos los almacenes (Zona Valladolid)`
                 : `<i class="fa-solid fa-warehouse mr-1"></i> Almacén: <strong>${rs.almacenAdmin}</strong>`)
             : `<i class="fa-solid fa-triangle-exclamation mr-1"></i> Sin almacén asignado`;
@@ -1857,10 +1871,11 @@ async function cargarCotizacionesAdmin() {
                 </div>
                 <div class="flex flex-col gap-0.5 mb-2">${bloques}</div>
                 <p class="text-[9px] text-slate-500 mb-2"><i class="fa-regular fa-clock mr-1"></i> ${fecha}</p>
+                ${esZonaValladolidPanel ? `
                 <button onclick="eliminarCarritoCompletoAdmin('${correoSeg}')"
                         class="w-full bg-slate-700 hover:bg-red-950 text-slate-300 hover:text-red-400 text-[10px] font-bold py-1.5 rounded-lg cursor-pointer transition flex items-center justify-center gap-2">
                     <i class="fa-solid fa-trash"></i> Eliminar cotización completa
-                </button>
+                </button>` : ``}
             </div>`;
         });
         contenedor.innerHTML = html;
