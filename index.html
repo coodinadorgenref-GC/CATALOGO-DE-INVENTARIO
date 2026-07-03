@@ -683,7 +683,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbyuq04A65jtqksHBLRnCMxpwng3Wdt8Wam5s1vHJ7AYH7T3RO8eizT9aU-NY1Mi2DWR/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbx8AGJnONnS5xGyfSWS8aRGBBGAIXzlsOWhA4-ajEQ0Wq6b7JVk23XQxEJGs07gAm4B/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -881,13 +881,19 @@ async function heartbeatSesion() {
         const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
             body: JSON.stringify({ action:"validarSesion", correo:usuarioActual, token:tokenActual }) });
         const rs = await r.json();
-        if (!rs.success) {
-            detenerControlDeSesion();
-            localStorage.removeItem("sesion_catalogo");
-            alert(rs.message || "Tu sesión ha sido cerrada. Vuelve a iniciar sesión.");
-            location.reload();
-        }
+        if (!rs.success) manejarSesionInvalidaDelServidor(rs.message);
     } catch { /* sin conexión: se reintenta en el siguiente ciclo */ }
+}
+
+/** Cualquier respuesta del servidor puede traer sesionInvalida:true (la
+ *  barrera de seguridad en doPost la agrega si el token ya no es una
+ *  sesión activa y vigente) — desde donde se detecte, se reacciona igual:
+ *  cerrar la sesión local y mandar al usuario de vuelta al login. */
+function manejarSesionInvalidaDelServidor(motivo) {
+    detenerControlDeSesion();
+    localStorage.removeItem("sesion_catalogo");
+    alert(motivo || "Tu sesión ha sido cerrada. Vuelve a iniciar sesión.");
+    location.reload();
 }
 
 function iniciarControlDeSesion() {
@@ -979,6 +985,7 @@ async function obtenerInventarioDesdeServidor() {
         const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
                                           body: JSON.stringify({ action:"obtenerInventario", token: tokenActual, correo: usuarioActual }) });
         const rs = await r.json();
+        if (rs.sesionInvalida) { manejarSesionInvalidaDelServidor(rs.message); return; }
         if (rs.success) {
             const dataStr = JSON.stringify(rs.data);
             // Solo re-renderizar si los datos cambiaron (evita doble render en iOS)
