@@ -566,6 +566,29 @@
 </div>
 
 <!-- ════════════════════════════════════════════════
+     MODAL FORMULARIO EMBEBIDO: AGREGAR FOTO (ADMIN)
+     El formulario de Google se muestra DENTRO de esta ventana
+     emergente (iframe), sin abrir pestaña nueva, y se cierra sola
+     al detectar que el formulario ya fue enviado.
+═════════════════════════════════════════════════ -->
+<div id="modal-form-foto"
+     class="fixed inset-0 bg-black/85 z-[75] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300"
+     onclick="cerrarFormularioFotoExterno(event)">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md h-[82vh] relative overflow-hidden flex flex-col shadow-2xl">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700 bg-slate-800 shrink-0">
+            <h3 class="text-sm font-black uppercase tracking-wide text-white flex items-center gap-2">
+                <i class="fa-solid fa-camera text-blue-400"></i> Agregar Foto
+            </h3>
+            <button onclick="cerrarFormularioFoto()" class="text-slate-400 hover:text-white text-xl cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <iframe id="iframe-form-foto" src="about:blank" class="flex-1 w-full border-0 bg-white"></iframe>
+    </div>
+</div>
+
+
+<!-- ════════════════════════════════════════════════
      BOTÓN CARRITO FLOTANTE (solo no-admin)
 ═════════════════════════════════════════════════ -->
 <button id="btn-carrito-flotante" onclick="toggleCarrito()" style="display:none" title="Mi Cotización">
@@ -683,7 +706,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbx8AGJnONnS5xGyfSWS8aRGBBGAIXzlsOWhA4-ajEQ0Wq6b7JVk23XQxEJGs07gAm4B/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbx2LpHvhPu_fAHOpAP90ZyCFPMiP8lGmqO8NGmZSsXnt33C7A76AeyNJRtAwb1HYOw/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -2245,10 +2268,10 @@ function abrirDetalleProducto(item) {
     if (esAdmin) {
         htmlBtnAdmin = `
         <div class="grid grid-cols-2 gap-4 mt-6">
-            <a href="${URL_FORM_ADMIN}${encodeURIComponent(sku)}" target="_blank" rel="noopener noreferrer" onclick="alternarModal()"
-               class="block w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider cursor-pointer no-underline">
-                <i class="fa-solid fa-pen-to-square mr-2"></i> Actualizar Info / Foto
-            </a>
+            <button onclick='abrirFormularioFoto("${sku}")'
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider cursor-pointer flex items-center justify-center">
+                <i class="fa-solid fa-camera mr-2"></i> Agregar Foto
+            </button>
             <button id="btn-edicion" onclick='habilitarEdicion("${sku}", ${compatSegura})'
                     class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer">
                 <i class="fa-solid fa-pen-to-square mr-2"></i> Editar Comp.
@@ -2389,6 +2412,51 @@ function abrirZoomImagen(url) {
 function cerrarZoomImagen() {
     const m=document.getElementById("modal-zoom-imagen"), i=document.getElementById("img-ampliada");
     m.classList.add("opacity-0","pointer-events-none"); i.classList.remove("scale-100"); i.classList.add("scale-95");
+}
+
+/* ══════════════════════════════════════════
+   FORMULARIO EMBEBIDO: AGREGAR FOTO (ADMIN)
+   ══════════════════════════════════════════
+   Se muestra el formulario de Google DENTRO de un iframe, en una
+   ventana emergente propia de la página (no se abre pestaña nueva).
+   Google Forms no avisa directamente cuando se envió, pero al enviarlo
+   navega internamente (dentro del mismo iframe) a la página de
+   "Tu respuesta se ha registrado" — eso dispara un SEGUNDO evento
+   "load" del iframe (el primero es la carga inicial del formulario en
+   blanco). Contando esos "load" sabemos cuándo ya se envió y cerramos
+   la ventana sola. */
+let cargasIframeFormFoto = 0;
+
+function abrirFormularioFoto(sku) {
+    const modal  = document.getElementById("modal-form-foto");
+    const iframe = document.getElementById("iframe-form-foto");
+    cargasIframeFormFoto = 0;
+
+    iframe.onload = () => {
+        cargasIframeFormFoto++;
+        if (cargasIframeFormFoto >= 2) {
+            mostrarToastInfo("Foto enviada. Se reflejará en el catálogo en unos momentos.");
+            setTimeout(cerrarFormularioFoto, 900);
+        }
+    };
+
+    iframe.src = `${URL_FORM_ADMIN}${encodeURIComponent(sku)}&embedded=true`;
+    modal.classList.remove("opacity-0", "pointer-events-none");
+}
+
+function cerrarFormularioFoto() {
+    const modal  = document.getElementById("modal-form-foto");
+    const iframe = document.getElementById("iframe-form-foto");
+    modal.classList.add("opacity-0", "pointer-events-none");
+    iframe.onload = null;
+    iframe.src = "about:blank";
+    cargasIframeFormFoto = 0;
+}
+
+/** Cierra la ventana emergente solo si se hizo clic en el fondo oscuro
+ *  (fuera de la tarjeta blanca del formulario), igual que los demás modales. */
+function cerrarFormularioFotoExterno(e) {
+    if (e.target.id === "modal-form-foto") cerrarFormularioFoto();
 }
 
 function manejarTecladoBuscador(e) { if (e.key==="Enter") document.getElementById("buscador").blur(); }
