@@ -683,7 +683,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbxZShQRSor6Lc9Ogxsab6qjhbqMmMagfxZ07QLxNnXIjdT1lcWKmVFWoabTb3q4nv4P/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzjPFx0ITgerTqkMWGAjC3V0AUe23VFascra0ppjvAMIDBOAROZwlWlhuuWZ0jXG7C_/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
 
@@ -940,6 +940,7 @@ function procesarDespuesDeCarga() {
         _mostrarBotonFlotante("btn-carrito-flotante", mostrarVerde, true);
         _mostrarBotonFlotante("btn-cotizaciones-admin", mostrarAzul, true);
         if (esAdmin) cargarCotizacionesAdmin();
+        else iniciarReconciliacionCarrito();
     }
 
     // Evitar duplicar opciones si se llama más de una vez
@@ -1228,6 +1229,7 @@ function guardarCarritoEnStorage() {
 function guardarCarritoInmediato() {
     try { localStorage.setItem(clavesCarritoUsuario(), JSON.stringify(carrito)); } catch {}
     clearTimeout(debounceSincronizarCarrito);
+    hayGuardadoCarritoPendiente = false;
     if (esAdmin) return;
     enviarCarritoAlServidor();
 }
@@ -1236,12 +1238,17 @@ function guardarCarritoInmediato() {
  *  "Carritos_Activos") para que SOLO el admin pueda consultarlo desde
  *  su panel. Con debounce para no saturar la API en cada clic. */
 let debounceSincronizarCarrito;
+let hayGuardadoCarritoPendiente = false;
 function sincronizarCarritoConServidor() {
     // REGLA: solo usuarios NO-admin (columna H vacía) tienen carrito propio.
     if (esAdmin) return;
     clearTimeout(debounceSincronizarCarrito);
+    hayGuardadoCarritoPendiente = true;
     // 300ms: lo bastante rápido para no perder cambios al cerrar el panel
-    debounceSincronizarCarrito = setTimeout(() => { enviarCarritoAlServidor(); }, 300);
+    debounceSincronizarCarrito = setTimeout(() => {
+        hayGuardadoCarritoPendiente = false;
+        enviarCarritoAlServidor();
+    }, 300);
 }
 
 /** Red de seguridad: si el usuario cierra la pestaña/app o la manda a
@@ -1271,9 +1278,9 @@ function enviarCarritoConBeacon() {
 }
 
 function _flushCarritoPendiente() {
-    if (!debounceSincronizarCarrito) return;
+    if (!hayGuardadoCarritoPendiente) return;
     clearTimeout(debounceSincronizarCarrito);
-    debounceSincronizarCarrito = null;
+    hayGuardadoCarritoPendiente = false;
     enviarCarritoConBeacon();
 }
 
@@ -1396,7 +1403,12 @@ function cambiarCantidadCarrito(sku, delta) {
     const inp = document.getElementById(`qty-${sku}`);
     if (inp) inp.value = item.cantidad;
     actualizarBadgeCarrito();
-    guardarCarritoInmediato();
+    // Debounce (no inmediato): si el usuario da varios clics seguidos en
+    // +/-, coalescemos en UNA sola petición al servidor. Enviar una
+    // petición por cada clic puede causar que dos lecturas/escrituras en
+    // paralelo se pisen entre sí en Apps Script y la cantidad final
+    // guardada quede mal.
+    guardarCarritoEnStorage();
 }
 
 /** Versión de cambio por botón +/−: lee primero el valor actual del
@@ -1417,7 +1429,7 @@ function cambiarCantidadDesdeBoton(sku, delta) {
     // Actualizar solo el input visual, no redibujar todo el carrito
     if (inputEl) inputEl.value = item.cantidad;
     actualizarBadgeCarrito();
-    guardarCarritoInmediato();
+    guardarCarritoEnStorage();
 }
 
 function establecerCantidadCarrito(sku, valor) {
@@ -1454,6 +1466,86 @@ function vaciarCarrito() {
     if (!confirm("¿Vaciar todo el carrito?")) return;
     carrito = []; guardarCarritoInmediato(); actualizarUICarrito();
 }
+
+/* ══════════════════════════════════════════
+   RECONCILIACIÓN CON EL SERVIDOR (cliente)
+   ══════════════════════════════════════════
+   Sheets no puede "avisarle" al navegador del cliente cuando el admin
+   elimina un producto, borra la cotización completa, o marca un almacén
+   como "Pedido listo" (lo cual también elimina esos productos). Por eso
+   el cliente pregunta periódicamente "¿cómo está MI carrito según el
+   servidor?" y, si detecta que hay productos que YA NO están ahí, los
+   quita también de su carrito local — así nunca los "revive" sin querer
+   al hacer otro cambio (que reenviaría su copia local completa). */
+let intervaloReconciliarCarrito = null;
+
+function iniciarReconciliacionCarrito() {
+    if (esAdmin) return;
+    clearInterval(intervaloReconciliarCarrito);
+    // Una verificación inmediata al iniciar sesión...
+    reconciliarCarritoConServidor();
+    // ...y luego cada 12s mientras la app esté en primer plano.
+    intervaloReconciliarCarrito = setInterval(reconciliarCarritoConServidor, 12000);
+}
+
+async function reconciliarCarritoConServidor() {
+    if (esAdmin || !usuarioActual) return;
+    if (document.visibilityState === "hidden") return;
+    // Si hay un guardado local pendiente (debounce activo), esperamos al
+    // siguiente ciclo — comparar contra el servidor ahora mismo compararía
+    // contra un estado todavía desactualizado y podría borrar por error
+    // algo que el propio usuario acaba de agregar/cambiar.
+    if (hayGuardadoCarritoPendiente) return;
+    if (carrito.length === 0) return;
+
+    try {
+        const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+            body: JSON.stringify({ action:"obtenerCarritoPropio", correo:usuarioActual, token:tokenActual }) });
+        const rs = await r.json();
+        if (!rs.success) return;
+
+        const itemsServidor = rs.items || [];
+        const skusServidor  = new Set(itemsServidor.map(it => String(it.sku)));
+
+        // Productos que SÍ tengo localmente pero que el servidor ya no tiene
+        const faltantes = carrito.filter(it => !skusServidor.has(String(it.sku)));
+        // Productos que el servidor tiene y yo NO tengo localmente todavía
+        // (indicio de que mi última sincronización no llegó a completarse)
+        const sobranEnServidor = itemsServidor.some(it => !carrito.find(c => String(c.sku) === String(it.sku)));
+
+        // Solo reconciliamos cuando el servidor es un subconjunto claro de
+        // lo local (el admin quitó algo). Si además "sobran" cosas en el
+        // servidor que no tengo local, es señal de una carrera con mi
+        // propia sincronización — mejor no tocar nada y esperar al
+        // siguiente ciclo, ya que ahí sí se resolverá solo.
+        if (faltantes.length > 0 && !sobranEnServidor) {
+            const skusAQuitar = new Set(faltantes.map(f => String(f.sku)));
+            carrito = carrito.filter(it => !skusAQuitar.has(String(it.sku)));
+            try { localStorage.setItem(clavesCarritoUsuario(), JSON.stringify(carrito)); } catch {}
+            actualizarUICarrito();
+
+            const mensaje = faltantes.length === 1
+                ? `"${(faltantes[0].nombre||"Producto").slice(0,40)}" ya fue gestionado y se quitó de tu cotización.`
+                : `El equipo ya gestionó ${faltantes.length} productos y se quitaron de tu cotización.`;
+            mostrarToastInfo(mensaje);
+        }
+    } catch { /* sin conexión: se reintenta en el siguiente ciclo */ }
+}
+
+/** Toast genérico (no ligado al texto fijo "Agregado:" de mostrarToastCarrito). */
+function mostrarToastInfo(mensaje) {
+    const t = document.createElement("div");
+    t.className = "fixed bottom-24 right-6 bg-slate-800 border border-emerald-600 text-white text-xs font-bold px-4 py-3 rounded-xl shadow-lg z-[500] flex items-center gap-2 max-w-[280px]";
+    t.innerHTML = `<i class="fa-solid fa-circle-info text-emerald-400"></i> <span>${mensaje}</span>`;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+}
+
+// Al volver a primer plano (cambiar de pestaña/app y regresar), reconciliamos
+// de inmediato en vez de esperar al próximo tick del intervalo de 12s.
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && !esAdmin) reconciliarCarritoConServidor();
+});
 
 function totalItemsCarrito() { return carrito.reduce((s,c)=>s+c.cantidad,0); }
 
