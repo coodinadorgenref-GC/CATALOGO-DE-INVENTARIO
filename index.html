@@ -566,15 +566,19 @@
 </div>
 
 <!-- ════════════════════════════════════════════════
-     MODAL FORMULARIO EMBEBIDO: AGREGAR FOTO (ADMIN)
-     El formulario de Google se muestra DENTRO de esta ventana
-     emergente (iframe), sin abrir pestaña nueva, y se cierra sola
-     al detectar que el formulario ya fue enviado.
+     MODAL: AGREGAR FOTO (ADMIN) — captura nativa
+     Ya NO usa un formulario de Google en un iframe (Google bloquea el
+     login de cuenta dentro de iframes de otro sitio, por eso fallaba).
+     Ahora usa un <input type="file" capture="environment"> que abre
+     directo la cámara (o la galería) del dispositivo, muestra una
+     vista previa dentro de esta misma ventana emergente, y al enviar
+     sube la imagen ya comprimida directo al backend. La ventana se
+     cierra sola en cuanto el envío se confirma.
 ═════════════════════════════════════════════════ -->
 <div id="modal-form-foto"
      class="fixed inset-0 bg-black/85 z-[75] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300"
      onclick="cerrarFormularioFotoExterno(event)">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md h-[82vh] relative overflow-hidden flex flex-col shadow-2xl">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md relative overflow-hidden flex flex-col shadow-2xl" onclick="event.stopPropagation()">
         <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700 bg-slate-800 shrink-0">
             <h3 class="text-sm font-black uppercase tracking-wide text-white flex items-center gap-2">
                 <i class="fa-solid fa-camera text-blue-400"></i> Agregar Foto
@@ -583,7 +587,35 @@
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
-        <iframe id="iframe-form-foto" src="about:blank" class="flex-1 w-full border-0 bg-white"></iframe>
+
+        <div class="p-5 flex flex-col gap-4">
+            <!-- Input real de captura, oculto: capture="environment" pide la
+                 cámara trasera directo en móvil; en PC abre el explorador
+                 de archivos (o webcam si el navegador lo soporta). -->
+            <input type="file" id="input-foto-producto" accept="image/*" capture="environment"
+                   class="hidden-element" onchange="previewFotoProducto(event)">
+
+            <div id="zona-captura-foto" onclick="activarSelectorFoto()"
+                 class="cursor-pointer border-2 border-dashed border-slate-600 hover:border-blue-400 rounded-xl h-56 flex flex-col items-center justify-center gap-3 text-slate-400 transition">
+                <i class="fa-solid fa-camera text-4xl"></i>
+                <p class="text-sm font-semibold text-center px-6">Toca aquí para tomar una foto<br>o elegir una de tu galería</p>
+            </div>
+
+            <div id="zona-preview-foto" class="hidden-element flex flex-col gap-3">
+                <div class="rounded-xl overflow-hidden border border-slate-700 bg-slate-900 h-56 flex items-center justify-center">
+                    <img id="preview-foto-producto" src="" alt="Vista previa" class="max-w-full max-h-full object-contain">
+                </div>
+                <button onclick="reiniciarSeleccionFoto()"
+                        class="text-xs text-slate-400 hover:text-white underline self-center cursor-pointer">
+                    <i class="fa-solid fa-rotate-left mr-1"></i> Elegir otra foto
+                </button>
+            </div>
+
+            <button id="btn-enviar-foto" onclick="enviarFotoProducto()" disabled
+                    class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider cursor-pointer">
+                Enviar foto
+            </button>
+        </div>
     </div>
 </div>
 
@@ -706,9 +738,12 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbxZgktOEM-br5p9ql05bJoIMBchoeqBGNs0ociLzYuMtZ5cgeVURykqO5-I8kCom-xz/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyrkaBPUI9CnROzsqtaDErPnzwyJ3l67VRQI6xdTRACufOTp1Ur6Rn0UfwncBITaPkq/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
-const URL_FORM_ADMIN = "https://docs.google.com/forms/d/e/1FAIpQLSfLxU4Ijyu9jnw78D6ggEVBdOGwQR5PxlAW_PeFNa7snllqtg/viewform?entry.231242934=";
+// NOTA: ya no se usa un formulario de Google para las fotos (ver
+// abrirFormularioFoto), así que URL_FORM_ADMIN fue retirado. El
+// formulario de Google Forms original puede eliminarse si ya no lo
+// usas para nada más.
 
 /**
  * REGLAS DE AGENCIA
@@ -2415,48 +2450,118 @@ function cerrarZoomImagen() {
 }
 
 /* ══════════════════════════════════════════
-   FORMULARIO EMBEBIDO: AGREGAR FOTO (ADMIN)
+   AGREGAR FOTO (ADMIN) — captura nativa
    ══════════════════════════════════════════
-   Se muestra el formulario de Google DENTRO de un iframe, en una
-   ventana emergente propia de la página (no se abre pestaña nueva).
-   Google Forms no avisa directamente cuando se envió, pero al enviarlo
-   navega internamente (dentro del mismo iframe) a la página de
-   "Tu respuesta se ha registrado" — eso dispara un SEGUNDO evento
-   "load" del iframe (el primero es la carga inicial del formulario en
-   blanco). Contando esos "load" sabemos cuándo ya se envió y cerramos
-   la ventana sola. */
-let cargasIframeFormFoto = 0;
+   Ya no depende de Google Forms ni de iframes: usa el selector de
+   archivos/cámara del propio navegador (funciona igual en PC y en
+   móvil), muestra vista previa dentro de la misma ventana emergente,
+   y al enviar sube la imagen (comprimida en el cliente) directo al
+   backend, que la guarda en Drive y actualiza el catálogo. La ventana
+   se cierra sola en cuanto el servidor confirma que se guardó. */
+let fotoProductoSkuActual   = null;
+let fotoProductoBase64Actual = null;
 
 function abrirFormularioFoto(sku) {
-    const modal  = document.getElementById("modal-form-foto");
-    const iframe = document.getElementById("iframe-form-foto");
-    cargasIframeFormFoto = 0;
-
-    iframe.onload = () => {
-        cargasIframeFormFoto++;
-        if (cargasIframeFormFoto >= 2) {
-            mostrarToastInfo("Foto enviada. Se reflejará en el catálogo en unos momentos.");
-            setTimeout(cerrarFormularioFoto, 900);
-        }
-    };
-
-    iframe.src = `${URL_FORM_ADMIN}${encodeURIComponent(sku)}&embedded=true`;
-    modal.classList.remove("opacity-0", "pointer-events-none");
+    fotoProductoSkuActual = sku;
+    reiniciarSeleccionFoto();
+    document.getElementById("modal-form-foto").classList.remove("opacity-0", "pointer-events-none");
 }
 
 function cerrarFormularioFoto() {
-    const modal  = document.getElementById("modal-form-foto");
-    const iframe = document.getElementById("iframe-form-foto");
-    modal.classList.add("opacity-0", "pointer-events-none");
-    iframe.onload = null;
-    iframe.src = "about:blank";
-    cargasIframeFormFoto = 0;
+    document.getElementById("modal-form-foto").classList.add("opacity-0", "pointer-events-none");
+    fotoProductoSkuActual = null;
+    fotoProductoBase64Actual = null;
 }
 
 /** Cierra la ventana emergente solo si se hizo clic en el fondo oscuro
- *  (fuera de la tarjeta blanca del formulario), igual que los demás modales. */
+ *  (fuera de la tarjeta), igual que los demás modales. */
 function cerrarFormularioFotoExterno(e) {
     if (e.target.id === "modal-form-foto") cerrarFormularioFoto();
+}
+
+/** Abre el selector nativo de cámara/galería del navegador. */
+function activarSelectorFoto() {
+    document.getElementById("input-foto-producto").click();
+}
+
+/** Cuando el usuario elige/toma una foto: la redimensiona y comprime
+ *  con un canvas (para no mandar fotos pesadas de 8-12 MB por la red)
+ *  y la deja lista en memoria como data URL Base64 para el envío. */
+function previewFotoProducto(e) {
+    const archivo = e.target.files && e.target.files[0];
+    if (!archivo) return;
+    if (!archivo.type.startsWith("image/")) {
+        alert("Selecciona un archivo de imagen válido.");
+        return;
+    }
+
+    const lector = new FileReader();
+    lector.onload = (evt) => {
+        const img = new Image();
+        img.onload = () => {
+            const LADO_MAX = 1280;
+            let w = img.width, h = img.height;
+            if (w > LADO_MAX || h > LADO_MAX) {
+                const escala = LADO_MAX / Math.max(w, h);
+                w = Math.round(w * escala);
+                h = Math.round(h * escala);
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = w; canvas.height = h;
+            canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+            fotoProductoBase64Actual = canvas.toDataURL("image/jpeg", 0.82);
+
+            document.getElementById("preview-foto-producto").src = fotoProductoBase64Actual;
+            document.getElementById("zona-captura-foto").classList.add("hidden-element");
+            document.getElementById("zona-preview-foto").classList.remove("hidden-element");
+            document.getElementById("btn-enviar-foto").disabled = false;
+        };
+        img.src = evt.target.result;
+    };
+    lector.readAsDataURL(archivo);
+}
+
+/** Descarta la foto elegida y vuelve a mostrar la zona de captura. */
+function reiniciarSeleccionFoto() {
+    const input = document.getElementById("input-foto-producto");
+    if (input) input.value = "";
+    fotoProductoBase64Actual = null;
+    document.getElementById("zona-preview-foto").classList.add("hidden-element");
+    document.getElementById("zona-captura-foto").classList.remove("hidden-element");
+    const btn = document.getElementById("btn-enviar-foto");
+    btn.disabled = true; btn.innerText = "Enviar foto";
+}
+
+/** Sube la foto ya comprimida al backend (Apps Script → Drive + Sheets). */
+function enviarFotoProducto() {
+    if (!fotoProductoBase64Actual || !fotoProductoSkuActual) return;
+    const btn = document.getElementById("btn-enviar-foto");
+    btn.disabled = true; btn.innerText = "Enviando...";
+
+    fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+        body: JSON.stringify({
+            action: "subirFotoProducto",
+            token: tokenActual,
+            correo: usuarioActual,
+            sku: fotoProductoSkuActual,
+            imagenBase64: fotoProductoBase64Actual,
+            mimeType: "image/jpeg"
+        }) })
+    .then(r => r.json())
+    .then(rs => {
+        if (rs && rs.success) {
+            mostrarToastInfo("Foto enviada. Se reflejará en el catálogo en unos momentos.");
+            forzarSincronizacionDatos();
+            cerrarFormularioFoto();
+        } else {
+            alert("No se pudo subir la foto: " + (rs && rs.message ? rs.message : "Error desconocido. Intenta de nuevo."));
+            btn.disabled = false; btn.innerText = "Enviar foto";
+        }
+    })
+    .catch(() => {
+        alert("Error de conexión al subir la foto. Verifica tu internet e intenta de nuevo.");
+        btn.disabled = false; btn.innerText = "Enviar foto";
+    });
 }
 
 function manejarTecladoBuscador(e) { if (e.key==="Enter") document.getElementById("buscador").blur(); }
