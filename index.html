@@ -738,7 +738,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwybaxvbwBzNOxXuRh8Ldi-pCt2FMUXz50b6B0RsHF6N0e4XE5MiHqywRYSV5ILH4Wd/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxZvB1i5ZrOtO7MwmJtWje0QjpKtdcrxPRy3fUfgsf2_0-BSRYr9YHaFT4190RSUUoI/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 // NOTA: ya no se usa un formulario de Google para las fotos (ver
 // abrirFormularioFoto), así que URL_FORM_ADMIN fue retirado. El
@@ -784,6 +784,7 @@ let usuarioActual            = "";
 let tokenActual               = "";
 let esAdmin                  = false;
 let almacenAdminActual        = ""; // Columna H del admin logueado (vacío si es usuario normal)
+let accesoNumeroParteBajaj = false;    
 
 /** Normaliza un texto de almacén: mayúsculas, sin acentos, sin espacios extra. */
 function _normalizarAlmacenJS(texto) {
@@ -869,6 +870,7 @@ function verificarSesionGuardada() {
     }
     usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false;
     almacenAdminActual = s.almacenAdmin || "";
+    accesoNumeroParteBajaj = s.accesoNumeroParteBajaj || false;
     document.getElementById("nombre-usuario").innerText = s.nombre;
     document.getElementById("rol-usuario").innerText = s.rol || "";
     // Móvil: nombre + rol en línea compacta
@@ -885,8 +887,8 @@ function verificarSesionGuardada() {
     iniciarControlDeSesion();
 }
 
-function guardarSesionEnDispositivo(correo, token, nombre, admin, rol, almacenAdmin) {
-    localStorage.setItem("sesion_catalogo", JSON.stringify({ correo, token, nombre, esAdmin: admin, rol: rol || "", almacenAdmin: almacenAdmin || "", timestamp: new Date().getTime() }));
+function guardarSesionEnDispositivo(correo, token, nombre, admin, rol, almacenAdmin, accesoNumParteBajaj) {
+    localStorage.setItem("sesion_catalogo", JSON.stringify({ correo, token, nombre, esAdmin: admin, rol: rol || "", almacenAdmin: almacenAdmin || "", accesoNumeroParteBajaj: !!accesoNumParteBajaj, timestamp: new Date().getTime() }));
 }
 function actualizarTimestampSesion() {
     const s = localStorage.getItem("sesion_catalogo");
@@ -993,6 +995,7 @@ async function manejarInicioDeSesion() {
             usuarioActual = rs.correo || valorIngresado;
             tokenActual = rs.token; esAdmin = rs.esAdmin || false;
             almacenAdminActual = rs.almacenAdmin || "";
+            accesoNumeroParteBajaj = rs.accesoNumeroParteBajaj || false;
             document.getElementById("nombre-usuario").innerText = rs.nombre;
             document.getElementById("rol-usuario").innerText = rs.rol || "";
             // Móvil: nombre + rol en línea compacta
@@ -1001,7 +1004,7 @@ async function manejarInicioDeSesion() {
             if(_nm2) _nm2.innerText = rs.nombre || "";
             if(_rm2) _rm2.innerText = rs.rol ? "· " + rs.rol : "";
             document.getElementById("rol-usuario-wrapper").classList.toggle("hidden", !rs.rol);
-            guardarSesionEnDispositivo(usuarioActual, rs.token, rs.nombre, esAdmin, rs.rol, almacenAdminActual);
+            guardarSesionEnDispositivo(usuarioActual, rs.token, rs.nombre, esAdmin, rs.rol, almacenAdminActual, accesoNumeroParteBajaj);
             document.getElementById("vista-login").classList.add("hidden");
             document.getElementById("vista-catalogo").classList.remove("hidden");
             document.getElementById("cargando-datos").classList.remove("hidden");
@@ -1228,7 +1231,9 @@ function filtrarProductos() {
         if (marcaSeleccionadaActual.length > 0 && !marcaSeleccionadaActual.includes((item.Marca||"").trim())) return false;
         if (familiaSeleccionadaActual.length > 0 && !familiaSeleccionadaActual.includes((item.Familia||"Sin Familia").trim())) return false;
         if (agencia) { const exs = item.Existencias||[]; if (!exs.some(e => e.sucursal === agencia)) return false; }
-        const texto = normalizarTexto(`${item.SKU} ${item.Producto} ${item.Marca} ${item.Compatibilidad} ${esAdmin?item.Pr_Numero_Parte:""}`);
+        const marcaEsBajaj = (item.Marca || "").toUpperCase().trim() === "BAJAJ";
+        const puedeVerNumParte = esAdmin || (accesoNumeroParteBajaj && marcaEsBajaj);
+        const texto = normalizarTexto(`${item.SKU} ${item.Producto} ${item.Marca} ${item.Compatibilidad} ${puedeVerNumParte ? item.Pr_Numero_Parte : ""}`);
         return palabras.every(p => texto.includes(p));
     });
 
@@ -2227,13 +2232,16 @@ function abrirDetalleProducto(item) {
     const compatSegura    = JSON.stringify(item.Compatibilidad||"");
     const inventarios     = item.Existencias || [];
 
-    // Admin: número de parte
-    let htmlAdmin = "";
-    if (esAdmin && item.Pr_Numero_Parte) {
-        htmlAdmin = `<p class="text-xs font-mono text-emerald-400 font-bold bg-emerald-950/30 p-2 rounded-lg border border-emerald-900/50 mb-3">
-                        <i class="fa-solid fa-barcode mr-2"></i> Num. Parte: ${item.Pr_Numero_Parte}
-                     </p>`;
-    }
+// Número de parte: visible para admin siempre, o para clientes con
+// permiso especial cuando el producto es marca BAJAJ.
+let htmlAdmin = "";
+const marcaEsBajajModal = (marca || "").toUpperCase().trim() === "BAJAJ";
+const puedeVerNumParteModal = esAdmin || (accesoNumeroParteBajaj && marcaEsBajajModal);
+if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
+    htmlAdmin = `<p class="text-xs font-mono text-emerald-400 font-bold bg-emerald-950/30 p-2 rounded-lg border border-emerald-900/50 mb-3">
+                    <i class="fa-solid fa-barcode mr-2"></i> Num. Parte: ${item.Pr_Numero_Parte}
+                 </p>`;
+}
 
     // Existencias
     let htmlExistencias = "";
