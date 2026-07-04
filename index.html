@@ -2472,7 +2472,15 @@ function cerrarFormularioFoto() {
     fotoProductoSkuActual = null;
     fotoProductoBase64Actual = null;
 }
-
+/** Cierra el modal de detalle del producto de forma forzada (sin toggle),
+ *  usado después de subir una foto exitosamente para regresar directo
+ *  al catálogo sin que el admin tenga que cerrarlo manualmente. */
+function cerrarModalDetalleForzado() {
+    const modal = document.getElementById("modal-detalles");
+    const contenido = document.getElementById("modal-contenido");
+    modal.classList.add("opacity-0", "pointer-events-none");
+    contenido.classList.add("translate-y-4");
+}
 /** Cierra la ventana emergente solo si se hizo clic en el fondo oscuro
  *  (fuera de la tarjeta), igual que los demás modales. */
 function cerrarFormularioFotoExterno(e) {
@@ -2549,11 +2557,12 @@ function enviarFotoProducto() {
         }) })
     .then(r => r.json())
     .then(rs => {
-        if (rs && rs.success) {
-            mostrarToastInfo("Foto enviada. Se reflejará en el catálogo en unos momentos.");
-            forzarSincronizacionDatos();
-            cerrarFormularioFoto();
-        } else {
+            if (rs && rs.success) {
+                mostrarToastInfo("Foto enviada correctamente. Se reflejará en el catálogo en unos momentos.");
+                forzarSincronizacionDatos();
+                cerrarFormularioFoto();
+                cerrarModalDetalleForzado();
+            } else {
             alert("No se pudo subir la foto: " + (rs && rs.message ? rs.message : "Error desconocido. Intenta de nuevo."));
             btn.disabled = false; btn.innerText = "Enviar foto";
         }
