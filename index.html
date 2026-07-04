@@ -813,6 +813,30 @@ function normalizarTexto(texto) {
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9\s]/g, "").trim().replace(/\s+/g, " ");
 }
+    /** Valida el formato de lo que el usuario escribió en el login:
+ *  - Si contiene "@", se valida como correo electrónico. Soporta
+ *    dominios simples (dominio.com) y compuestos (dominio.com.mx,
+ *    dominio.edu.mx, etc.) sin restringir a una lista fija de TLDs.
+ *  - Si NO contiene "@", se asume que es un teléfono y se valida
+ *    que tenga entre 10 y 13 dígitos (permite el +52 opcional). */
+function validarFormatoIdentificador(valor) {
+    const texto = (valor || "").trim();
+    if (!texto) return { valido: false, mensaje: "Ingresa tu correo o número telefónico." };
+
+    if (texto.includes("@")) {
+        const REGEX_CORREO = /^[a-zA-Z0-9](?:[a-zA-Z0-9._%+-]*[a-zA-Z0-9])?@[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+        if (!REGEX_CORREO.test(texto)) {
+            return { valido: false, mensaje: "El correo no tiene un formato válido. Ejemplo: nombre@dominio.com" };
+        }
+        return { valido: true, tipo: "correo" };
+    }
+
+    const soloDigitos = texto.replace(/\D/g, "");
+    if (soloDigitos.length < 10 || soloDigitos.length > 13) {
+        return { valido: false, mensaje: "El número telefónico debe tener al menos 10 dígitos." };
+    }
+    return { valido: true, tipo: "telefono" };
+}
 
 function optimizarEnlaceImagen(enlace) {
     if (!enlace || typeof enlace !== "string")
@@ -981,8 +1005,9 @@ async function manejarInicioDeSesion() {
     const errorEl  = document.getElementById("error-login");
     const btnEl    = document.getElementById("btn-login");
     const valorIngresado = correoEl.value.trim();
-
-    if (!valorIngresado) { mostrarErrorLogin(errorEl, "Por favor, ingresa tu correo o número telefónico."); return; }
+    
+    const validacion = validarFormatoIdentificador(valorIngresado);
+    if (!validacion.valido) { mostrarErrorLogin(errorEl, validacion.mensaje); return; }
     ocultarErrorLogin(errorEl); btnEl.disabled = true; btnEl.innerText = "Verificando...";
 
     try {
