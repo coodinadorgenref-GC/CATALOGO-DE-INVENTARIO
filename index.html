@@ -314,25 +314,40 @@
         <h1 class="text-2xl font-black text-white tracking-tight uppercase">La Barata del Hogar</h1>
         <p class="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-6">Catálogo de Refacciones</p>
         <p class="text-sm text-slate-400 mb-6">Ingresa tu correo o número telefónico autorizado para acceder.</p>
-        <div class="text-left mb-4">
-            <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico o Teléfono</label>
-            <input type="text" id="input-correo" onkeydown="manejarTecladoLogin(event)"
-                   placeholder="ejemplo@gmail.com o 5512345678"
-                   autocomplete="off" autocapitalize="off" spellcheck="false"
-                   class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
-        </div>
-        <div class="text-left mb-4">
-    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Código de Acceso</label>
-    <input type="text" id="input-pin" onkeydown="manejarTecladoLogin(event)"
-           placeholder="Tu código personal (te lo compartió el administrador)"
-           autocomplete="off" autocapitalize="off" spellcheck="false"
-           class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
-</div>
-        <div id="error-login" class="hidden bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 border border-red-900/50"></div>
-        <button id="btn-login" onclick="manejarInicioDeSesion()"
-                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg shadow-emerald-900/20 cursor-pointer">
-            Acceder al Catálogo
-        </button>
+
+        <!-- El <form> real (no un simple <div>) es lo que le indica a los
+             gestores de contraseñas de Google/iOS que aquí hay un login
+             que pueden ofrecer guardar y autocompletar después. -->
+        <form id="form-login" onsubmit="event.preventDefault(); manejarInicioDeSesion();">
+            <div class="text-left mb-4">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Correo Electrónico o Teléfono</label>
+                <input type="text" id="input-correo" name="username"
+                       placeholder="ejemplo@gmail.com o 5512345678"
+                       autocomplete="username" autocapitalize="off" spellcheck="false"
+                       class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+            </div>
+
+            <div class="text-left mb-4">
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Código de Acceso</label>
+                <div class="relative">
+                    <input type="password" id="input-pin" name="password"
+                           placeholder="Tu código personal (te lo compartió el administrador)"
+                           autocomplete="current-password" autocapitalize="off" spellcheck="false"
+                           class="w-full px-4 py-3 pr-11 border border-slate-700 rounded-xl bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+                    <button type="button" onclick="alternarVisibilidadPin()" tabindex="-1"
+                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-emerald-400 cursor-pointer">
+                        <i id="icono-ojo-pin" class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="error-login" class="hidden bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 border border-red-900/50"></div>
+
+            <button id="btn-login" type="submit"
+                    class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg shadow-emerald-900/20 cursor-pointer">
+                Acceder al Catálogo
+            </button>
+        </form>
     </div>
 </div>
 
@@ -1070,6 +1085,17 @@ function mostrarErrorLogin(el, msg) {
 }
 function ocultarErrorLogin(el) { el.className = "hidden"; }
 function manejarTecladoLogin(e) { if (e.key === "Enter") manejarInicioDeSesion(); }
+    
+/** Alterna entre mostrar el código de acceso en texto plano o
+ *  oculto con puntos, cambiando también el ícono del ojo. */
+function alternarVisibilidadPin() {
+    const input = document.getElementById("input-pin");
+    const icono = document.getElementById("icono-ojo-pin");
+    const seVaAMostrar = input.type === "password";
+    input.type = seVaAMostrar ? "text" : "password";
+    icono.classList.toggle("fa-eye", !seVaAMostrar);
+    icono.classList.toggle("fa-eye-slash", seVaAMostrar);
+}    
 
 /* ══════════════════════════════════════════
    INVENTARIO
