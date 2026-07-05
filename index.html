@@ -2063,7 +2063,7 @@ async function cargarCotizacionesAdmin() {
             // Un bloque por grupo, con su propio botón "Enviar / Marcar pendiente"
             const bloques = Object.entries(grupos).map(([grupo, datos]) => {
                 const info      = GRUPOS_AGENCIA[grupo]||{nombre:grupo,emoji:"📦"};
-                const sucTxt    = [...datos.suc].join(", ")||"Sin sucursal";
+                const sucTxt    = escaparHTML([...datos.suc].join(", "))||"Sin sucursal";
                 const estGrupo  = estadosPG[grupo]||"Por cotizar";
                 const enviado   = estGrupo==="Pedido listo" || estGrupo==="Cotización enviada";
                 return `<div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2 mb-2">
@@ -2283,7 +2283,7 @@ const marcaEsBajajModal = (marca || "").toUpperCase().trim() === "BAJAJ";
 const puedeVerNumParteModal = esAdmin || (accesoNumeroParteBajaj && marcaEsBajajModal);
 if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
     htmlAdmin = `<p class="text-xs font-mono text-emerald-400 font-bold bg-emerald-950/30 p-2 rounded-lg border border-emerald-900/50 mb-3">
-                    <i class="fa-solid fa-barcode mr-2"></i> Num. Parte: ${item.Pr_Numero_Parte}
+                    <i class="fa-solid fa-barcode mr-2"></i> Num. Parte: ${escaparHTML(item.Pr_Numero_Parte)}
                  </p>`;
 }
 
