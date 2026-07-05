@@ -537,6 +537,15 @@
                     </button>
                     <div id="filter-marca-container" class="mt-2 bg-slate-900 border border-slate-700 rounded-xl max-h-[180px] overflow-y-auto p-2"></div>
                 </div>
+                <!-- Liquidación -->
+                    <div>
+                        <label class="flex items-center gap-2 p-2 bg-red-950/30 border border-red-900/50 rounded-xl cursor-pointer hover:bg-red-950/50 transition">
+                            <input type="checkbox" id="filtro-liquidacion" onchange="toggleFiltroLiquidacion(this)">
+                            <span class="text-xs font-bold text-red-400 uppercase tracking-wide flex items-center gap-1.5">
+                                <i class="fa-solid fa-flag"></i> Solo Liquidación
+                            </span>
+                        </label>
+                    </div>
 
             </div><!-- /zona scrolleable -->
 
@@ -760,7 +769,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwyjFQJIk2JbsLVoGgyob0SrtBw9qZ4XDmDi0fIvCts_XcnxIsDVDukXAkr-N3kYlq1/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbxAiCCYHPl4MB_jhPMy_PDEhrZa7yal1rqdJtXuYLz__h9xCeMvh8PqoB39F4GY-iAA/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 // NOTA: ya no se usa un formulario de Google para las fotos (ver
 // abrirFormularioFoto), así que URL_FORM_ADMIN fue retirado. El
@@ -818,6 +827,7 @@ function esZonaValladolid() {
     return _normalizarAlmacenJS(almacenAdminActual).includes("ZONA VALLADOLID");
 }
 let familiaSeleccionadaActual = [];
+let filtroLiquidacionActivo = false;    
 let marcaSeleccionadaActual   = [];
 let paginaActual              = 1;
 const tarjetasPorPagina       = 9;
@@ -1266,6 +1276,10 @@ function toggleMarca(cb) {
         : marcaSeleccionadaActual.filter(m => m !== cb.value);
     filtrarProductos();
 }
+function toggleFiltroLiquidacion(cb) {
+    filtroLiquidacionActivo = cb.checked;
+    filtrarProductos();
+}    
 
 function limpiarSeleccionFamilias() { familiaSeleccionadaActual=[]; limpiarBuscadorFamilia(); renderizarFiltrosFamilia(); filtrarProductos(); }
 function limpiarSeleccionMarcas()   { marcaSeleccionadaActual=[]; limpiarBuscadorMarca(); renderizarFiltrosMarcas(); filtrarProductos(); }
@@ -1296,7 +1310,8 @@ function filtrarProductos() {
     const query    = normalizarTexto(document.getElementById("buscador").value);
     const palabras = query.split(" ").filter(p => p.length > 0);
 
-    let filtrados = inventarioMaestro.filter(item => {
+let filtrados = inventarioMaestro.filter(item => {
+        if (filtroLiquidacionActivo && !item.Liquidacion) return false;
         if (marcaSeleccionadaActual.length > 0 && !marcaSeleccionadaActual.includes((item.Marca||"").trim())) return false;
         if (familiaSeleccionadaActual.length > 0 && !familiaSeleccionadaActual.includes((item.Familia||"Sin Familia").trim())) return false;
         if (agencia) { const exs = item.Existencias||[]; if (!exs.some(e => e.sucursal === agencia)) return false; }
@@ -1339,6 +1354,9 @@ function renderizarTarjetasProductos(lista) {
         const stockBadge = totalStock > 0
             ? `<span class="absolute top-3 left-3 bg-emerald-900/80 text-emerald-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10">${totalStock} pzas</span>`
             : `<span class="absolute top-3 left-3 bg-red-900/80 text-red-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10">Sin stock</span>`;
+        const liquidacionBadge = item.Liquidacion
+            ? `<span class="absolute bottom-2 left-2 right-2 bg-red-600 text-white text-[9px] font-black px-2 py-1 rounded-md z-10 text-center uppercase tracking-wide flex items-center justify-center gap-1"><i class="fa-solid fa-flag"></i> Liquidación</span>`
+            : "";
 
         div.innerHTML = `
             <div class="flex flex-col h-full justify-between">
@@ -1346,6 +1364,7 @@ function renderizarTarjetasProductos(lista) {
                     <div class="relative pt-[75%] bg-slate-900 overflow-hidden">
                         ${generarHtmlContenedorImagen(imgUrl)}
                         ${stockBadge}
+                        ${liquidacionBadge}
                         <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase z-10">${escaparHTML(item.Marca)||"GENÉRICO"}</span>
                     </div>
                     <div class="p-4 flex flex-col gap-1">
@@ -1498,10 +1517,11 @@ function enviarCarritoConBeacon() {
             correo: usuarioActual,
             token: tokenActual,
             nombre: sesion.nombre || "",
-            items: carrito.map(c => ({
+                items: carrito.map(c => ({
                 sku: c.sku,
                 nombre: c.nombre,
                 cantidad: c.cantidad,
+                enLiquidacion: !!c.enLiquidacion,
                 agenciasDisponibles: c.agenciasDisponibles || []
             }))
         });
@@ -1537,10 +1557,11 @@ function enviarCarritoAlServidor() {
             // Incluimos agenciasDisponibles para que el panel admin pueda
             // mostrar en qué almacén/sucursal está cada SKU, y filtrar por
             // el almacén asignado a cada admin (columna H).
-            items: carrito.map(c => ({
+                items: carrito.map(c => ({
                 sku: c.sku,
                 nombre: c.nombre,
                 cantidad: c.cantidad,
+                enLiquidacion: !!c.enLiquidacion,
                 agenciasDisponibles: c.agenciasDisponibles || []
             }))
         })
@@ -1612,6 +1633,7 @@ function agregarAlCarrito(item) {
             imagen: optimizarEnlaceImagen(item.Imagen||""),
             cantidad: 1,
             stockMax,
+            enLiquidacion: !!item.Liquidacion,
             agenciasDisponibles: exs.map(e=>({
                 sucursal: e.sucursal,
                 cantidad: e.cantidad,
@@ -1870,7 +1892,10 @@ function actualizarUICarrito() {
                 <div class="info">
                     <div class="nombre">${escaparHTML(item.nombre)}</div>
                     <div class="sku">SKU: ${escaparHTML(item.sku)}</div>
-                    <span class="tag-agencia tag-${grupo}">${(GRUPOS_AGENCIA[grupo]||{}).nombre||grupo}</span>
+                    <div class="flex items-center gap-1 mt-0.5">
+                        <span class="tag-agencia tag-${grupo}">${(GRUPOS_AGENCIA[grupo]||{}).nombre||grupo}</span>
+                        ${item.enLiquidacion ? `<span class="tag-agencia bg-red-600 text-white"><i class="fa-solid fa-flag"></i> Liquidación</span>` : ""}
+                    </div>
                 </div>
                 <div class="controles">
                     <button class="btn-qty" onclick="cambiarCantidadDesdeBoton('${item.sku}', -1)">−</button>
@@ -2104,9 +2129,11 @@ async function cargarCotizacionesAdmin() {
                             ${enviado?'Pedido listo':'Por cotizar'}
                         </button>
                     </div>
-                        ${datos.items.map(it=>`
+                       ${datos.items.map(it=>`
                             <div class="item-linea">
-                                <span>${escaparHTML(it.nombre)} <span class="text-slate-500">(${escaparHTML(it.sku)})</span></span>
+                                <span>${escaparHTML(it.nombre)} <span class="text-slate-500">(${escaparHTML(it.sku)})</span>
+                                ${it.enLiquidacion ? `<span class="text-[8px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded ml-1 uppercase"><i class="fa-solid fa-flag"></i> Liquidación</span>` : ""}
+                                </span>
                             <span class="flex items-center gap-2">
                                 <span class="font-bold text-emerald-400">x${it.cantidad}</span>
                                 <button onclick="eliminarItemCarritoUsuarioAdmin('${correoSeg}','${escaparHTML(String(it.sku)).replace(/'/g,"\\'")}' )"
@@ -2119,10 +2146,13 @@ async function cargarCotizacionesAdmin() {
                 </div>`;
             }).join("");
 
+            const idClienteSeg = escaparHTML(u.idCliente || "");
             html += `<div class="tarjeta-usuario-admin" data-correo-tarjeta="${correoSeg}">
                 <div class="encabezado-usuario">
                     <div>
-                        <div class="nombre-usuario-admin"><i class="fa-solid fa-user text-blue-400 mr-1"></i> ${nombreSeg}</div>
+                        <div class="nombre-usuario-admin"><i class="fa-solid fa-user text-blue-400 mr-1"></i> ${nombreSeg}
+                            ${idClienteSeg ? `<span class="text-[9px] font-mono bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded ml-1">ID: ${idClienteSeg}</span>` : ""}
+                        </div>
                         <div class="correo-usuario-admin">${escaparHTML(u.correo)}</div>
                     </div>
                     <span class="${esEnviadaTodo?'bg-emerald-950 text-emerald-300':'bg-orange-950 text-orange-300'} text-[10px] font-black px-2 py-1 rounded-md">
@@ -2335,7 +2365,7 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
                             <span class="font-mono bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded-md font-bold">${inv.cantidad} pzas</span>
                         </div>
                         ${!esAdmin ? `
-                        <button onclick='agregarAlCarritoDesdeModal("${sku}", ${tituloSeguro}, "${marca}", "${urlImg}", ${JSON.stringify(inventarios)})'
+                        <button onclick='agregarAlCarritoDesdeModal("${sku}", ${tituloSeguro}, "${marca}", "${urlImg}", ${JSON.stringify(inventarios)}, ${!!item.Liquidacion})'
                                 class="w-full mt-1 bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-1 px-3 rounded-lg transition text-[11px] flex items-center justify-center gap-1 cursor-pointer">
                             <i class="fa-solid fa-cart-plus"></i> Agregar al carrito
                         </button>` : ""}
@@ -2392,7 +2422,14 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
         </div>`;
     }
 
+const bannerLiquidacion = item.Liquidacion
+        ? `<div class="bg-red-600 text-white text-xs font-black uppercase tracking-wide text-center py-2 rounded-xl mb-3 flex items-center justify-center gap-2">
+               <i class="fa-solid fa-flag"></i> Producto en Liquidación
+           </div>`
+        : "";
+
     document.getElementById("modal-cuerpo").innerHTML = `
+        ${bannerLiquidacion}
         <div class="relative pt-[65%] bg-slate-900 overflow-hidden rounded-xl mb-4 border border-slate-700 group">
             <img src="${urlImg}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
                  onclick="abrirZoomImagen('${urlImg}')"
@@ -2419,8 +2456,8 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
     alternarModal();
 }
 
-function agregarAlCarritoDesdeModal(sku, nombre, marca, imagen, existencias) {
-    const item = { SKU:sku, Producto:nombre, Marca:marca, Imagen:imagen, Existencias:existencias };
+function agregarAlCarritoDesdeModal(sku, nombre, marca, imagen, existencias, enLiquidacion) {
+    const item = { SKU:sku, Producto:nombre, Marca:marca, Imagen:imagen, Existencias:existencias, Liquidacion: enLiquidacion };
     agregarAlCarrito(item);
 }
 
