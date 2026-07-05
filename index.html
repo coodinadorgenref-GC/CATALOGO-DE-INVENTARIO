@@ -321,6 +321,13 @@
                    autocomplete="off" autocapitalize="off" spellcheck="false"
                    class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
         </div>
+        <div class="text-left mb-4">
+    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Código de Acceso</label>
+    <input type="text" id="input-pin" onkeydown="manejarTecladoLogin(event)"
+           placeholder="Tu código personal (te lo compartió el administrador)"
+           autocomplete="off" autocapitalize="off" spellcheck="false"
+           class="w-full px-4 py-3 border border-slate-700 rounded-xl bg-slate-900 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium">
+</div>
         <div id="error-login" class="hidden bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 border border-red-900/50"></div>
         <button id="btn-login" onclick="manejarInicioDeSesion()"
                 class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition shadow-lg shadow-emerald-900/20 cursor-pointer">
@@ -738,7 +745,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzXYPnKD2tG5S7L9p2Q8-AYKnz_-JbxCOv_BeYp5e0RknkVjwyz1wnVZe1kxw3GU4Lb/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzmOqX9dYqTK8v8yFAl4J62qVkWhz-6_POELM30NFxV5wAWhwlLW6QeWNZ8903V_Hin/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 // NOTA: ya no se usa un formulario de Google para las fotos (ver
 // abrirFormularioFoto), así que URL_FORM_ADMIN fue retirado. El
@@ -813,6 +820,15 @@ function normalizarTexto(texto) {
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9\s]/g, "").trim().replace(/\s+/g, " ");
 }
+/** Escapa caracteres HTML peligrosos antes de insertar texto dinámico
+ *  en innerHTML — previene inyección de scripts (XSS) desde cualquier
+ *  campo que un usuario (cliente o admin) pueda controlar. */
+function escaparHTML(texto) {
+    const div = document.createElement("div");
+    div.textContent = String(texto ?? "");
+    return div.innerHTML;
+}
+    
     /** Valida el formato de lo que el usuario escribió en el login:
  *  - Si contiene "@", se valida como correo electrónico. Soporta
  *    dominios simples (dominio.com) y compuestos (dominio.com.mx,
@@ -1011,8 +1027,7 @@ async function manejarInicioDeSesion() {
     ocultarErrorLogin(errorEl); btnEl.disabled = true; btnEl.innerText = "Verificando...";
 
     try {
-        const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"}, body: JSON.stringify({ action:"login", correo: valorIngresado, dispositivo: (navigator.userAgent||"").slice(0,180) }) });
-        const rs = await r.json();
+        const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"}, body: JSON.stringify({ action:"login", correo: valorIngresado, codigoAcceso: pinIngresado, dispositivo: (navigator.userAgent||"").slice(0,180) })
         if (rs.success) {
             // Usamos el identificador REAL que regresa el backend (correo dado de alta),
             // sin importar si el usuario tecleó su correo o su teléfono — así el carrito
@@ -1302,11 +1317,11 @@ function renderizarTarjetasProductos(lista) {
                     <div class="relative pt-[75%] bg-slate-900 overflow-hidden">
                         ${generarHtmlContenedorImagen(imgUrl)}
                         ${stockBadge}
-                        <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase z-10">${item.Marca||"GENÉRICO"}</span>
+                        <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase z-10">${escaparHTML(item.Marca)||"GENÉRICO"}</span>
                     </div>
                     <div class="p-4 flex flex-col gap-1">
-                        <span class="text-[11px] font-mono font-bold text-slate-400 tracking-wide">SKU: ${item.SKU||"---"}</span>
-                        <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition">${item.Producto||"Sin Nombre"}</h3>
+                        <span class="text-[11px] font-mono font-bold text-slate-400 tracking-wide">SKU: ${escaparHTML(item.SKU)||"---"}</span>
+                        <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition">${escaparHTML(item.Producto)||"Sin Nombre"}</h3>
                     </div>
                 </div>
                 ${!esAdmin && totalStock > 0 ? `
@@ -1824,8 +1839,8 @@ function actualizarUICarrito() {
             <div class="item-carrito">
                 <img src="${item.imagen}" onerror="gestionarFalloImagenDrive(this)" alt="">
                 <div class="info">
-                    <div class="nombre">${item.nombre}</div>
-                    <div class="sku">SKU: ${item.sku}</div>
+                    <div class="nombre">${escaparHTML(item.nombre)}</div>
+                    <div class="sku">SKU: ${escaparHTML(item.sku)}</div>
                     <span class="tag-agencia tag-${grupo}">${(GRUPOS_AGENCIA[grupo]||{}).nombre||grupo}</span>
                 </div>
                 <div class="controles">
@@ -2022,7 +2037,8 @@ async function cargarCotizacionesAdmin() {
             const estadoGen    = u.estado || "Pendiente";
             const esEnviadaTodo = estadoGen === "Cotización enviada" || estadoGen === "Pedido listo";
             const estadosPG    = u.estadosPorGrupo || {};
-            const correoSeg    = String(u.correo).replace(/'/g,"\'");
+            const correoSeg    = escaparHTML(String(u.correo)).replace(/'/g,"\\'");
+            const nombreSeg    = escaparHTML(u.nombre || "Sin nombre");
 
             // Agrupar items por almacén/grupo
             const grupos = {};
@@ -2059,12 +2075,12 @@ async function cargarCotizacionesAdmin() {
                             ${enviado?'Pedido listo':'Por cotizar'}
                         </button>
                     </div>
-                    ${datos.items.map(it=>`
-                        <div class="item-linea">
-                            <span>${it.nombre} <span class="text-slate-500">(${it.sku})</span></span>
+                        ${datos.items.map(it=>`
+                            <div class="item-linea">
+                                <span>${escaparHTML(it.nombre)} <span class="text-slate-500">(${escaparHTML(it.sku)})</span></span>
                             <span class="flex items-center gap-2">
                                 <span class="font-bold text-emerald-400">x${it.cantidad}</span>
-                                <button onclick="eliminarItemCarritoUsuarioAdmin('${correoSeg}','${String(it.sku).replace(/'/g,"\\'")}' )"
+                                <button onclick="eliminarItemCarritoUsuarioAdmin('${correoSeg}','${escaparHTML(String(it.sku)).replace(/'/g,"\\'")}' )"
                                         title="Eliminar (ya entregado)"
                                         class="text-red-400 hover:text-red-300 cursor-pointer">
                                     <i class="fa-solid fa-circle-xmark"></i>
@@ -2077,8 +2093,8 @@ async function cargarCotizacionesAdmin() {
             html += `<div class="tarjeta-usuario-admin" data-correo-tarjeta="${correoSeg}">
                 <div class="encabezado-usuario">
                     <div>
-                        <div class="nombre-usuario-admin"><i class="fa-solid fa-user text-blue-400 mr-1"></i> ${u.nombre||"Sin nombre"}</div>
-                        <div class="correo-usuario-admin">${u.correo}</div>
+                        <div class="nombre-usuario-admin"><i class="fa-solid fa-user text-blue-400 mr-1"></i> ${nombreSeg}</div>
+                        <div class="correo-usuario-admin">${escaparHTML(u.correo)}</div>
                     </div>
                     <span class="${esEnviadaTodo?'bg-emerald-950 text-emerald-300':'bg-orange-950 text-orange-300'} text-[10px] font-black px-2 py-1 rounded-md">
                         ${esEnviadaTodo?'✓ Pedido listo':'⏳ Por cotizar'}
@@ -2315,10 +2331,10 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
             contador++;
             bloques += `<div class="compatibilidad-container mb-4 last:mb-0">
                 <div class="compatibilidad-marca" onclick="alternarCompatibilidad(${contador})">
-                    ${marcaAct||"MODELOS"} <i id="icono-compat-${contador}" class="fa-solid fa-chevron-down text-[10px]"></i>
+                    ${escaparHTML(marcaAct)||"MODELOS"} <i id="icono-compat-${contador}" class="fa-solid fa-chevron-down text-[10px]"></i>
                 </div>
                 <ul id="lista-compat-${contador}" class="lista-compatibilidad-modal hidden-element">
-                    ${modelos.map(m=>`<li>${m}</li>`).join("")}
+                    ${modelos.map(m=>`<li>${escaparHTML(m)}</li>`).join("")}
                 </ul></div>`;
             modelos = [];
         }
@@ -2357,9 +2373,9 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
             </div>
         </div>
         <div class="mb-4">
-            <span class="bg-emerald-950 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase inline-block mb-2">${marca}</span>
-            <h2 class="text-lg font-bold text-white leading-snug">${titulo}</h2>
-            <span class="text-xs font-mono text-slate-400 block mt-1">SKU: ${sku}</span>
+                <span class="bg-emerald-950 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase inline-block mb-2">${escaparHTML(marca)}</span>
+                <h2 class="text-lg font-bold text-white leading-snug">${escaparHTML(titulo)}</h2>
+                <span class="text-xs font-mono text-slate-400 block mt-1">SKU: ${escaparHTML(sku)}</span>
             ${htmlAdmin}
         </div>
         ${htmlExistencias}
