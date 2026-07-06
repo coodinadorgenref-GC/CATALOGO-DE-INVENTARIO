@@ -325,6 +325,26 @@
             border-bottom: 1px dashed rgba(59, 130, 246, 0.2);
         }
         .bloque-cotizacion-general .item-bloque:last-child { border-bottom: none; }
+
+        /* Bloque por FECHA/HORA de solicitud dentro del panel admin
+           (una tarjeta por cada vez que el cliente presionó "Solicitar
+           cotización general"). Agrupa dentro sus sub-bloques por almacén. */
+        .bloque-fecha-admin {
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid rgba(100, 116, 139, 0.35);
+            border-radius: 10px;
+            padding: 8px;
+            margin-bottom: 8px;
+        }
+        .bloque-fecha-admin .encabezado-fecha-admin {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 6px; padding-bottom: 6px;
+            border-bottom: 1px dashed rgba(100, 116, 139, 0.35);
+        }
+        .bloque-fecha-admin .etiqueta-fecha-admin {
+            font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .4px;
+            color: #94a3b8; display: flex; align-items: center; gap: 5px;
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
@@ -798,7 +818,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbybwXGhS7vsUWmmWiWAQZ1Rjvoj3iYibEprOPIXZZdCwnZ4XbeMd0OqWcNR3XKOUc71/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbw1Pe-_NLqj-ty0-tGqf2pOraFFLllmeIroEOezqayWyyI6sCATquO4WGFkqMC4EHca/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 // NOTA: ya no se usa un formulario de Google para las fotos (ver
 // abrirFormularioFoto), así que URL_FORM_ADMIN fue retirado. El
@@ -2210,6 +2230,8 @@ window.addEventListener("resize", actualizarBarraMovil);
 
 let ultimosCarritosAdminCargados = []; // cache del último fetch, usado para acciones masivas instantáneas
 let intervaloAutoRefrescoAdmin = null;
+let idPeticionCotizacionesAdmin = 0;   // secuencia para descartar respuestas fuera de orden
+let peticionAdminEnCurso = false;      // evita refrescos silenciosos superpuestos
 
 function toggleCotizacionesAdmin() {
     const panel = document.getElementById("panel-cotizaciones-admin");
@@ -2225,6 +2247,16 @@ function toggleCotizacionesAdmin() {
 }
 
 async function cargarCotizacionesAdmin(silencioso) {
+    // Si ya hay un refresco silencioso en curso (p. ej. el servidor tardó
+    // más de 10s en responder), nos saltamos este tick en vez de disparar
+    // una segunda petición en paralelo: dos respuestas que lleguen
+    // desordenadas eran la causa de que apareciera el falso aviso
+    // "✅ Se completó la cotización general de ..." sin que realmente
+    // se hubiera terminado nada.
+    if (silencioso && peticionAdminEnCurso) return;
+    if (silencioso) peticionAdminEnCurso = true;
+    const idEstaPeticion = ++idPeticionCotizacionesAdmin;
+
     const contenedor = document.getElementById("lista-cotizaciones-admin");
     if (!silencioso) {
         contenedor.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-3 text-slate-500 py-12">
@@ -2236,6 +2268,14 @@ async function cargarCotizacionesAdmin(silencioso) {
         const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
             body: JSON.stringify({ action:"obtenerCarritosActivos", token:tokenActual, correo:usuarioActual }) });
         const rs = await r.json();
+
+        // Si mientras esperábamos esta respuesta ya se disparó una
+        // petición más nueva (p. ej. el admin volvió a abrir el panel, o
+        // el siguiente tick del intervalo ya se ejecutó), esta respuesta
+        // llegó fuera de orden: la descartamos por completo para no
+        // pisar el estado más reciente ni generar comparaciones falsas.
+        if (idEstaPeticion !== idPeticionCotizacionesAdmin) return;
+
         if (!rs.success) {
             if (!silencioso) contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">${rs.message||"No autorizado."}</p>`;
             return;
@@ -2284,61 +2324,84 @@ async function cargarCotizacionesAdmin(silencioso) {
             const correoSeg    = escaparHTML(String(u.correo)).replace(/'/g,"\\'");
             const nombreSeg    = escaparHTML(u.nombre || "Sin nombre");
 
-            // Agrupar items por almacén/grupo
-            const grupos = {};
+            // ── PASO 1: agrupar los items por BLOQUE DE SOLICITUD (fecha/hora
+            // en la que el cliente presionó "Solicitar cotización general").
+            // Cada bloque se muestra como una tarjeta separada, igual que en
+            // "MI COTIZACIÓN" del lado del cliente. Se preserva el orden
+            // cronológico en el que llegaron desde el backend.
+            const bloquesPorFecha = new Map();
             (u.items||[]).forEach(it => {
-                const ags = it.agenciasDisponibles||[];
-                if (!ags.length) { if(!grupos.GENERAL) grupos.GENERAL={suc:new Set(),items:[]}; return; }
-                ags.forEach(ag => {
-                    const g = detectarGrupoSucursal(ag.sucursal);
-                    if (!grupos[g]) grupos[g]={suc:new Set(),items:[]};
-                    grupos[g].suc.add(ag.sucursal);
-                });
-            });
-            (u.items||[]).forEach(it => {
-                const ags = it.agenciasDisponibles||[];
-                const gs = ags.length ? [...new Set(ags.map(a=>detectarGrupoSucursal(a.sucursal)))] : ["GENERAL"];
-                gs.forEach(g => { if(grupos[g]) grupos[g].items.push(it); });
+                const claveBloque = it._bloqueId || it._fechaSolicitud || "sin-fecha";
+                if (!bloquesPorFecha.has(claveBloque)) {
+                    bloquesPorFecha.set(claveBloque, { fecha: it._fechaSolicitud || null, items: [] });
+                }
+                bloquesPorFecha.get(claveBloque).items.push(it);
             });
 
-            // Un bloque por grupo, con su propio botón "Enviar / Marcar pendiente"
-            const bloques = Object.entries(grupos).map(([grupo, datos]) => {
-                const info      = GRUPOS_AGENCIA[grupo]||{nombre:grupo,emoji:"📦"};
-                const sucTxt    = escaparHTML([...datos.suc].join(", "))||"Sin sucursal";
-                const estGrupo  = estadosPG[grupo]||"Por cotizar";
-                const enviado   = estGrupo==="Pedido listo" || estGrupo==="Cotización enviada";
-                return `<div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2 mb-2">
-                    <div class="flex items-center justify-between mb-1">
-                        <p class="text-[10px] font-black uppercase flex items-center gap-1">
-                            <span class="tag-agencia tag-${grupo}">${info.emoji} ${info.nombre}</span>
-                            <span class="text-slate-500 font-normal normal-case text-[9px]">${sucTxt}</span>
-                        </p>
-                        <button onclick="cambiarEstadoGrupoAdmin('${correoSeg}','${grupo}','${enviado?'Por cotizar':'Pedido listo'}')"
-                                class="${enviado?'bg-emerald-700 hover:bg-emerald-600':'bg-orange-600 hover:bg-orange-500'} text-white text-[9px] font-bold px-2 py-1 rounded-lg cursor-pointer transition flex items-center gap-1">
-                            <i class="fa-solid ${enviado?'fa-check-circle':'fa-clock'}"></i>
-                            ${enviado?'Pedido listo':'Por cotizar'}
-                        </button>
-                    </div>
-                       ${datos.items.map(it=>{
-                            const fechaItem = it._fechaSolicitud
-                                ? new Date(it._fechaSolicitud).toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"})
-                                : "";
-                            return `
-                            <div class="item-linea">
-                                <span>${escaparHTML(it.nombre)} <span class="text-slate-500">(${escaparHTML(it.sku)})</span>
-                                ${it.enLiquidacion ? `<span class="text-[8px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded ml-1 uppercase"><i class="fa-solid fa-flag"></i> Liquidación</span>` : ""}
-                                ${fechaItem ? `<span class="block text-[8px] text-slate-500 mt-0.5"><i class="fa-regular fa-clock mr-0.5"></i> ${fechaItem}</span>` : ""}
+            // ── PASO 2: dentro de cada bloque de fecha, sub-agrupar por
+            // almacén/grupo (BAJAJ, SUZUKI, VENTO, CARABELA, GENERAL) para
+            // conservar el botón "Enviar / Marcar pendiente" por almacén.
+            const bloques = [...bloquesPorFecha.values()].map(bloqueFecha => {
+                const grupos = {};
+                bloqueFecha.items.forEach(it => {
+                    const ags = it.agenciasDisponibles||[];
+                    if (!ags.length) { if(!grupos.GENERAL) grupos.GENERAL={suc:new Set(),items:[]}; return; }
+                    ags.forEach(ag => {
+                        const g = detectarGrupoSucursal(ag.sucursal);
+                        if (!grupos[g]) grupos[g]={suc:new Set(),items:[]};
+                        grupos[g].suc.add(ag.sucursal);
+                    });
+                });
+                bloqueFecha.items.forEach(it => {
+                    const ags = it.agenciasDisponibles||[];
+                    const gs = ags.length ? [...new Set(ags.map(a=>detectarGrupoSucursal(a.sucursal)))] : ["GENERAL"];
+                    gs.forEach(g => { if(grupos[g]) grupos[g].items.push(it); });
+                });
+
+                const subBloques = Object.entries(grupos).map(([grupo, datos]) => {
+                    const info      = GRUPOS_AGENCIA[grupo]||{nombre:grupo,emoji:"📦"};
+                    const sucTxt    = escaparHTML([...datos.suc].join(", "))||"Sin sucursal";
+                    const estGrupo  = estadosPG[grupo]||"Por cotizar";
+                    const enviado   = estGrupo==="Pedido listo" || estGrupo==="Cotización enviada";
+                    return `<div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2 mb-2">
+                        <div class="flex items-center justify-between mb-1">
+                            <p class="text-[10px] font-black uppercase flex items-center gap-1">
+                                <span class="tag-agencia tag-${grupo}">${info.emoji} ${info.nombre}</span>
+                                <span class="text-slate-500 font-normal normal-case text-[9px]">${sucTxt}</span>
+                            </p>
+                            <button onclick="cambiarEstadoGrupoAdmin('${correoSeg}','${grupo}','${enviado?'Por cotizar':'Pedido listo'}')"
+                                    class="${enviado?'bg-emerald-700 hover:bg-emerald-600':'bg-orange-600 hover:bg-orange-500'} text-white text-[9px] font-bold px-2 py-1 rounded-lg cursor-pointer transition flex items-center gap-1">
+                                <i class="fa-solid ${enviado?'fa-check-circle':'fa-clock'}"></i>
+                                ${enviado?'Pedido listo':'Por cotizar'}
+                            </button>
+                        </div>
+                           ${datos.items.map(it=>`
+                                <div class="item-linea">
+                                    <span>${escaparHTML(it.nombre)} <span class="text-slate-500">(${escaparHTML(it.sku)})</span>
+                                    ${it.enLiquidacion ? `<span class="text-[8px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded ml-1 uppercase"><i class="fa-solid fa-flag"></i> Liquidación</span>` : ""}
+                                    </span>
+                                <span class="flex items-center gap-2">
+                                    <span class="font-bold text-emerald-400">x${it.cantidad}</span>
+                                    <button onclick="eliminarItemCarritoUsuarioAdmin('${correoSeg}','${escaparHTML(String(it.sku)).replace(/'/g,"\\'")}' )"
+                                            title="Eliminar (ya entregado)"
+                                            class="text-red-400 hover:text-red-300 cursor-pointer">
+                                        <i class="fa-solid fa-circle-xmark"></i>
+                                    </button>
                                 </span>
-                            <span class="flex items-center gap-2">
-                                <span class="font-bold text-emerald-400">x${it.cantidad}</span>
-                                <button onclick="eliminarItemCarritoUsuarioAdmin('${correoSeg}','${escaparHTML(String(it.sku)).replace(/'/g,"\\'")}' )"
-                                        title="Eliminar (ya entregado)"
-                                        class="text-red-400 hover:text-red-300 cursor-pointer">
-                                    <i class="fa-solid fa-circle-xmark"></i>
-                                </button>
-                            </span>
-                        </div>`;
-                       }).join("")}
+                            </div>`).join("")}
+                    </div>`;
+                }).join("");
+
+                const fechaBloqueTxt = bloqueFecha.fecha
+                    ? new Date(bloqueFecha.fecha).toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"})
+                    : "";
+
+                return `<div class="bloque-fecha-admin">
+                    <div class="encabezado-fecha-admin">
+                        <span class="etiqueta-fecha-admin"><i class="fa-solid fa-paper-plane"></i> Cotización solicitada</span>
+                        ${fechaBloqueTxt ? `<span class="text-[9px] text-slate-500"><i class="fa-regular fa-clock mr-0.5"></i> ${fechaBloqueTxt}</span>` : ""}
+                    </div>
+                    ${subBloques}
                 </div>`;
             }).join("");
 
@@ -2366,7 +2429,10 @@ async function cargarCotizacionesAdmin(silencioso) {
         });
         contenedor.innerHTML = html;
     } catch(err) {
+        if (idEstaPeticion !== idPeticionCotizacionesAdmin) return;
         if (!silencioso) contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">Error de conexión.</p>`;
+    } finally {
+        if (silencioso) peticionAdminEnCurso = false;
     }
 }
 
