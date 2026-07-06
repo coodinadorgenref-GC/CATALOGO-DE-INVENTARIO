@@ -345,6 +345,32 @@
             font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .4px;
             color: #94a3b8; display: flex; align-items: center; gap: 5px;
         }
+
+        /* ── Variantes de tonalidad para distinguir cada bloque
+           "Cotización Solicitada" cuando un mismo cliente tiene varias
+           solicitudes. Se aplican en ciclo (índice % 6) manteniendo la
+           misma estructura/tamaño, solo cambia el acento de color. ── */
+        .bloque-fecha-admin.tono-0 { background: rgba(15, 23, 42, 0.55); border-color: rgba(100, 116, 139, 0.35); border-left: 3px solid #64748b; }
+        .bloque-fecha-admin.tono-1 { background: rgba(30, 58, 138, 0.20); border-color: rgba(59, 130, 246, 0.4);  border-left: 3px solid #3b82f6; }
+        .bloque-fecha-admin.tono-2 { background: rgba(88, 28, 135, 0.20); border-color: rgba(168, 85, 247, 0.4); border-left: 3px solid #a855f7; }
+        .bloque-fecha-admin.tono-3 { background: rgba(6, 78, 59, 0.22);  border-color: rgba(16, 185, 129, 0.4); border-left: 3px solid #10b981; }
+        .bloque-fecha-admin.tono-4 { background: rgba(124, 45, 18, 0.22); border-color: rgba(249, 115, 22, 0.4); border-left: 3px solid #f97316; }
+        .bloque-fecha-admin.tono-5 { background: rgba(131, 24, 67, 0.22); border-color: rgba(236, 72, 153, 0.4); border-left: 3px solid #ec4899; }
+        .bloque-fecha-admin.tono-0 .etiqueta-fecha-admin { color: #94a3b8; }
+        .bloque-fecha-admin.tono-1 .etiqueta-fecha-admin { color: #93c5fd; }
+        .bloque-fecha-admin.tono-2 .etiqueta-fecha-admin { color: #d8b4fe; }
+        .bloque-fecha-admin.tono-3 .etiqueta-fecha-admin { color: #6ee7b7; }
+        .bloque-fecha-admin.tono-4 .etiqueta-fecha-admin { color: #fdba74; }
+        .bloque-fecha-admin.tono-5 .etiqueta-fecha-admin { color: #f9a8d4; }
+
+        /* ── Botón "Cotización enviada" (estado transitorio de 5s antes
+           de que el bloque se elimine para admin y cliente) ── */
+        .btn-cotizacion-enviada-transitorio {
+            background: #0e7490 !important;
+            color: #fff !important;
+            cursor: default !important;
+            opacity: .9;
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
@@ -818,7 +844,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzXQoNN7LHEtxWH54gJRK5w075jM5OO4XjF77U9U0msAxA10D14Aot9IeAMRGD1MbmG/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwJERuJf2YKbDs3bBH6BKwqz95DFhQz7SIdGqP1t5Utq78JbumHWzOStZsF8aIxv15h/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 // NOTA: ya no se usa un formulario de Google para las fotos (ver
 // abrirFormularioFoto), así que URL_FORM_ADMIN fue retirado. El
@@ -1240,7 +1266,7 @@ function procesarDespuesDeCarga() {
 
         _mostrarBotonFlotante("btn-carrito-flotante", mostrarVerde, true);
         _mostrarBotonFlotante("btn-cotizaciones-admin", mostrarAzul, true);
-        if (esAdmin) cargarCotizacionesAdmin();
+        if (esAdmin) { cargarCotizacionesAdmin(); iniciarPollingAdminCotizaciones(); }
         else iniciarReconciliacionCarrito();
     }
 
@@ -1978,7 +2004,9 @@ function mostrarToastInfo(mensaje) {
 // Al volver a primer plano (cambiar de pestaña/app y regresar), reconciliamos
 // de inmediato en vez de esperar al próximo tick del intervalo de 12s.
 document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && !esAdmin) reconciliarCarritoConServidor();
+    if (document.visibilityState !== "visible") return;
+    if (!esAdmin) reconciliarCarritoConServidor();
+    else cargarCotizacionesAdmin(true);
 });
 
 function totalItemsCarrito() { return carrito.reduce((s,c)=>s+c.cantidad,0); }
@@ -2188,6 +2216,23 @@ window.addEventListener("resize", actualizarBarraMovil);
 let ultimosCarritosAdminCargados = []; // cache del último fetch, usado para acciones masivas instantáneas
 let idPeticionCotizacionesAdmin = 0;    // secuencia para descartar respuestas fuera de orden
 let peticionAdminEnCurso = false;       // evita disparar una carga si ya hay una en curso
+let totalBloquesPendientesPrevio = null; // para detectar cuándo llegan cotizaciones nuevas
+let intervaloPollingAdmin = null;        // sondeo automático de fondo (notificación + numeración)
+let gruposEnTransicion = new Set();      // claves "correo::grupo" con el borrado de 5s ya programado
+
+/** Arranca el sondeo automático de cotizaciones para el admin: además de
+ *  actualizarse al abrir el panel y al presionar "Actualizar lista", el
+ *  panel (si está abierto) y la numeración/notificación (aunque el panel
+ *  esté cerrado, desde la pantalla principal del catálogo) se refrescan
+ *  solos cada 15s mientras la pestaña esté visible. */
+function iniciarPollingAdminCotizaciones() {
+    if (!esAdmin) return;
+    clearInterval(intervaloPollingAdmin);
+    intervaloPollingAdmin = setInterval(() => {
+        if (document.visibilityState === "hidden") return;
+        cargarCotizacionesAdmin(true); // true = silencioso (sin parpadeo del spinner)
+    }, 15000);
+}
 
 // NOTA: ya NO hay refresco automático cada 10s. Con el sistema de
 // "Cotización General" el admin solo ve lo que el cliente decidió
@@ -2202,7 +2247,7 @@ function toggleCotizacionesAdmin() {
     }
 }
 
-async function cargarCotizacionesAdmin() {
+async function cargarCotizacionesAdmin(silencioso) {
     // Evita disparar una segunda carga si ya hay una en curso (p. ej. el
     // admin presiona "Actualizar lista" varias veces seguidas).
     if (peticionAdminEnCurso) return;
@@ -2210,10 +2255,15 @@ async function cargarCotizacionesAdmin() {
     const idEstaPeticion = ++idPeticionCotizacionesAdmin;
 
     const contenedor = document.getElementById("lista-cotizaciones-admin");
-    contenedor.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-3 text-slate-500 py-12">
-        <i class="fa-solid fa-spinner fa-spin text-3xl opacity-40"></i>
-        <p class="text-xs font-semibold text-center">Cargando cotizaciones...</p>
-    </div>`;
+    // En modo silencioso (sondeo automático de fondo) no mostramos el
+    // spinner de carga para no interrumpir al admin si está leyendo el
+    // panel — solo se reemplaza el contenido cuando ya llegó la respuesta.
+    if (!silencioso) {
+        contenedor.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-3 text-slate-500 py-12">
+            <i class="fa-solid fa-spinner fa-spin text-3xl opacity-40"></i>
+            <p class="text-xs font-semibold text-center">Cargando cotizaciones...</p>
+        </div>`;
+    }
     try {
         const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
             body: JSON.stringify({ action:"obtenerCarritosActivos", token:tokenActual, correo:usuarioActual }) });
@@ -2230,16 +2280,27 @@ async function cargarCotizacionesAdmin() {
         const usuarios = rs.data || [];
         ultimosCarritosAdminCargados = usuarios;
 
-        // Badge: número de USUARIOS con cotizaciones pendientes ("Por cotizar")
+        // Badge: número TOTAL de cotizaciones solicitadas pendientes
+        // (cada bloque "Cotización solicitada" cuenta como una, no cada
+        // usuario) — así, si hay 2 cotizaciones esperando, se ve "#2".
+        const totalBloquesPendientes = usuarios.reduce((suma, u) => {
+            const idsBloque = new Set((u.items || []).map(it => it._bloqueId || it._fechaSolicitud || "sin-fecha"));
+            return suma + idsBloque.size;
+        }, 0);
+
         const badge = document.getElementById("badge-cotizaciones-admin");
         if (badge) {
-            const usuariosPendientes = usuarios
-                .filter(u => u.estado !== "Pedido listo" && u.estado !== "Cotización enviada")
-                .length;
-            badge.innerText = usuariosPendientes;
-            badge.classList.toggle("hidden", usuariosPendientes === 0);
-            badge.style.display = usuariosPendientes > 0 ? "flex" : "none";
+            badge.innerText = totalBloquesPendientes;
+            badge.classList.toggle("hidden", totalBloquesPendientes === 0);
+            badge.style.display = totalBloquesPendientes > 0 ? "flex" : "none";
         }
+
+        // Notificación al admin cuando llega(n) nueva(s) cotización(es),
+        // incluso si el panel está cerrado (pantalla principal del catálogo).
+        if (totalBloquesPendientesPrevio !== null && totalBloquesPendientes > totalBloquesPendientesPrevio) {
+            mostrarToastInfo(`📩 Nueva cotización recibida. Pendientes: #${totalBloquesPendientes}`);
+        }
+        totalBloquesPendientesPrevio = totalBloquesPendientes;
 
         const esZonaValladolidPanel = _normalizarAlmacenJS(rs.almacenAdmin).includes("ZONA VALLADOLID");
         const etAlmacen = rs.almacenAdmin
@@ -2282,7 +2343,8 @@ async function cargarCotizacionesAdmin() {
             // ── PASO 2: dentro de cada bloque de fecha, sub-agrupar por
             // almacén/grupo (BAJAJ, SUZUKI, VENTO, CARABELA, GENERAL) para
             // conservar el botón "Enviar / Marcar pendiente" por almacén.
-            const bloques = [...bloquesPorFecha.values()].map(bloqueFecha => {
+            const bloques = [...bloquesPorFecha.values()].map((bloqueFecha, idxBloque) => {
+                const tonoClase = "tono-" + (idxBloque % 6);
                 const grupos = {};
                 bloqueFecha.items.forEach(it => {
                     const ags = it.agenciasDisponibles||[];
@@ -2303,18 +2365,31 @@ async function cargarCotizacionesAdmin() {
                     const info      = GRUPOS_AGENCIA[grupo]||{nombre:grupo,emoji:"📦"};
                     const sucTxt    = escaparHTML([...datos.suc].join(", "))||"Sin sucursal";
                     const estGrupo  = estadosPG[grupo]||"Por cotizar";
-                    const enviado   = estGrupo==="Pedido listo" || estGrupo==="Cotización enviada";
+                    // Estado transitorio: el admin ya presionó "Por cotizar" y el
+                    // botón está mostrando "Cotización enviada" (5s) antes de
+                    // que el bloque desaparezca para admin y cliente.
+                    const enTransicion = estGrupo === "Cotización enviada";
+                    // Si ya está en transición (por ejemplo, tras recargar el
+                    // panel o un sondeo automático a mitad del conteo de 5s),
+                    // reanudamos el borrado programado sin re-enviar el estado.
+                    if (enTransicion) reanudarTransicionSiCorresponde(correoSeg, grupo);
+                    const botonHtml = enTransicion
+                        ? `<button disabled data-correo="${correoSeg}" data-grupo="${grupo}"
+                                    class="btn-cotizacion-enviada-transitorio text-[9px] font-bold px-2 py-1 rounded-lg flex items-center gap-1">
+                               <i class="fa-solid fa-paper-plane"></i> Cotización enviada
+                           </button>`
+                        : `<button onclick="iniciarTransicionCotizacionEnviada('${correoSeg}','${grupo}')"
+                                    data-correo="${correoSeg}" data-grupo="${grupo}"
+                                    class="bg-orange-600 hover:bg-orange-500 text-white text-[9px] font-bold px-2 py-1 rounded-lg cursor-pointer transition flex items-center gap-1">
+                               <i class="fa-solid fa-clock"></i> Por cotizar
+                           </button>`;
                     return `<div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2 mb-2">
                         <div class="flex items-center justify-between mb-1">
                             <p class="text-[10px] font-black uppercase flex items-center gap-1">
                                 <span class="tag-agencia tag-${grupo}">${info.emoji} ${info.nombre}</span>
                                 <span class="text-slate-500 font-normal normal-case text-[9px]">${sucTxt}</span>
                             </p>
-                            <button onclick="cambiarEstadoGrupoAdmin('${correoSeg}','${grupo}','${enviado?'Por cotizar':'Pedido listo'}')"
-                                    class="${enviado?'bg-emerald-700 hover:bg-emerald-600':'bg-orange-600 hover:bg-orange-500'} text-white text-[9px] font-bold px-2 py-1 rounded-lg cursor-pointer transition flex items-center gap-1">
-                                <i class="fa-solid ${enviado?'fa-check-circle':'fa-clock'}"></i>
-                                ${enviado?'Pedido listo':'Por cotizar'}
-                            </button>
+                            ${botonHtml}
                         </div>
                            ${datos.items.map(it=>`
                                 <div class="item-linea">
@@ -2337,9 +2412,9 @@ async function cargarCotizacionesAdmin() {
                     ? new Date(bloqueFecha.fecha).toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"})
                     : "";
 
-                return `<div class="bloque-fecha-admin">
+                return `<div class="bloque-fecha-admin ${tonoClase}">
                     <div class="encabezado-fecha-admin">
-                        <span class="etiqueta-fecha-admin"><i class="fa-solid fa-paper-plane"></i> Cotización solicitada</span>
+                        <span class="etiqueta-fecha-admin"><i class="fa-solid fa-paper-plane"></i> Cotización solicitada <span class="opacity-70">#${idxBloque + 1}</span></span>
                         ${fechaBloqueTxt ? `<span class="text-[9px] text-slate-500"><i class="fa-regular fa-clock mr-0.5"></i> ${fechaBloqueTxt}</span>` : ""}
                     </div>
                     ${subBloques}
@@ -2395,6 +2470,75 @@ async function cambiarEstadoGrupoAdmin(correoUsuario, grupo, nuevoEstado) {
  *  (acceso legacy para compatibilidad; ahora se prefiere cambiarEstadoGrupoAdmin). */
 async function cambiarEstadoCotizacionAdmin(correoUsuario, nuevoEstado) {
     await cambiarEstadoGrupoAdmin(correoUsuario, "__TODOS__", nuevoEstado);
+}
+
+/** Admin presiona "Por cotizar": el botón cambia de inmediato a
+ *  "Cotización enviada" (estado transitorio, 5 segundos) y luego el
+ *  bloque de ese grupo/almacén se elimina para el admin y para el
+ *  cliente (equivalente a "Pedido listo", pero con el aviso visual
+ *  intermedio que pidió el negocio). */
+async function iniciarTransicionCotizacionEnviada(correoUsuario, grupo) {
+    const clave = correoUsuario + "::" + grupo;
+    if (gruposEnTransicion.has(clave)) return; // ya en proceso, evita doble clic
+    gruposEnTransicion.add(clave);
+
+    // Actualización visual optimista e inmediata de todos los botones de
+    // este usuario/grupo (puede repetirse en más de un bloque de fecha).
+    _pintarBotonesComoTransicion(correoUsuario, grupo);
+
+    try {
+        const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+            body: JSON.stringify({ action:"marcarCotizacionEnviada", token:tokenActual, correo:usuarioActual,
+                                   correoUsuario, estado:"Cotización enviada", grupo }) });
+        const rs = await r.json();
+        if (!rs.success) {
+            gruposEnTransicion.delete(clave);
+            alert("No se pudo actualizar: " + (rs.message||"Error."));
+            cargarCotizacionesAdmin();
+            return;
+        }
+    } catch {
+        gruposEnTransicion.delete(clave);
+        alert("Error de conexión al actualizar estado.");
+        return;
+    }
+
+    _programarBorradoTrasTransicion(correoUsuario, grupo, clave);
+}
+
+/** Si el panel se recarga (poll automático, reapertura, u otro
+ *  dispositivo admin) y encuentra un grupo ya en "Cotización enviada"
+ *  que esta pestaña no esté vigilando todavía, retoma el conteo de 5s
+ *  para completar el borrado — sin volver a persistir el estado. */
+function reanudarTransicionSiCorresponde(correoUsuario, grupo) {
+    const clave = correoUsuario + "::" + grupo;
+    if (gruposEnTransicion.has(clave)) return;
+    gruposEnTransicion.add(clave);
+    _programarBorradoTrasTransicion(correoUsuario, grupo, clave);
+}
+
+function _pintarBotonesComoTransicion(correoUsuario, grupo) {
+    document.querySelectorAll(
+        `button[data-correo="${CSS.escape(correoUsuario)}"][data-grupo="${CSS.escape(grupo)}"]`
+    ).forEach(btn => {
+        btn.disabled = true;
+        btn.onclick = null;
+        btn.classList.remove("bg-orange-600", "hover:bg-orange-500", "cursor-pointer");
+        btn.classList.add("btn-cotizacion-enviada-transitorio");
+        btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Cotización enviada`;
+    });
+}
+
+function _programarBorradoTrasTransicion(correoUsuario, grupo, clave) {
+    setTimeout(async () => {
+        try {
+            await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+                body: JSON.stringify({ action:"marcarCotizacionEnviada", token:tokenActual, correo:usuarioActual,
+                                       correoUsuario, estado:"Pedido listo", grupo }) });
+        } catch { /* si falla, el próximo sondeo/actualización lo reintentará visualmente */ }
+        gruposEnTransicion.delete(clave);
+        cargarCotizacionesAdmin();
+    }, 5000);
 }
 
 /** Admin: elimina UN producto de la cotización general de un usuario */
