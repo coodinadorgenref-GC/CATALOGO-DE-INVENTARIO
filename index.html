@@ -844,7 +844,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbwCcMr2rQnLnZq-oOiH-GoV_hnJ5Mf1d19GVtCc4lG6BkuPP1ydhRdg343VmP50EhZq/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyLF6qwwntimv8eR1zqrDL0WnKrrM4isNlgYJ28ViNaCcL6j9K6hLfl2QSA-S5CYEYY/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 // NOTA: ya no se usa un formulario de Google para las fotos (ver
 // abrirFormularioFoto), así que URL_FORM_ADMIN fue retirado. El
@@ -2335,7 +2335,7 @@ async function cargarCotizacionesAdmin(silencioso) {
             (u.items||[]).forEach(it => {
                 const claveBloque = it._bloqueId || it._fechaSolicitud || "sin-fecha";
                 if (!bloquesPorFecha.has(claveBloque)) {
-                    bloquesPorFecha.set(claveBloque, { fecha: it._fechaSolicitud || null, items: [] });
+                    bloquesPorFecha.set(claveBloque, { id: claveBloque, fecha: it._fechaSolicitud || null, items: [] });
                 }
                 bloquesPorFecha.get(claveBloque).items.push(it);
             });
@@ -2364,7 +2364,12 @@ async function cargarCotizacionesAdmin(silencioso) {
                 const subBloques = Object.entries(grupos).map(([grupo, datos]) => {
                     const info      = GRUPOS_AGENCIA[grupo]||{nombre:grupo,emoji:"📦"};
                     const sucTxt    = escaparHTML([...datos.suc].join(", "))||"Sin sucursal";
-                    const estGrupo  = estadosPG[grupo]||"Por cotizar";
+                    const idBloqueSeg = String(bloqueFecha.id).replace(/'/g,"\\'");
+                    // Clave compuesta BLOQUE+GRUPO: así el estado de este
+                    // almacén en ESTA solicitud nunca se confunde con el de
+                    // otra solicitud distinta que use el mismo almacén.
+                    const claveEstado = `${bloqueFecha.id}::${grupo}`;
+                    const estGrupo  = estadosPG[claveEstado] || "Por cotizar";
                     // Estado transitorio: el admin ya presionó "Por cotizar" y el
                     // botón está mostrando "Cotización enviada" (5s) antes de
                     // que el bloque desaparezca para admin y cliente.
@@ -2372,14 +2377,14 @@ async function cargarCotizacionesAdmin(silencioso) {
                     // Si ya está en transición (por ejemplo, tras recargar el
                     // panel o un sondeo automático a mitad del conteo de 5s),
                     // reanudamos el borrado programado sin re-enviar el estado.
-                    if (enTransicion) reanudarTransicionSiCorresponde(correoSeg, grupo);
+                    if (enTransicion) reanudarTransicionSiCorresponde(correoSeg, grupo, bloqueFecha.id);
                     const botonHtml = enTransicion
-                        ? `<button disabled data-correo="${correoSeg}" data-grupo="${grupo}"
+                        ? `<button disabled data-correo="${correoSeg}" data-grupo="${grupo}" data-bloque="${idBloqueSeg}"
                                     class="btn-cotizacion-enviada-transitorio text-[9px] font-bold px-2 py-1 rounded-lg flex items-center gap-1">
                                <i class="fa-solid fa-paper-plane"></i> Cotización enviada
                            </button>`
-                        : `<button onclick="iniciarTransicionCotizacionEnviada('${correoSeg}','${grupo}')"
-                                    data-correo="${correoSeg}" data-grupo="${grupo}"
+                        : `<button onclick="iniciarTransicionCotizacionEnviada('${correoSeg}','${grupo}','${idBloqueSeg}')"
+                                    data-correo="${correoSeg}" data-grupo="${grupo}" data-bloque="${idBloqueSeg}"
                                     class="bg-orange-600 hover:bg-orange-500 text-white text-[9px] font-bold px-2 py-1 rounded-lg cursor-pointer transition flex items-center gap-1">
                                <i class="fa-solid fa-clock"></i> Por cotizar
                            </button>`;
@@ -2474,22 +2479,25 @@ async function cambiarEstadoCotizacionAdmin(correoUsuario, nuevoEstado) {
 
 /** Admin presiona "Por cotizar": el botón cambia de inmediato a
  *  "Cotización enviada" (estado transitorio, 5 segundos) y luego el
- *  bloque de ese grupo/almacén se elimina para el admin y para el
- *  cliente (equivalente a "Pedido listo", pero con el aviso visual
- *  intermedio que pidió el negocio). */
-async function iniciarTransicionCotizacionEnviada(correoUsuario, grupo) {
-    const clave = correoUsuario + "::" + grupo;
+ *  bloque de ese grupo/almacén DENTRO DE ESA SOLICITUD específica se
+ *  elimina para el admin y para el cliente (equivalente a "Pedido
+ *  listo", pero con el aviso visual intermedio que pidió el negocio).
+ *  bloqueId asegura que SOLO esa cotización solicitada se vea afectada,
+ *  sin tocar otras solicitudes del mismo cliente que usen el mismo
+ *  almacén/grupo. */
+async function iniciarTransicionCotizacionEnviada(correoUsuario, grupo, bloqueId) {
+    const clave = correoUsuario + "::" + bloqueId + "::" + grupo;
     if (gruposEnTransicion.has(clave)) return; // ya en proceso, evita doble clic
     gruposEnTransicion.add(clave);
 
-    // Actualización visual optimista e inmediata de todos los botones de
-    // este usuario/grupo (puede repetirse en más de un bloque de fecha).
-    _pintarBotonesComoTransicion(correoUsuario, grupo);
+    // Actualización visual optimista e inmediata, solo del botón de
+    // este bloque específico (no de otros bloques con el mismo grupo).
+    _pintarBotonesComoTransicion(correoUsuario, grupo, bloqueId);
 
     try {
         const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
             body: JSON.stringify({ action:"marcarCotizacionEnviada", token:tokenActual, correo:usuarioActual,
-                                   correoUsuario, estado:"Cotización enviada", grupo }) });
+                                   correoUsuario, estado:"Cotización enviada", grupo, bloqueId }) });
         const rs = await r.json();
         if (!rs.success) {
             gruposEnTransicion.delete(clave);
@@ -2503,23 +2511,24 @@ async function iniciarTransicionCotizacionEnviada(correoUsuario, grupo) {
         return;
     }
 
-    _programarBorradoTrasTransicion(correoUsuario, grupo, clave);
+    _programarBorradoTrasTransicion(correoUsuario, grupo, bloqueId, clave);
 }
 
 /** Si el panel se recarga (poll automático, reapertura, u otro
  *  dispositivo admin) y encuentra un grupo ya en "Cotización enviada"
  *  que esta pestaña no esté vigilando todavía, retoma el conteo de 5s
- *  para completar el borrado — sin volver a persistir el estado. */
-function reanudarTransicionSiCorresponde(correoUsuario, grupo) {
-    const clave = correoUsuario + "::" + grupo;
+ *  para completar el borrado de ESE bloque — sin volver a persistir el
+ *  estado. */
+function reanudarTransicionSiCorresponde(correoUsuario, grupo, bloqueId) {
+    const clave = correoUsuario + "::" + bloqueId + "::" + grupo;
     if (gruposEnTransicion.has(clave)) return;
     gruposEnTransicion.add(clave);
-    _programarBorradoTrasTransicion(correoUsuario, grupo, clave);
+    _programarBorradoTrasTransicion(correoUsuario, grupo, bloqueId, clave);
 }
 
-function _pintarBotonesComoTransicion(correoUsuario, grupo) {
+function _pintarBotonesComoTransicion(correoUsuario, grupo, bloqueId) {
     document.querySelectorAll(
-        `button[data-correo="${CSS.escape(correoUsuario)}"][data-grupo="${CSS.escape(grupo)}"]`
+        `button[data-correo="${CSS.escape(correoUsuario)}"][data-grupo="${CSS.escape(grupo)}"][data-bloque="${CSS.escape(bloqueId)}"]`
     ).forEach(btn => {
         btn.disabled = true;
         btn.onclick = null;
@@ -2529,12 +2538,12 @@ function _pintarBotonesComoTransicion(correoUsuario, grupo) {
     });
 }
 
-function _programarBorradoTrasTransicion(correoUsuario, grupo, clave) {
+function _programarBorradoTrasTransicion(correoUsuario, grupo, bloqueId, clave) {
     setTimeout(async () => {
         try {
             await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
                 body: JSON.stringify({ action:"marcarCotizacionEnviada", token:tokenActual, correo:usuarioActual,
-                                       correoUsuario, estado:"Pedido listo", grupo }) });
+                                       correoUsuario, estado:"Pedido listo", grupo, bloqueId }) });
         } catch { /* si falla, el próximo sondeo/actualización lo reintentará visualmente */ }
         gruposEnTransicion.delete(clave);
         cargarCotizacionesAdmin();
