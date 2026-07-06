@@ -301,6 +301,30 @@
             background: #431407; border: 1px solid #7c2d12; border-radius: 8px;
             padding: 8px 12px; font-size: 11px; color: #fdba74; margin-top: 6px;
         }
+
+        /* Bloque "Por cotizar" (Cotización General ya enviada, no editable) */
+        .bloque-cotizacion-general {
+            background: rgba(30, 58, 138, 0.25);
+            border: 1px solid rgba(59, 130, 246, 0.4);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .bloque-cotizacion-general .encabezado-bloque {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .bloque-cotizacion-general .etiqueta-bloque {
+            font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .5px;
+            color: #93c5fd; display: flex; align-items: center; gap: 5px;
+        }
+        .bloque-cotizacion-general .fecha-bloque { font-size: 9px; color: #64748b; }
+        .bloque-cotizacion-general .item-bloque {
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 11px; color: #cbd5e1; padding: 4px 0;
+            border-bottom: 1px dashed rgba(59, 130, 246, 0.2);
+        }
+        .bloque-cotizacion-general .item-bloque:last-child { border-bottom: none; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
@@ -706,10 +730,10 @@
             <i class="fa-brands fa-whatsapp"></i> Solicitar Cotización por WhatsApp
         </button>
         <button onclick="solicitarCotizacionGeneral()"
-        id="btn-cotizacion-general"
-        class="hidden w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition text-sm shadow-lg cursor-pointer flex items-center justify-center gap-2">
-    <i class="fa-solid fa-paper-plane"></i> Cotización General
-</button>
+                id="btn-cotizacion-general"
+                class="hidden w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition text-sm shadow-lg cursor-pointer flex items-center justify-center gap-2">
+            <i class="fa-solid fa-paper-plane"></i> Cotización General
+        </button>
         <button onclick="vaciarCarrito()"
                 id="btn-vaciar-carrito"
                 class="hidden w-full bg-slate-700 hover:bg-red-950 text-slate-300 hover:text-red-400 font-bold py-2 rounded-xl transition text-xs cursor-pointer flex items-center justify-center gap-2">
@@ -774,7 +798,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbzr4B29BY3n6REGF6NpwpnIt-wY8MU2OCYuR4yoQnroqDYeEPwGF6VsXMjvYUuT5tHO/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbybwXGhS7vsUWmmWiWAQZ1Rjvoj3iYibEprOPIXZZdCwnZ4XbeMd0OqWcNR3XKOUc71/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 // NOTA: ya no se usa un formulario de Google para las fotos (ver
 // abrirFormularioFoto), así que URL_FORM_ADMIN fue retirado. El
@@ -838,8 +862,27 @@ let paginaActual              = 1;
 const tarjetasPorPagina       = 9;
 let debounceTimer;
 
-/** Carrito: { sku, nombre, marca, imagen, cantidad, agenciasDisponibles:[{sucursal,cantidad,telefono}] } */
+/** Carrito EDITABLE (privado, nunca visible para el admin hasta que se
+ *  envía como Cotización General):
+ *  { sku, nombre, marca, imagen, cantidad, agenciasDisponibles:[{sucursal,cantidad,telefono}] } */
 let carrito = [];
+
+/** Bloques de Cotización General ya solicitados por el cliente (uno por
+ *  cada vez que presionó el botón). Cada bloque: { id, fecha, items }.
+ *  NO editables desde el cliente — solo el admin puede eliminarlos al
+ *  marcar "Pedido listo". */
+let bloquesCotizacion = [];
+
+function claveBloquesUsuario() {
+    const id = normalizarTexto(usuarioActual || "anonimo").replace(/\s+/g, "_");
+    return `bloques_cotizacion__${id}`;
+}
+function guardarBloquesLocal() {
+    try { localStorage.setItem(claveBloquesUsuario(), JSON.stringify(bloquesCotizacion)); } catch {}
+}
+function cargarBloquesDesdeStorage() {
+    try { bloquesCotizacion = JSON.parse(localStorage.getItem(claveBloquesUsuario())||"[]"); } catch { bloquesCotizacion = []; }
+}
 
 /* ══════════════════════════════════════════
    UTILS
@@ -1461,6 +1504,7 @@ function clavesCarritoUsuario() {
 
 function cargarCarritoDesdeStorage() {
     try { carrito = JSON.parse(localStorage.getItem(clavesCarritoUsuario())||"[]"); } catch { carrito=[]; }
+    cargarBloquesDesdeStorage();
     actualizarUICarrito();
 }
 
@@ -1738,6 +1782,47 @@ function vaciarCarrito() {
 }
 
 /* ══════════════════════════════════════════
+   COTIZACIÓN GENERAL — congela el carrito editable en un bloque
+   no editable, visible desde este momento para el admin.
+══════════════════════════════════════════ */
+async function solicitarCotizacionGeneral() {
+    if (carrito.length === 0) { alert("Tu carrito está vacío. Agrega productos antes de solicitar una cotización general."); return; }
+    if (!confirm("Se enviará TODO lo que tienes en tu carrito como una cotización general. Una vez enviada, esos productos ya no se podrán editar. ¿Continuar?")) return;
+
+    const btn = document.getElementById("btn-cotizacion-general");
+    const textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Enviando...`;
+
+    const sesion = JSON.parse(localStorage.getItem("sesion_catalogo") || "{}");
+    try {
+        const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+            body: JSON.stringify({
+                action: "solicitarCotizacionGeneral",
+                correo: usuarioActual, token: tokenActual, nombre: sesion.nombre || "",
+                items: carrito.map(c => ({
+                    sku: c.sku, nombre: c.nombre, cantidad: c.cantidad,
+                    enLiquidacion: !!c.enLiquidacion, agenciasDisponibles: c.agenciasDisponibles || []
+                }))
+            })});
+        const rs = await r.json();
+        if (rs.success) {
+            bloquesCotizacion.push(rs.bloque);
+            carrito = [];
+            guardarCarritoLocal(); guardarBloquesLocal();
+            actualizarUICarrito();
+            mostrarToastInfo("Tu cotización general fue enviada. El equipo la revisará pronto.");
+        } else {
+            alert("No se pudo enviar: " + (rs.message || "Error desconocido."));
+        }
+    } catch {
+        alert("Error de conexión al enviar la cotización general.");
+    } finally {
+        btn.disabled = false; btn.innerHTML = textoOriginal;
+    }
+}
+
+/* ══════════════════════════════════════════
    RECONCILIACIÓN CON EL SERVIDOR (cliente)
    ══════════════════════════════════════════
    Sheets no puede "avisarle" al navegador del cliente cuando el admin
@@ -1746,7 +1831,9 @@ function vaciarCarrito() {
    el cliente pregunta periódicamente "¿cómo está MI carrito según el
    servidor?" y, si detecta que hay productos que YA NO están ahí, los
    quita también de su carrito local — así nunca los "revive" sin querer
-   al hacer otro cambio (que reenviaría su copia local completa). */
+   al hacer otro cambio (que reenviaría su copia local completa). También
+   reconcilia los bloques de Cotización General (creados desde otro
+   dispositivo, o reducidos/eliminados por el admin). */
 let intervaloReconciliarCarrito = null;
 
 function iniciarReconciliacionCarrito() {
@@ -1795,7 +1882,7 @@ async function reconciliarCarritoConServidor() {
         }
 
         // 2) Productos que el servidor tiene y yo NO tengo localmente todavía
-        //    (punto 2: los capturó desde otro dispositivo — pc/celular) →
+        //    (los capturó desde otro dispositivo — pc/celular) →
         //    los agrego aquí, completando los datos (imagen, marca, stock)
         //    desde el inventario ya cargado.
         const skusLocales = new Set(carrito.map(it => String(it.sku)));
@@ -1820,7 +1907,6 @@ async function reconciliarCarritoConServidor() {
 
         if (huboCambios) {
             try { localStorage.setItem(clavesCarritoUsuario(), JSON.stringify(carrito)); } catch {}
-            actualizarUICarrito();
             if (productosAgregados > 0) {
                 const mensaje = productosAgregados === 1
                     ? "Se agregó 1 producto capturado desde otro dispositivo."
@@ -1828,6 +1914,36 @@ async function reconciliarCarritoConServidor() {
                 mostrarToastInfo(mensaje);
             }
         }
+
+        // 3) Reconciliar BLOQUES de Cotización General: pueden cambiar si
+        //    el admin marcó "Pedido listo" (el bloque se reduce o
+        //    desaparece), o si el cliente los solicitó desde otro
+        //    dispositivo.
+        const bloquesServidor = rs.bloques || [];
+        const idsServidor = new Set(bloquesServidor.map(b => b.id));
+
+        const eliminados = bloquesCotizacion.filter(b => !idsServidor.has(b.id));
+        if (eliminados.length > 0) {
+            bloquesCotizacion = bloquesCotizacion.filter(b => idsServidor.has(b.id));
+            huboCambios = true;
+            mostrarToastInfo(eliminados.length === 1
+                ? "Tu equipo marcó como listo un bloque de tu cotización general."
+                : `Tu equipo marcó como listos ${eliminados.length} bloques de tu cotización general.`);
+        }
+
+        bloquesServidor.forEach(b => {
+            const idx = bloquesCotizacion.findIndex(local => local.id === b.id);
+            if (idx === -1) {
+                bloquesCotizacion.push(b);
+                huboCambios = true;
+            } else if (JSON.stringify(bloquesCotizacion[idx].items) !== JSON.stringify(b.items)) {
+                bloquesCotizacion[idx] = b; // el admin quitó algunos items del bloque
+                huboCambios = true;
+            }
+        });
+        if (huboCambios) guardarBloquesLocal();
+
+        if (huboCambios) actualizarUICarrito();
     } catch { /* sin conexión: se reintenta en el siguiente ciclo */ }
 }
 
@@ -1841,8 +1957,9 @@ function mostrarToastInfo(mensaje) {
 }
 /** Compara el estado anterior de las cotizaciones (antes del refresco
  *  silencioso) contra el nuevo, y notifica al admin con un toast si
- *  algún cliente agregó, quitó, o vació su carrito mientras el panel
- *  estaba abierto — sin que el admin tenga que adivinar qué cambió. */
+ *  algún cliente agregó o quitó productos de su cotización general,
+ *  o si ya no tiene ninguna cotización general pendiente (el equipo
+ *  ya la gestionó por completo). */
 function _detectarCambiosCotizaciones(anteriores, nuevos) {
     const mapaAnterior = {};
     (anteriores || []).forEach(u => {
@@ -1860,27 +1977,24 @@ function _detectarCambiosCotizaciones(anteriores, nuevos) {
         if (!anterior) {
             const totalSkus = Object.keys(itemsNuevos).length;
             if (totalSkus > 0) {
-                mostrarToastInfo(`🆕 Nueva cotización de ${nombreMostrar}: ${totalSkus} producto(s).`);
+                mostrarToastInfo(`🆕 Nueva cotización general de ${nombreMostrar}: ${totalSkus} producto(s).`);
             }
             return;
         }
 
         const agregados = Object.keys(itemsNuevos).filter(sku => itemsNuevos[sku] > (anterior.items[sku] || 0));
-        const eliminados = Object.keys(anterior.items).filter(sku => !(sku in itemsNuevos));
 
         if (agregados.length > 0) {
-            mostrarToastInfo(`➕ ${nombreMostrar} agregó ${agregados.length} producto(s) a su cotización.`);
-        }
-        if (eliminados.length > 0) {
-            mostrarToastInfo(`➖ ${nombreMostrar} quitó ${eliminados.length} producto(s) de su cotización.`);
+            mostrarToastInfo(`➕ ${nombreMostrar} agregó ${agregados.length} producto(s) en una nueva cotización general.`);
         }
     });
 
-    // Cotizaciones que ya no aparecen del todo = el cliente vació su carrito
+    // Ya no aparece ninguna cotización general de este cliente = el
+    // equipo terminó de gestionar TODOS sus bloques (marcados "Pedido listo").
     Object.keys(mapaAnterior).forEach(correo => {
         const sigueExistiendo = (nuevos || []).some(u => u.correo === correo);
         if (!sigueExistiendo) {
-            mostrarToastInfo(`🗑️ ${escaparHTML(mapaAnterior[correo].nombre || correo)} vació su cotización.`);
+            mostrarToastInfo(`✅ Se completó la cotización general de ${escaparHTML(mapaAnterior[correo].nombre || correo)}.`);
         }
     });
 }
@@ -1896,29 +2010,49 @@ function totalItemsCarrito() { return carrito.reduce((s,c)=>s+c.cantidad,0); }
 function actualizarUICarrito() {
     const total    = totalItemsCarrito();
     const badge    = document.getElementById("badge-carrito");
-    const btnFlot  = document.getElementById("btn-carrito-flotante");
     const lista    = document.getElementById("lista-carrito");
     const btnCot   = document.getElementById("btn-solicitar-cotizacion");
     const btnVac   = document.getElementById("btn-vaciar-carrito");
+    const btnGen   = document.getElementById("btn-cotizacion-general");
     const msgPie   = document.getElementById("msg-pie-carrito");
 
-    // Badge: número de productos distintos (SKUs únicos)
+    // Badge: número de productos distintos (SKUs únicos) del carrito EDITABLE
     if (badge) { badge.innerText = carrito.length; badge.classList.toggle("hidden", carrito.length === 0); }
 
-    // Vacío
+    // Bloques "Por cotizar" (Cotización General ya enviada) — no editables,
+    // se muestran siempre arriba del carrito editable, con fecha/hora.
+    let htmlBloques = "";
+    bloquesCotizacion.forEach(bloque => {
+        const fechaTxt = bloque.fecha ? new Date(bloque.fecha).toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"}) : "";
+        htmlBloques += `<div class="bloque-cotizacion-general">
+            <div class="encabezado-bloque">
+                <span class="etiqueta-bloque"><i class="fa-solid fa-paper-plane"></i> Por cotizar</span>
+                <span class="fecha-bloque">${fechaTxt}</span>
+            </div>
+            ${(bloque.items||[]).map(it => `
+                <div class="item-bloque">
+                    <span>${escaparHTML(it.nombre)} <span class="text-slate-500">(${escaparHTML(it.sku)})</span></span>
+                    <span class="font-bold text-blue-300">x${it.cantidad}</span>
+                </div>`).join("")}
+        </div>`;
+    });
+
+    // Carrito editable vacío
     if (carrito.length === 0) {
-        lista.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-3 text-slate-500 py-12">
+        lista.innerHTML = htmlBloques + `<div class="flex flex-col items-center justify-center gap-3 text-slate-500 py-8">
             <i class="fa-solid fa-cart-shopping text-4xl opacity-30"></i>
             <p class="text-xs font-semibold text-center">Tu carrito está vacío.<br>Agrega refacciones desde el catálogo.</p>
         </div>`;
         if (btnCot) btnCot.classList.add("hidden");
         if (btnVac) btnVac.classList.add("hidden");
+        if (btnGen) btnGen.classList.add("hidden");
         if (msgPie) msgPie.classList.remove("hidden");
         return;
     }
 
     if (btnCot) btnCot.classList.remove("hidden");
     if (btnVac) btnVac.classList.remove("hidden");
+    if (btnGen) btnGen.classList.remove("hidden");
     if (msgPie) msgPie.classList.add("hidden");
 
     // Agrupar por agencia dominante del primer inventario
@@ -1959,7 +2093,7 @@ function actualizarUICarrito() {
         });
     });
 
-    lista.innerHTML = html;
+    lista.innerHTML = htmlBloques + html;
 }
 
 /* ── Toast ── */
@@ -2185,10 +2319,15 @@ async function cargarCotizacionesAdmin(silencioso) {
                             ${enviado?'Pedido listo':'Por cotizar'}
                         </button>
                     </div>
-                       ${datos.items.map(it=>`
+                       ${datos.items.map(it=>{
+                            const fechaItem = it._fechaSolicitud
+                                ? new Date(it._fechaSolicitud).toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"})
+                                : "";
+                            return `
                             <div class="item-linea">
                                 <span>${escaparHTML(it.nombre)} <span class="text-slate-500">(${escaparHTML(it.sku)})</span>
                                 ${it.enLiquidacion ? `<span class="text-[8px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded ml-1 uppercase"><i class="fa-solid fa-flag"></i> Liquidación</span>` : ""}
+                                ${fechaItem ? `<span class="block text-[8px] text-slate-500 mt-0.5"><i class="fa-regular fa-clock mr-0.5"></i> ${fechaItem}</span>` : ""}
                                 </span>
                             <span class="flex items-center gap-2">
                                 <span class="font-bold text-emerald-400">x${it.cantidad}</span>
@@ -2198,7 +2337,8 @@ async function cargarCotizacionesAdmin(silencioso) {
                                     <i class="fa-solid fa-circle-xmark"></i>
                                 </button>
                             </span>
-                        </div>`).join("")}
+                        </div>`;
+                       }).join("")}
                 </div>`;
             }).join("");
 
@@ -2216,7 +2356,7 @@ async function cargarCotizacionesAdmin(silencioso) {
                     </span>
                 </div>
                 <div class="flex flex-col gap-0.5 mb-2">${bloques}</div>
-                <p class="text-[9px] text-slate-500 mb-2"><i class="fa-regular fa-clock mr-1"></i> ${fecha}</p>
+                <p class="text-[9px] text-slate-500 mb-2"><i class="fa-regular fa-clock mr-1"></i> Última solicitud: ${fecha}</p>
                 ${esZonaValladolidPanel ? `
                 <button onclick="eliminarCarritoCompletoAdmin('${correoSeg}')"
                         class="w-full bg-slate-700 hover:bg-red-950 text-slate-300 hover:text-red-400 text-[10px] font-bold py-1.5 rounded-lg cursor-pointer transition flex items-center justify-center gap-2">
@@ -2231,8 +2371,8 @@ async function cargarCotizacionesAdmin(silencioso) {
 }
 
 /** Admin: cambia el estado de UN GRUPO de agencia (por almacén) dentro
- *  del carrito de un usuario. Cada almacén puede marcar su parte como
- *  enviada de forma independiente (punto 3 del sistema). */
+ *  de la cotización general de un usuario. Cada almacén puede marcar su
+ *  parte como enviada de forma independiente (punto 3 del sistema). */
 async function cambiarEstadoGrupoAdmin(correoUsuario, grupo, nuevoEstado) {
     try {
         const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
@@ -2244,13 +2384,13 @@ async function cambiarEstadoGrupoAdmin(correoUsuario, grupo, nuevoEstado) {
     } catch { alert("Error de conexión al actualizar estado."); }
 }
 
-/** Admin: cambia el estado GLOBAL del carrito de un usuario (acceso legacy
- *  para compatibilidad; ahora se prefiere cambiarEstadoGrupoAdmin). */
+/** Admin: cambia el estado GLOBAL de la cotización general de un usuario
+ *  (acceso legacy para compatibilidad; ahora se prefiere cambiarEstadoGrupoAdmin). */
 async function cambiarEstadoCotizacionAdmin(correoUsuario, nuevoEstado) {
     await cambiarEstadoGrupoAdmin(correoUsuario, "__TODOS__", nuevoEstado);
 }
 
-/** Admin: elimina UN producto del carrito de un usuario */
+/** Admin: elimina UN producto de la cotización general de un usuario */
 async function eliminarItemCarritoUsuarioAdmin(correoUsuario, sku) {
     try {
         const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
@@ -2261,10 +2401,10 @@ async function eliminarItemCarritoUsuarioAdmin(correoUsuario, sku) {
     } catch { alert("Error de conexión al eliminar."); }
 }
 
-/** Admin: elimina el carrito COMPLETO de un usuario en un solo request
- *  (punto 12 — antes fallaba por requests en paralelo que desplazaban filas). */
+/** Admin: elimina TODA la cotización general (todos los bloques) de un
+ *  usuario en un solo request. NO afecta su carrito editable/privado. */
 async function eliminarCarritoCompletoAdmin(correoUsuario) {
-    if (!confirm(`¿Eliminar TODA la cotización de ${correoUsuario}?\nHaz esto solo después de contactar y cerrar el pedido.`)) return;
+    if (!confirm(`¿Eliminar TODA la cotización general de ${correoUsuario}?\nHaz esto solo después de contactar y cerrar el pedido.`)) return;
 
     // Marcar tarjeta como cargando
     const tarjeta = document.querySelector(`[data-correo-tarjeta="${CSS.escape(correoUsuario)}"]`);
@@ -2283,7 +2423,8 @@ async function eliminarCarritoCompletoAdmin(correoUsuario) {
 }
 
 /* ══════════════════════════════════════════
-   MODAL COTIZACIÓN — LÓGICA DE AGENCIAS
+   MODAL COTIZACIÓN — LÓGICA DE AGENCIAS (WhatsApp directo, usa SOLO
+   el carrito editable — nunca los bloques de Cotización General)
 ══════════════════════════════════════════ */
 function abrirModalCotizacion() {
     if (carrito.length === 0) { alert("El carrito está vacío."); return; }
