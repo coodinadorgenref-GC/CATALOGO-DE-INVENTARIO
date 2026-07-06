@@ -818,7 +818,7 @@
 /* ══════════════════════════════════════════
    CONFIGURACIÓN GLOBAL
 ══════════════════════════════════════════ */
-const API_URL = "https://script.google.com/macros/s/AKfycbw1Pe-_NLqj-ty0-tGqf2pOraFFLllmeIroEOezqayWyyI6sCATquO4WGFkqMC4EHca/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbzXQoNN7LHEtxWH54gJRK5w075jM5OO4XjF77U9U0msAxA10D14Aot9IeAMRGD1MbmG/exec";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
 // NOTA: ya no se usa un formulario de Google para las fotos (ver
 // abrirFormularioFoto), así que URL_FORM_ADMIN fue retirado. El
@@ -1975,49 +1975,6 @@ function mostrarToastInfo(mensaje) {
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 4000);
 }
-/** Compara el estado anterior de las cotizaciones (antes del refresco
- *  silencioso) contra el nuevo, y notifica al admin con un toast si
- *  algún cliente agregó o quitó productos de su cotización general,
- *  o si ya no tiene ninguna cotización general pendiente (el equipo
- *  ya la gestionó por completo). */
-function _detectarCambiosCotizaciones(anteriores, nuevos) {
-    const mapaAnterior = {};
-    (anteriores || []).forEach(u => {
-        const items = {};
-        (u.items || []).forEach(it => { items[String(it.sku)] = Number(it.cantidad) || 0; });
-        mapaAnterior[u.correo] = { nombre: u.nombre, items };
-    });
-
-    (nuevos || []).forEach(u => {
-        const anterior = mapaAnterior[u.correo];
-        const itemsNuevos = {};
-        (u.items || []).forEach(it => { itemsNuevos[String(it.sku)] = Number(it.cantidad) || 0; });
-        const nombreMostrar = escaparHTML(u.nombre || u.correo);
-
-        if (!anterior) {
-            const totalSkus = Object.keys(itemsNuevos).length;
-            if (totalSkus > 0) {
-                mostrarToastInfo(`🆕 Nueva cotización general de ${nombreMostrar}: ${totalSkus} producto(s).`);
-            }
-            return;
-        }
-
-        const agregados = Object.keys(itemsNuevos).filter(sku => itemsNuevos[sku] > (anterior.items[sku] || 0));
-
-        if (agregados.length > 0) {
-            mostrarToastInfo(`➕ ${nombreMostrar} agregó ${agregados.length} producto(s) en una nueva cotización general.`);
-        }
-    });
-
-    // Ya no aparece ninguna cotización general de este cliente = el
-    // equipo terminó de gestionar TODOS sus bloques (marcados "Pedido listo").
-    Object.keys(mapaAnterior).forEach(correo => {
-        const sigueExistiendo = (nuevos || []).some(u => u.correo === correo);
-        if (!sigueExistiendo) {
-            mostrarToastInfo(`✅ Se completó la cotización general de ${escaparHTML(mapaAnterior[correo].nombre || correo)}.`);
-        }
-    });
-}
 // Al volver a primer plano (cambiar de pestaña/app y regresar), reconciliamos
 // de inmediato en vez de esperar al próximo tick del intervalo de 12s.
 document.addEventListener("visibilitychange", () => {
@@ -2229,64 +2186,48 @@ window.addEventListener("resize", actualizarBarraMovil);
 
 
 let ultimosCarritosAdminCargados = []; // cache del último fetch, usado para acciones masivas instantáneas
-let intervaloAutoRefrescoAdmin = null;
-let idPeticionCotizacionesAdmin = 0;   // secuencia para descartar respuestas fuera de orden
-let peticionAdminEnCurso = false;      // evita refrescos silenciosos superpuestos
+let idPeticionCotizacionesAdmin = 0;    // secuencia para descartar respuestas fuera de orden
+let peticionAdminEnCurso = false;       // evita disparar una carga si ya hay una en curso
 
+// NOTA: ya NO hay refresco automático cada 10s. Con el sistema de
+// "Cotización General" el admin solo ve lo que el cliente decidió
+// enviar explícitamente (no su carrito en vivo), así que no hace
+// falta estar sondeando el servidor constantemente. El panel se
+// actualiza al abrirlo y cuando el admin presiona "Actualizar lista".
 function toggleCotizacionesAdmin() {
     const panel = document.getElementById("panel-cotizaciones-admin");
     panel.classList.toggle("abierto");
-    clearInterval(intervaloAutoRefrescoAdmin);
     if (panel.classList.contains("abierto")) {
-        cargarCotizacionesAdmin(false);
-        // Los refrescos automáticos son SILENCIOSOS: no muestran el
-        // spinner ni "Cargando cotizaciones...", y detectan cambios
-        // hechos por el cliente para notificar al admin.
-        intervaloAutoRefrescoAdmin = setInterval(() => cargarCotizacionesAdmin(true), 10000);
+        cargarCotizacionesAdmin();
     }
 }
 
-async function cargarCotizacionesAdmin(silencioso) {
-    // Si ya hay un refresco silencioso en curso (p. ej. el servidor tardó
-    // más de 10s en responder), nos saltamos este tick en vez de disparar
-    // una segunda petición en paralelo: dos respuestas que lleguen
-    // desordenadas eran la causa de que apareciera el falso aviso
-    // "✅ Se completó la cotización general de ..." sin que realmente
-    // se hubiera terminado nada.
-    if (silencioso && peticionAdminEnCurso) return;
-    if (silencioso) peticionAdminEnCurso = true;
+async function cargarCotizacionesAdmin() {
+    // Evita disparar una segunda carga si ya hay una en curso (p. ej. el
+    // admin presiona "Actualizar lista" varias veces seguidas).
+    if (peticionAdminEnCurso) return;
+    peticionAdminEnCurso = true;
     const idEstaPeticion = ++idPeticionCotizacionesAdmin;
 
     const contenedor = document.getElementById("lista-cotizaciones-admin");
-    if (!silencioso) {
-        contenedor.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-3 text-slate-500 py-12">
-            <i class="fa-solid fa-spinner fa-spin text-3xl opacity-40"></i>
-            <p class="text-xs font-semibold text-center">Cargando cotizaciones...</p>
-        </div>`;
-    }
+    contenedor.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-3 text-slate-500 py-12">
+        <i class="fa-solid fa-spinner fa-spin text-3xl opacity-40"></i>
+        <p class="text-xs font-semibold text-center">Cargando cotizaciones...</p>
+    </div>`;
     try {
         const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
             body: JSON.stringify({ action:"obtenerCarritosActivos", token:tokenActual, correo:usuarioActual }) });
         const rs = await r.json();
 
-        // Si mientras esperábamos esta respuesta ya se disparó una
-        // petición más nueva (p. ej. el admin volvió a abrir el panel, o
-        // el siguiente tick del intervalo ya se ejecutó), esta respuesta
-        // llegó fuera de orden: la descartamos por completo para no
-        // pisar el estado más reciente ni generar comparaciones falsas.
+        // Descarta respuestas que hayan quedado obsoletas por una carga
+        // más reciente (p. ej. clics rápidos y repetidos en "Actualizar").
         if (idEstaPeticion !== idPeticionCotizacionesAdmin) return;
 
         if (!rs.success) {
-            if (!silencioso) contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">${rs.message||"No autorizado."}</p>`;
+            contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">${rs.message||"No autorizado."}</p>`;
             return;
         }
         const usuarios = rs.data || [];
-
-        // Si es un refresco silencioso (automático), comparamos contra
-        // lo que había antes para notificar al admin qué cambió.
-        if (silencioso) {
-            _detectarCambiosCotizaciones(ultimosCarritosAdminCargados, usuarios);
-        }
         ultimosCarritosAdminCargados = usuarios;
 
         // Badge: número de USUARIOS con cotizaciones pendientes ("Por cotizar")
@@ -2430,9 +2371,9 @@ async function cargarCotizacionesAdmin(silencioso) {
         contenedor.innerHTML = html;
     } catch(err) {
         if (idEstaPeticion !== idPeticionCotizacionesAdmin) return;
-        if (!silencioso) contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">Error de conexión.</p>`;
+        contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">Error de conexión.</p>`;
     } finally {
-        if (silencioso) peticionAdminEnCurso = false;
+        peticionAdminEnCurso = false;
     }
 }
 
