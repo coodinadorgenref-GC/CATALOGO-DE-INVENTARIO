@@ -696,29 +696,37 @@
         </div>
 
         <div class="p-5 flex flex-col gap-4">
-            <!-- Input real de captura, oculto: capture="environment" pide la
-                 cámara trasera directo en móvil; en PC abre el explorador
-                 de archivos (o webcam si el navegador lo soporta). -->
-            <input type="file" id="input-foto-producto" accept="image/*" capture="environment"
+            <!-- Input real de selección, oculto. Ahora permite elegir varias
+                 fotos a la vez (multiple). Quitamos capture="environment"
+                 porque en varios navegadores móviles esa combinación oculta
+                 la opción de "Galería"/selección múltiple y solo deja
+                 tomar una foto a la vez con la cámara; el selector nativo
+                 del sistema sigue ofreciendo la cámara como una opción más. -->
+            <input type="file" id="input-foto-producto" accept="image/*" multiple
                    class="hidden-element" onchange="previewFotoProducto(event)">
 
             <div id="zona-captura-foto" onclick="activarSelectorFoto()"
                  class="cursor-pointer border-2 border-dashed border-slate-600 hover:border-blue-400 rounded-xl h-56 flex flex-col items-center justify-center gap-3 text-slate-400 transition">
                 <i class="fa-solid fa-camera text-4xl"></i>
-                <p class="text-sm font-semibold text-center px-6">Toca aquí para tomar una foto<br>o elegir una de tu galería</p>
+                <p class="text-sm font-semibold text-center px-6">Toca aquí para elegir una o varias fotos<br>de tu galería, o tomar una nueva</p>
             </div>
 
             <div id="zona-preview-foto" class="hidden-element flex flex-col gap-3">
-                <div class="rounded-xl overflow-hidden border border-slate-700 bg-slate-900 h-56 flex items-center justify-center">
-                    <img id="preview-foto-producto" src="" alt="Vista previa" class="max-w-full max-h-full object-contain">
+                <div id="preview-fotos-producto" class="flex flex-wrap gap-2 max-h-64 overflow-y-auto p-1"></div>
+                <div class="flex items-center justify-between gap-2">
+                    <span id="contador-fotos-seleccionadas" class="text-xs text-slate-400 font-semibold"></span>
+                    <button onclick="activarSelectorFoto()"
+                            class="text-xs text-blue-400 hover:text-blue-300 underline cursor-pointer">
+                        <i class="fa-solid fa-plus mr-1"></i> Agregar más
+                    </button>
                 </div>
                 <button onclick="reiniciarSeleccionFoto()"
                         class="text-xs text-slate-400 hover:text-white underline self-center cursor-pointer">
-                    <i class="fa-solid fa-rotate-left mr-1"></i> Elegir otra foto
+                    <i class="fa-solid fa-rotate-left mr-1"></i> Quitar todas y empezar de nuevo
                 </button>
             </div>
 
-            <button id="btn-enviar-foto" onclick="enviarFotoProducto()" disabled
+            <button id="btn-enviar-foto" onclick="enviarFotosProducto()" disabled
                     class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider cursor-pointer">
                 Enviar foto
             </button>
@@ -3101,7 +3109,7 @@ function cerrarZoomImagen() {
    backend, que la guarda en Drive y actualiza el catálogo. La ventana
    se cierra sola en cuanto el servidor confirma que se guardó. */
 let fotoProductoSkuActual   = null;
-let fotoProductoBase64Actual = null;
+let fotoProductoArchivosActuales = []; // NUEVO: arreglo de fotos comprimidas (data URLs) pendientes de enviar
 
 function abrirFormularioFoto(sku) {
     fotoProductoSkuActual = sku;
@@ -3112,7 +3120,7 @@ function abrirFormularioFoto(sku) {
 function cerrarFormularioFoto() {
     document.getElementById("modal-form-foto").classList.add("opacity-0", "pointer-events-none");
     fotoProductoSkuActual = null;
-    fotoProductoBase64Actual = null;
+    fotoProductoArchivosActuales = [];
 }
 /** Cierra el modal de detalle del producto de forma forzada (sin toggle),
  *  usado después de subir una foto exitosamente para regresar directo
@@ -3129,111 +3137,185 @@ function cerrarFormularioFotoExterno(e) {
     if (e.target.id === "modal-form-foto") cerrarFormularioFoto();
 }
 
-/** Abre el selector nativo de cámara/galería del navegador. */
+/** Abre el selector nativo de galería/cámara del navegador. */
 function activarSelectorFoto() {
     document.getElementById("input-foto-producto").click();
 }
 
-/** Cuando el usuario elige/toma una foto: la redimensiona y comprime
- *  con un canvas (para no mandar fotos pesadas de 8-12 MB por la red)
- *  y la deja lista en memoria como data URL Base64 para el envío. */
-function previewFotoProducto(e) {
-    const archivo = e.target.files && e.target.files[0];
-    if (!archivo) return;
-    if (!archivo.type.startsWith("image/")) {
-        alert("Selecciona un archivo de imagen válido.");
+/** Comprime UN archivo de imagen con un canvas y devuelve una promesa
+ *  con el data URL resultante (para no mandar fotos de 8-12 MB por
+ *  la red). */
+function _comprimirImagen(archivo) {
+    return new Promise((resolve, reject) => {
+        const lector = new FileReader();
+        lector.onload = (evt) => {
+            const img = new Image();
+            img.onload = () => {
+                const LADO_MAX = 1280;
+                let w = img.width, h = img.height;
+                if (w > LADO_MAX || h > LADO_MAX) {
+                    const escala = LADO_MAX / Math.max(w, h);
+                    w = Math.round(w * escala);
+                    h = Math.round(h * escala);
+                }
+                const canvas = document.createElement("canvas");
+                canvas.width = w; canvas.height = h;
+                canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+                resolve(canvas.toDataURL("image/jpeg", 0.82));
+            };
+            img.onerror = reject;
+            img.src = evt.target.result;
+        };
+        lector.onerror = reject;
+        lector.readAsDataURL(archivo);
+    });
+}
+
+/** NUEVO — Cuando el admin elige una o varias fotos: comprime cada una
+ *  y las AGREGA a la selección pendiente (no reemplaza), para poder
+ *  llamar "Agregar más" varias veces si quiere ir sumando fotos de
+ *  distintas carpetas/momentos antes de enviar todo junto. */
+async function previewFotoProducto(e) {
+    const archivos = Array.from(e.target.files || []).filter(a => a.type.startsWith("image/"));
+    if (archivos.length === 0) return;
+
+    const restante = MAX_FOTOS_CLIENTE - fotoProductoArchivosActuales.length;
+    if (restante <= 0) {
+        alert("Ya seleccionaste el máximo de fotos permitidas por producto (" + MAX_FOTOS_CLIENTE + ").");
+        e.target.value = "";
+        return;
+    }
+    const aProcesar = archivos.slice(0, restante);
+    if (archivos.length > aProcesar.length) {
+        alert("Solo se agregaron " + aProcesar.length + " foto(s); llegaste al máximo de " + MAX_FOTOS_CLIENTE + " por producto.");
+    }
+
+    const comprimidas = await Promise.all(aProcesar.map(_comprimirImagen));
+    fotoProductoArchivosActuales.push(...comprimidas);
+    e.target.value = ""; // permite volver a elegir el mismo archivo si lo quita y lo vuelve a agregar
+
+    renderizarPreviewFotos();
+}
+
+const MAX_FOTOS_CLIENTE = 8; // debe coincidir con MAX_FOTOS_POR_PRODUCTO del backend
+
+function renderizarPreviewFotos() {
+    const cont     = document.getElementById("preview-fotos-producto");
+    const contador = document.getElementById("contador-fotos-seleccionadas");
+    const btn      = document.getElementById("btn-enviar-foto");
+    const zonaCap  = document.getElementById("zona-captura-foto");
+    const zonaPrev = document.getElementById("zona-preview-foto");
+
+    if (fotoProductoArchivosActuales.length === 0) {
+        zonaCap.classList.remove("hidden-element");
+        zonaPrev.classList.add("hidden-element");
+        btn.disabled = true;
+        btn.innerText = "Enviar foto";
         return;
     }
 
-    const lector = new FileReader();
-    lector.onload = (evt) => {
-        const img = new Image();
-        img.onload = () => {
-            const LADO_MAX = 1280;
-            let w = img.width, h = img.height;
-            if (w > LADO_MAX || h > LADO_MAX) {
-                const escala = LADO_MAX / Math.max(w, h);
-                w = Math.round(w * escala);
-                h = Math.round(h * escala);
-            }
-            const canvas = document.createElement("canvas");
-            canvas.width = w; canvas.height = h;
-            canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-            fotoProductoBase64Actual = canvas.toDataURL("image/jpeg", 0.82);
+    zonaCap.classList.add("hidden-element");
+    zonaPrev.classList.remove("hidden-element");
 
-            document.getElementById("preview-foto-producto").src = fotoProductoBase64Actual;
-            document.getElementById("zona-captura-foto").classList.add("hidden-element");
-            document.getElementById("zona-preview-foto").classList.remove("hidden-element");
-            document.getElementById("btn-enviar-foto").disabled = false;
-        };
-        img.src = evt.target.result;
-    };
-    lector.readAsDataURL(archivo);
+    cont.innerHTML = fotoProductoArchivosActuales.map((data, i) => `
+        <div class="relative w-20 h-20 shrink-0">
+            <img src="${data}" class="w-full h-full object-cover rounded-lg border border-slate-700">
+            <button onclick="quitarFotoPendiente(${i})" title="Quitar"
+                    class="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>`).join("");
+
+    contador.innerText = fotoProductoArchivosActuales.length + " foto(s) lista(s) para enviar";
+    btn.disabled  = false;
+    btn.innerText = fotoProductoArchivosActuales.length === 1 ? "Enviar foto" : `Enviar ${fotoProductoArchivosActuales.length} fotos`;
 }
 
-/** Descarta la foto elegida y vuelve a mostrar la zona de captura. */
+/** Quita UNA foto de la selección pendiente antes de enviarla. */
+function quitarFotoPendiente(indice) {
+    fotoProductoArchivosActuales.splice(indice, 1);
+    renderizarPreviewFotos();
+}
+
+/** Descarta toda la selección pendiente y vuelve a mostrar la zona de captura. */
 function reiniciarSeleccionFoto() {
     const input = document.getElementById("input-foto-producto");
     if (input) input.value = "";
-    fotoProductoBase64Actual = null;
+    fotoProductoArchivosActuales = [];
     document.getElementById("zona-preview-foto").classList.add("hidden-element");
     document.getElementById("zona-captura-foto").classList.remove("hidden-element");
     const btn = document.getElementById("btn-enviar-foto");
     btn.disabled = true; btn.innerText = "Enviar foto";
 }
 
-/** Sube la foto ya comprimida al backend (Apps Script → Drive + Sheets). */
-function enviarFotoProducto() {
-    if (!fotoProductoBase64Actual || !fotoProductoSkuActual) return;
-    const btn = document.getElementById("btn-enviar-foto");
-    btn.disabled = true; btn.innerText = "Enviando...";
-
-    fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+/** Sube UNA foto ya comprimida al backend y refleja el resultado
+ *  localmente (sin re-sincronizar todo el inventario contra el
+ *  servidor, para que no tarde y no se pierdan los filtros activos). */
+function _subirUnaFoto(dataUrl, sku) {
+    return fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
         body: JSON.stringify({
             action: "subirFotoProducto",
             token: tokenActual,
             correo: usuarioActual,
-            sku: fotoProductoSkuActual,
-            imagenBase64: fotoProductoBase64Actual,
+            sku: sku,
+            imagenBase64: dataUrl,
             mimeType: "image/jpeg"
         }) })
     .then(r => r.json())
     .then(rs => {
-            if (rs && rs.success) {
-                // NUEVO: en vez de re-sincronizar todo el inventario contra el
-                // servidor (lento, y de paso reconstruye el selector de
-                // agencia perdiendo filtros), actualizamos solo este producto
-                // en memoria con lo que ya nos regresó el backend. Así el
-                // admin puede seguir mandando fotos sin espera y sin que se
-                // le borre ningún filtro activo.
-                const sku = fotoProductoSkuActual;
-                const itemCache = (inventarioMaestro||[]).find(p => p.SKU === sku);
-                if (itemCache) {
-                    itemCache.Imagenes = rs.imagenes || (itemCache.Imagenes||[]).concat([rs.url]);
-                    itemCache.Imagen   = itemCache.Imagenes[0] || "";
-                    try { localStorage.setItem("inventario_cache", JSON.stringify(inventarioMaestro)); } catch {}
-                }
-                // Si la galería de este producto está abierta, se actualiza al instante.
-                if (galeriaSkuActual === sku) {
-                    galeriaActual = (itemCache ? itemCache.Imagenes : (rs.imagenes||[])).map(optimizarEnlaceImagen);
-                    galeriaIndiceActual = galeriaActual.length - 1;
-                    renderizarGaleria();
-                }
-                // Refresca solo la tarjeta en pantalla (render local, sin red).
-                filtrarProductos();
-
-                mostrarToastInfo("Foto agregada. Puedes enviar otra o cerrar cuando termines.");
-                reiniciarSeleccionFoto(); // deja el formulario listo para la siguiente foto, sin cerrar nada
-                btn.disabled = false; btn.innerText = "Enviar foto";
-            } else {
-            alert("No se pudo subir la foto: " + (rs && rs.message ? rs.message : "Error desconocido. Intenta de nuevo."));
-            btn.disabled = false; btn.innerText = "Enviar foto";
+        if (rs && rs.success) {
+            const itemCache = (inventarioMaestro||[]).find(p => String(p.SKU) === String(sku));
+            if (itemCache) {
+                itemCache.Imagenes = rs.imagenes || (itemCache.Imagenes||[]).concat([rs.url]);
+                itemCache.Imagen   = itemCache.Imagenes[0] || "";
+                try { localStorage.setItem("inventario_cache", JSON.stringify(inventarioMaestro)); } catch {}
+            }
+            if (String(galeriaSkuActual) === String(sku)) {
+                galeriaActual = (itemCache ? itemCache.Imagenes : (rs.imagenes||[])).map(optimizarEnlaceImagen);
+                galeriaIndiceActual = galeriaActual.length - 1;
+                renderizarGaleria();
+            }
+            filtrarProductos();
+            return { ok: true };
         }
+        return { ok: false, message: (rs && rs.message) || "Error desconocido." };
     })
-    .catch(() => {
-        alert("Error de conexión al subir la foto. Verifica tu internet e intenta de nuevo.");
-        btn.disabled = false; btn.innerText = "Enviar foto";
-    });
+    .catch(() => ({ ok: false, message: "Error de conexión." }));
+}
+
+/** NUEVO — Sube TODAS las fotos seleccionadas, una por una en secuencia
+ *  (no en paralelo: si dos subidas escriben la misma celda al mismo
+ *  tiempo, una puede pisar a la otra y perderse una foto). Muestra
+ *  progreso "Enviando 2 de 5..." y al final un resumen. La galería y
+ *  la tarjeta se van actualizando foto por foto, sin esperar a que
+ *  termine todo el lote. */
+async function enviarFotosProducto() {
+    if (fotoProductoArchivosActuales.length === 0 || !fotoProductoSkuActual) return;
+    const btn = document.getElementById("btn-enviar-foto");
+    const sku = fotoProductoSkuActual;
+    const fotos = fotoProductoArchivosActuales.slice();
+    let exitosas = 0;
+    const errores = [];
+
+    for (let i = 0; i < fotos.length; i++) {
+        btn.disabled = true;
+        btn.innerText = fotos.length > 1 ? `Enviando ${i+1} de ${fotos.length}...` : "Enviando...";
+        const resultado = await _subirUnaFoto(fotos[i], sku);
+        if (resultado.ok) exitosas++;
+        else errores.push(resultado.message);
+    }
+
+    if (exitosas > 0) {
+        mostrarToastInfo(exitosas === 1
+            ? "Foto agregada correctamente."
+            : `${exitosas} foto(s) agregadas correctamente.`);
+    }
+    if (errores.length > 0) {
+        alert("No se pudieron subir " + errores.length + " foto(s):\n" + errores.join("\n"));
+    }
+
+    reiniciarSeleccionFoto(); // deja el formulario listo para la siguiente tanda, sin cerrar nada
+    btn.disabled = false; btn.innerText = "Enviar foto";
 }
 
 function manejarTecladoBuscador(e) { if (e.key==="Enter") document.getElementById("buscador").blur(); }
