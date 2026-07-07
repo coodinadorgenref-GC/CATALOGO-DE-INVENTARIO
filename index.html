@@ -3036,8 +3036,11 @@ function cerrarZoomImagen() {
    archivos/cámara del propio navegador (funciona igual en PC y en
    móvil), muestra vista previa dentro de la misma ventana emergente,
    y al enviar sube la imagen (comprimida en el cliente) directo al
-   backend, que la guarda en Drive y actualiza el catálogo. La ventana
-   se cierra sola en cuanto el servidor confirma que se guardó. */
+   backend, que la guarda en Drive y la AGREGA a la galería del SKU
+   (nunca sobrescribe). El modal se queda abierto tras cada envío
+   —el botón es repetible— para poder agregar varias fotos seguidas;
+   la galería del modal de detalle (de atrás) se actualiza al toque,
+   sin esperar a la sincronización completa del catálogo. */
 let fotoProductoSkuActual   = null;
 let fotoProductoBase64Actual = null;
 
@@ -3052,9 +3055,9 @@ function cerrarFormularioFoto() {
     fotoProductoSkuActual = null;
     fotoProductoBase64Actual = null;
 }
-/** Cierra el modal de detalle del producto de forma forzada (sin toggle),
- *  usado después de subir una foto exitosamente para regresar directo
- *  al catálogo sin que el admin tenga que cerrarlo manualmente. */
+/** Cierra el modal de detalle del producto de forma forzada (sin toggle).
+ *  Ya no se usa tras subir una foto (el flujo ahora deja todo abierto),
+ *  pero se conserva por si algún otro flujo la necesita. */
 function cerrarModalDetalleForzado() {
     const modal = document.getElementById("modal-detalles");
     const contenido = document.getElementById("modal-contenido");
@@ -3120,7 +3123,12 @@ function reiniciarSeleccionFoto() {
     btn.disabled = true; btn.innerText = "Enviar foto";
 }
 
-/** Sube la foto ya comprimida al backend (Apps Script → Drive + Sheets). */
+/** Sube la foto ya comprimida al backend (Apps Script → Drive + Sheets).
+ *  Ya NO cierra ningún modal al terminar: actualiza la galería del
+ *  modal de detalle (de atrás) al instante con la respuesta del
+ *  servidor, refresca también la copia en memoria del catálogo (para
+ *  que la tarjeta de la cuadrícula ya la refleje), y deja lista la
+ *  zona de captura para poder agregar otra foto de inmediato. */
 function enviarFotoProducto() {
     if (!fotoProductoBase64Actual || !fotoProductoSkuActual) return;
     const btn = document.getElementById("btn-enviar-foto");
@@ -3138,10 +3146,31 @@ function enviarFotoProducto() {
     .then(r => r.json())
     .then(rs => {
             if (rs && rs.success) {
-                mostrarToastInfo("Foto enviada correctamente. Se reflejará en el catálogo en unos momentos.");
+                mostrarToastInfo("Foto agregada. Puedes seguir agregando más o cerrar esta ventana.");
+
+                const nuevasImagenes = Array.isArray(rs.imagenes)
+                    ? rs.imagenes.map(optimizarEnlaceImagen)
+                    : [...galeriaActual, optimizarEnlaceImagen(rs.url)];
+
+                // Si el modal de detalle abierto detrás es el mismo SKU,
+                // refresca su galería para que la nueva foto aparezca ya.
+                if (galeriaSkuActual === fotoProductoSkuActual) {
+                    galeriaActual = nuevasImagenes;
+                    galeriaIndiceActual = galeriaActual.length - 1;
+                    renderizarGaleria();
+                }
+
+                // Refleja el cambio en la copia en memoria del catálogo,
+                // para que la tarjeta de la cuadrícula quede al día sin
+                // esperar a la sincronización completa.
+                const itemCache = (inventarioMaestro||[]).find(p => p.SKU === fotoProductoSkuActual);
+                if (itemCache) {
+                    itemCache.Imagenes = Array.isArray(rs.imagenes) ? rs.imagenes : [...(itemCache.Imagenes||[]), rs.url];
+                    itemCache.Imagen = itemCache.Imagenes[0] || "";
+                }
+
+                reiniciarSeleccionFoto();
                 forzarSincronizacionDatos();
-                cerrarFormularioFoto();
-                cerrarModalDetalleForzado();
             } else {
             alert("No se pudo subir la foto: " + (rs && rs.message ? rs.message : "Error desconocido. Intenta de nuevo."));
             btn.disabled = false; btn.innerText = "Enviar foto";
