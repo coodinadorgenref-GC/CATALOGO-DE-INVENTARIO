@@ -738,6 +738,16 @@
 <!-- ════════════════════════════════════════════════
      BOTÓN CARRITO FLOTANTE (solo no-admin)
 ═════════════════════════════════════════════════ -->
+<!-- NUEVO: indicador flotante de subida de fotos en segundo plano — vive
+     fuera de cualquier modal, así que sigue visible aunque el admin
+     cierre la tarjeta del producto y siga navegando el catálogo. -->
+<div id="badge-subiendo-fotos"
+     class="hidden flex fixed bottom-6 left-6 z-[70] bg-blue-600 text-white text-xs font-bold pl-3 pr-4 py-3 rounded-full shadow-2xl items-center gap-2.5"
+     style="box-shadow:0 6px 20px rgba(29,78,216,.55), 0 2px 6px rgba(0,0,0,.3)">
+    <i class="fa-solid fa-circle-notch fa-spin"></i>
+    <span id="texto-badge-subiendo-fotos">Subiendo fotos...</span>
+</div>
+
 <button id="btn-carrito-flotante" onclick="toggleCarrito()" style="display:none" title="Mi Cotización">
     <span class="btn-flotante-icon"><i class="fa-solid fa-cart-shopping"></i></span>
     <span class="btn-flotante-label">Cotización</span>
@@ -3248,6 +3258,73 @@ function reiniciarSeleccionFoto() {
     btn.disabled = true; btn.innerText = "Enviar foto";
 }
 
+// ══════════════════════════════════════════
+//  NUEVO — Cola global de subida de fotos en segundo plano.
+//  Antes, "Enviar" bloqueaba al admin dentro del modal hasta que
+//  terminaban de subir todas las fotos del producto abierto. Ahora,
+//  al dar "Enviar" las fotos se ENCOLAN y el modal se cierra de
+//  inmediato: el admin puede seguir navegando, abrir OTRO producto y
+//  mandar más fotos (se van sumando a la misma cola), mientras un
+//  indicador flotante (abajo a la izquierda) muestra el progreso. Las
+//  fotos ya subidas aparecen solas en el catálogo en cuanto terminan,
+//  sin importar qué esté viendo el admin en ese momento.
+// ══════════════════════════════════════════
+let colaSubidaFotos    = [];   // [{sku, dataUrl}, ...]
+let subidaFotosEnCurso = false;
+
+function encolarFotosParaSubir(sku, dataUrls) {
+    dataUrls.forEach(dataUrl => colaSubidaFotos.push({ sku, dataUrl }));
+    actualizarBadgeSubiendoFotos();
+    procesarColaSubidaFotos();
+}
+
+async function procesarColaSubidaFotos() {
+    if (subidaFotosEnCurso) return; // ya hay un procesador corriendo, se le suman los nuevos items solo
+    subidaFotosEnCurso = true;
+    let exitosas = 0, fallidas = 0;
+
+    while (colaSubidaFotos.length > 0) {
+        actualizarBadgeSubiendoFotos();
+        const item = colaSubidaFotos.shift();
+        const resultado = await _subirUnaFoto(item.dataUrl, item.sku);
+        if (resultado.ok) exitosas++;
+        else {
+            fallidas++;
+            mostrarToastInfo(`No se pudo subir una foto del SKU ${item.sku}: ${resultado.message}`);
+        }
+    }
+
+    subidaFotosEnCurso = false;
+    actualizarBadgeSubiendoFotos();
+    if (exitosas > 0) {
+        mostrarToastInfo(exitosas === 1 ? "Foto subida correctamente." : `${exitosas} fotos subidas correctamente.`);
+    }
+}
+
+function actualizarBadgeSubiendoFotos() {
+    const badge = document.getElementById("badge-subiendo-fotos");
+    const texto = document.getElementById("texto-badge-subiendo-fotos");
+    if (!badge || !texto) return;
+    const pendientes = colaSubidaFotos.length + (subidaFotosEnCurso ? 1 : 0);
+    if (pendientes <= 0) { badge.classList.add("hidden"); return; }
+    badge.classList.remove("hidden");
+    texto.innerText = pendientes === 1 ? "Subiendo 1 foto..." : `Subiendo fotos... (${pendientes} restantes)`;
+}
+
+/** Encola las fotos elegidas para este producto y libera al admin de
+ *  inmediato: no espera a que terminen de subir para cerrar el
+ *  formulario, puede seguir navegando el catálogo mientras tanto. */
+function enviarFotosProducto() {
+    if (fotoProductoArchivosActuales.length === 0 || !fotoProductoSkuActual) return;
+    const sku   = fotoProductoSkuActual;
+    const fotos = fotoProductoArchivosActuales.slice();
+
+    encolarFotosParaSubir(sku, fotos);
+    mostrarToastInfo(fotos.length === 1 ? "Foto en camino..." : `${fotos.length} fotos en camino...`);
+
+    reiniciarSeleccionFoto();
+    cerrarFormularioFoto(); // ya no bloquea: el admin puede seguir de inmediato
+}
 /** Sube UNA foto ya comprimida al backend y refleja el resultado
  *  localmente (sin re-sincronizar todo el inventario contra el
  *  servidor, para que no tarde y no se pierdan los filtros activos). */
@@ -3281,41 +3358,6 @@ function _subirUnaFoto(dataUrl, sku) {
         return { ok: false, message: (rs && rs.message) || "Error desconocido." };
     })
     .catch(() => ({ ok: false, message: "Error de conexión." }));
-}
-
-/** NUEVO — Sube TODAS las fotos seleccionadas, una por una en secuencia
- *  (no en paralelo: si dos subidas escriben la misma celda al mismo
- *  tiempo, una puede pisar a la otra y perderse una foto). Muestra
- *  progreso "Enviando 2 de 5..." y al final un resumen. La galería y
- *  la tarjeta se van actualizando foto por foto, sin esperar a que
- *  termine todo el lote. */
-async function enviarFotosProducto() {
-    if (fotoProductoArchivosActuales.length === 0 || !fotoProductoSkuActual) return;
-    const btn = document.getElementById("btn-enviar-foto");
-    const sku = fotoProductoSkuActual;
-    const fotos = fotoProductoArchivosActuales.slice();
-    let exitosas = 0;
-    const errores = [];
-
-    for (let i = 0; i < fotos.length; i++) {
-        btn.disabled = true;
-        btn.innerText = fotos.length > 1 ? `Enviando ${i+1} de ${fotos.length}...` : "Enviando...";
-        const resultado = await _subirUnaFoto(fotos[i], sku);
-        if (resultado.ok) exitosas++;
-        else errores.push(resultado.message);
-    }
-
-    if (exitosas > 0) {
-        mostrarToastInfo(exitosas === 1
-            ? "Foto agregada correctamente."
-            : `${exitosas} foto(s) agregadas correctamente.`);
-    }
-    if (errores.length > 0) {
-        alert("No se pudieron subir " + errores.length + " foto(s):\n" + errores.join("\n"));
-    }
-
-    reiniciarSeleccionFoto(); // deja el formulario listo para la siguiente tanda, sin cerrar nada
-    btn.disabled = false; btn.innerText = "Enviar foto";
 }
 
 function manejarTecladoBuscador(e) { if (e.key==="Enter") document.getElementById("buscador").blur(); }
