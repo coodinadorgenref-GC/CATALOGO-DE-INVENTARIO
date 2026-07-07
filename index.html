@@ -673,23 +673,32 @@
      Ahora usa un <input type="file" capture="environment"> que abre
      directo la cámara (o la galería) del dispositivo, muestra una
      vista previa dentro de esta misma ventana emergente, y al enviar
-     sube la imagen ya comprimida directo al backend. La ventana se
-     cierra sola en cuanto el envío se confirma.
+     sube la imagen ya comprimida directo al backend. Soporta VARIAS
+     fotos por producto: cada envío AGREGA una foto a la galería (no
+     la reemplaza), el botón queda listo para seguir agregando, y
+     arriba se muestran las miniaturas ya subidas con su botón de
+     borrar (curar/corregir sin perder las demás). El modal ya no se
+     cierra solo al terminar — el admin lo cierra cuando ya acabó.
 ═════════════════════════════════════════════════ -->
 <div id="modal-form-foto"
      class="fixed inset-0 bg-black/85 z-[75] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300"
      onclick="cerrarFormularioFotoExterno(event)">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md relative overflow-hidden flex flex-col shadow-2xl" onclick="event.stopPropagation()">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md relative overflow-hidden flex flex-col shadow-2xl max-h-[90vh]" onclick="event.stopPropagation()">
         <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700 bg-slate-800 shrink-0">
             <h3 class="text-sm font-black uppercase tracking-wide text-white flex items-center gap-2">
-                <i class="fa-solid fa-camera text-blue-400"></i> Agregar Foto
+                <i class="fa-solid fa-images text-blue-400"></i> Gestionar Fotos
             </h3>
             <button onclick="cerrarFormularioFoto()" class="text-slate-400 hover:text-white text-xl cursor-pointer">
                 <i class="fa-solid fa-xmark"></i>
             </button>
         </div>
 
-        <div class="p-5 flex flex-col gap-4">
+        <div class="p-5 flex flex-col gap-4 overflow-y-auto">
+            <!-- Galería actual: miniaturas con botón de borrar por foto.
+                 Se re-renderiza tras cada subida/eliminación exitosa sin
+                 cerrar la ventana, para poder curar varias fotos seguidas. -->
+            <div id="contenedor-galeria-admin-fotos" class="grid grid-cols-3 gap-2"></div>
+
             <!-- Input real de captura, oculto: capture="environment" pide la
                  cámara trasera directo en móvil; en PC abre el explorador
                  de archivos (o webcam si el navegador lo soporta). -->
@@ -697,13 +706,13 @@
                    class="hidden-element" onchange="previewFotoProducto(event)">
 
             <div id="zona-captura-foto" onclick="activarSelectorFoto()"
-                 class="cursor-pointer border-2 border-dashed border-slate-600 hover:border-blue-400 rounded-xl h-56 flex flex-col items-center justify-center gap-3 text-slate-400 transition">
-                <i class="fa-solid fa-camera text-4xl"></i>
-                <p class="text-sm font-semibold text-center px-6">Toca aquí para tomar una foto<br>o elegir una de tu galería</p>
+                 class="cursor-pointer border-2 border-dashed border-slate-600 hover:border-blue-400 rounded-xl h-40 flex flex-col items-center justify-center gap-3 text-slate-400 transition">
+                <i class="fa-solid fa-camera text-3xl"></i>
+                <p class="text-sm font-semibold text-center px-6">Toca aquí para agregar otra foto</p>
             </div>
 
             <div id="zona-preview-foto" class="hidden-element flex flex-col gap-3">
-                <div class="rounded-xl overflow-hidden border border-slate-700 bg-slate-900 h-56 flex items-center justify-center">
+                <div class="rounded-xl overflow-hidden border border-slate-700 bg-slate-900 h-48 flex items-center justify-center">
                     <img id="preview-foto-producto" src="" alt="Vista previa" class="max-w-full max-h-full object-contain">
                 </div>
                 <button onclick="reiniciarSeleccionFoto()"
@@ -990,6 +999,17 @@ function gestionarFalloImagenDrive(img) {
 function generarHtmlContenedorImagen(url) {
     return `<img src="${url}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
               class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300">`;
+}
+
+/** Devuelve el arreglo de fotos de un producto ya optimizadas para
+ *  mostrarse (Drive thumbnail, etc). Soporta tanto productos nuevos
+ *  (item.Imagenes = arreglo) como el formato viejo en caché
+ *  (item.Imagen = una sola URL de texto) sin romper nada. */
+function obtenerImagenesProducto(item) {
+    let lista = Array.isArray(item.Imagenes) ? item.Imagenes.filter(u => !!String(u||"").trim()) : [];
+    if (lista.length === 0 && item.Imagen) lista = [item.Imagen];
+    const optimizadas = lista.map(optimizarEnlaceImagen);
+    return optimizadas.length ? optimizadas : [optimizarEnlaceImagen("")];
 }
 
 /* ══════════════════════════════════════════
@@ -1442,7 +1462,8 @@ function renderizarTarjetasProductos(lista) {
         div.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col justify-between transition duration-200 group border-camejo cursor-pointer";
         div.onclick = () => { actualizarTimestampSesion(); abrirDetalleProducto(item); };
 
-        const imgUrl = optimizarEnlaceImagen(item.Imagen||"");
+        const imagenesProducto = obtenerImagenesProducto(item);
+        const imgUrl = imagenesProducto[0];
         // Indicador de stock
         const totalStock = (item.Existencias||[]).reduce((s,e)=>s+Number(e.cantidad||0),0);
         const stockBadge = totalStock > 0
@@ -1450,6 +1471,9 @@ function renderizarTarjetasProductos(lista) {
             : `<span class="absolute top-3 left-3 bg-red-900/80 text-red-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10">Sin stock</span>`;
         const liquidacionBadge = item.Liquidacion
             ? `<span class="absolute bottom-2 left-2 right-2 bg-red-600 text-white text-[9px] font-black px-2 py-1 rounded-md z-10 text-center uppercase tracking-wide flex items-center justify-center gap-1"><i class="fa-solid fa-flag"></i> Liquidación</span>`
+            : "";
+        const galeriaBadge = imagenesProducto.length > 1
+            ? `<span class="absolute bottom-2 right-2 bg-black/70 text-slate-200 text-[9px] font-black px-1.5 py-0.5 rounded-md z-10 flex items-center gap-1"><i class="fa-solid fa-images"></i> ${imagenesProducto.length}</span>`
             : "";
 
         div.innerHTML = `
@@ -1459,6 +1483,7 @@ function renderizarTarjetasProductos(lista) {
                         ${generarHtmlContenedorImagen(imgUrl)}
                         ${stockBadge}
                         ${liquidacionBadge}
+                        ${!item.Liquidacion ? galeriaBadge : ""}
                         <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase z-10">${escaparHTML(item.Marca)||"GENÉRICO"}</span>
                     </div>
                     <div class="p-4 flex flex-col gap-1">
@@ -2674,8 +2699,31 @@ function cerrarModalCotizacion() { document.getElementById("modal-cotizacion").c
 function cerrarModalCotizacionExterno(e) { if (e.target.id==="modal-cotizacion") cerrarModalCotizacion(); }
 
 /* ══════════════════════════════════════════
-   MODAL DETALLE PRODUCTO
+   MODAL DETALLE PRODUCTO — galería de fotos
 ══════════════════════════════════════════ */
+let galeriaModalImagenes = [];
+let galeriaModalIndice   = 0;
+
+/** Refresca la imagen principal y el punto activo sin reconstruir
+ *  todo el modal (evita parpadeos al navegar la galería). */
+function actualizarImagenModalPrincipal() {
+    const img = document.getElementById("imagen-principal-modal");
+    if (img) img.src = galeriaModalImagenes[galeriaModalIndice] || "";
+    document.querySelectorAll(".dot-galeria-modal").forEach((dot, i) => {
+        dot.classList.toggle("bg-emerald-400", i === galeriaModalIndice);
+        dot.classList.toggle("bg-slate-500/70", i !== galeriaModalIndice);
+    });
+}
+function galeriaModalMover(delta) {
+    if (galeriaModalImagenes.length < 2) return;
+    galeriaModalIndice = (galeriaModalIndice + delta + galeriaModalImagenes.length) % galeriaModalImagenes.length;
+    actualizarImagenModalPrincipal();
+}
+function galeriaModalIrA(indice) {
+    galeriaModalIndice = indice;
+    actualizarImagenModalPrincipal();
+}
+
 function abrirDetalleProducto(item) {
     if (guardadoCompatibilidadPendiente) {
         alert("Espera a que se confirme el guardado de la compatibilidad actual antes de abrir otro producto.");
@@ -2684,7 +2732,11 @@ function abrirDetalleProducto(item) {
     const sku             = item.SKU || "---";
     const titulo          = item.Producto || "Sin Nombre";
     const marca           = item.Marca || "GENÉRICO";
-    const urlImg          = optimizarEnlaceImagen(item.Imagen||"");
+    // Galería: puede haber 1 o varias fotos. galeriaModalImagenes guarda el
+    // estado global del carrusel de este modal (avanzar/retroceder/puntos).
+    galeriaModalImagenes  = obtenerImagenesProducto(item);
+    galeriaModalIndice    = 0;
+    const urlImg          = galeriaModalImagenes[0];
     const tituloSeguro    = JSON.stringify(titulo);
     const compatSegura    = JSON.stringify(item.Compatibilidad||"");
     const inventarios     = item.Existencias || [];
@@ -2768,9 +2820,9 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
     if (esAdmin) {
         htmlBtnAdmin = `
         <div class="grid grid-cols-2 gap-4 mt-6">
-            <button onclick='abrirFormularioFoto("${sku}")'
+            <button onclick='abrirFormularioFoto("${sku}", ${JSON.stringify(galeriaModalImagenes.filter(u => !u.includes("placehold.co")))})'
                     class="w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider cursor-pointer flex items-center justify-center">
-                <i class="fa-solid fa-camera mr-2"></i> Agregar Foto
+                <i class="fa-solid fa-camera mr-2"></i> Gestionar Fotos
             </button>
             <button id="btn-edicion" onclick='habilitarEdicion("${sku}", ${compatSegura})'
                     class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer">
@@ -2785,12 +2837,35 @@ const bannerLiquidacion = item.Liquidacion
            </div>`
         : "";
 
+    // Galería: flechas de navegación y puntos indicadores solo si hay
+    // más de una foto. El carrusel se maneja con galeriaModalImagenes /
+    // galeriaModalIndice (estado global) y sus funciones auxiliares.
+    const hayVariasFotos = galeriaModalImagenes.length > 1;
+    const flechasGaleria = hayVariasFotos ? `
+            <button onclick="event.stopPropagation(); galeriaModalMover(-1)"
+                    class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white w-8 h-8 rounded-full flex items-center justify-center z-10 cursor-pointer">
+                <i class="fa-solid fa-chevron-left text-xs"></i>
+            </button>
+            <button onclick="event.stopPropagation(); galeriaModalMover(1)"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/60 hover:bg-black/80 text-white w-8 h-8 rounded-full flex items-center justify-center z-10 cursor-pointer">
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+            </button>` : "";
+    const puntosGaleria = hayVariasFotos ? `
+            <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+                ${galeriaModalImagenes.map((_, i) => `
+                    <button onclick="event.stopPropagation(); galeriaModalIrA(${i})"
+                            class="dot-galeria-modal w-2 h-2 rounded-full transition ${i===0 ? "bg-emerald-400" : "bg-slate-500/70"}"></button>
+                `).join("")}
+            </div>` : "";
+
     document.getElementById("modal-cuerpo").innerHTML = `
         ${bannerLiquidacion}
         <div class="relative pt-[65%] bg-slate-900 overflow-hidden rounded-xl mb-4 border border-slate-700 group">
-            <img src="${urlImg}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
-                 onclick="abrirZoomImagen('${urlImg}')"
-                 class="absolute inset-0 w-full h-full object-cover cursor-zoom-in group-hover:scale-105 transition duration-300">
+            <img id="imagen-principal-modal" src="${urlImg}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
+                 onclick="abrirZoomImagen(galeriaModalImagenes[galeriaModalIndice])"
+                 class="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition duration-300">
+            ${flechasGaleria}
+            ${puntosGaleria}
             <div class="absolute bottom-2 right-2 bg-black/60 text-slate-300 text-[10px] font-bold py-1 px-2 rounded-md pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity">
                 <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> Clic para ampliar
             </div>
@@ -2922,20 +2997,30 @@ function cerrarZoomImagen() {
 }
 
 /* ══════════════════════════════════════════
-   AGREGAR FOTO (ADMIN) — captura nativa
+   GESTIONAR FOTOS (ADMIN) — galería + captura nativa
    ══════════════════════════════════════════
    Ya no depende de Google Forms ni de iframes: usa el selector de
    archivos/cámara del propio navegador (funciona igual en PC y en
    móvil), muestra vista previa dentro de la misma ventana emergente,
    y al enviar sube la imagen (comprimida en el cliente) directo al
-   backend, que la guarda en Drive y actualiza el catálogo. La ventana
-   se cierra sola en cuanto el servidor confirma que se guardó. */
-let fotoProductoSkuActual   = null;
-let fotoProductoBase64Actual = null;
+   backend, que la guarda en Drive y la AGREGA a la galería del SKU
+   (nunca sobrescribe). El modal muestra las fotos ya subidas como
+   miniaturas con botón de borrar, y se mantiene abierto tras cada
+   envío para poder seguir agregando o curando fotos. */
+let fotoProductoSkuActual       = null;
+let fotoProductoBase64Actual    = null;
+// Estado local de la galería mientras el modal admin está abierto —
+// se actualiza tras cada subida/eliminación exitosa, sin cerrar el
+// modal, para poder agregar o curar varias fotos seguidas.
+let fotoProductoImagenesActuales = [];
 
-function abrirFormularioFoto(sku) {
+/** Abre el modal de gestión de fotos con la galería actual del SKU
+ *  (miniaturas + botón de borrar) y la zona para agregar una más. */
+function abrirFormularioFoto(sku, imagenesActuales) {
     fotoProductoSkuActual = sku;
+    fotoProductoImagenesActuales = Array.isArray(imagenesActuales) ? imagenesActuales.slice() : [];
     reiniciarSeleccionFoto();
+    renderizarGaleriaAdminFotos();
     document.getElementById("modal-form-foto").classList.remove("opacity-0", "pointer-events-none");
 }
 
@@ -2943,6 +3028,7 @@ function cerrarFormularioFoto() {
     document.getElementById("modal-form-foto").classList.add("opacity-0", "pointer-events-none");
     fotoProductoSkuActual = null;
     fotoProductoBase64Actual = null;
+    fotoProductoImagenesActuales = [];
 }
 /** Cierra el modal de detalle del producto de forma forzada (sin toggle),
  *  usado después de subir una foto exitosamente para regresar directo
@@ -2957,6 +3043,24 @@ function cerrarModalDetalleForzado() {
  *  (fuera de la tarjeta), igual que los demás modales. */
 function cerrarFormularioFotoExterno(e) {
     if (e.target.id === "modal-form-foto") cerrarFormularioFoto();
+}
+
+/** Dibuja las miniaturas de la galería actual con su botón de borrar.
+ *  Si no hay ninguna foto todavía, no muestra nada (solo la zona de
+ *  captura de abajo). */
+function renderizarGaleriaAdminFotos() {
+    const cont = document.getElementById("contenedor-galeria-admin-fotos");
+    if (!cont) return;
+    if (fotoProductoImagenesActuales.length === 0) { cont.innerHTML = ""; return; }
+    cont.innerHTML = fotoProductoImagenesActuales.map((url, i) => `
+        <div class="relative aspect-square rounded-lg overflow-hidden border border-slate-700 bg-slate-900 group">
+            <img src="${url}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
+                 class="absolute inset-0 w-full h-full object-cover">
+            <button onclick="eliminarFotoDesdeAdmin(${i})" title="Eliminar esta foto"
+                    class="absolute top-1 right-1 bg-red-600/90 hover:bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-[11px] cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>`).join("");
 }
 
 /** Abre el selector nativo de cámara/galería del navegador. */
@@ -3006,13 +3110,18 @@ function reiniciarSeleccionFoto() {
     const input = document.getElementById("input-foto-producto");
     if (input) input.value = "";
     fotoProductoBase64Actual = null;
-    document.getElementById("zona-preview-foto").classList.add("hidden-element");
-    document.getElementById("zona-captura-foto").classList.remove("hidden-element");
+    const zonaPreview = document.getElementById("zona-preview-foto");
+    const zonaCaptura = document.getElementById("zona-captura-foto");
+    if (zonaPreview) zonaPreview.classList.add("hidden-element");
+    if (zonaCaptura) zonaCaptura.classList.remove("hidden-element");
     const btn = document.getElementById("btn-enviar-foto");
-    btn.disabled = true; btn.innerText = "Enviar foto";
+    if (btn) { btn.disabled = true; btn.innerText = "Enviar foto"; }
 }
 
-/** Sube la foto ya comprimida al backend (Apps Script → Drive + Sheets). */
+/** Sube la foto ya comprimida al backend (Apps Script → Drive + Sheets).
+ *  Ya NO cierra el modal al terminar: agrega la foto a la galería local,
+ *  vuelve a mostrar la zona de captura, y deja el modal abierto para
+ *  poder seguir agregando fotos (el botón es repetible). */
 function enviarFotoProducto() {
     if (!fotoProductoBase64Actual || !fotoProductoSkuActual) return;
     const btn = document.getElementById("btn-enviar-foto");
@@ -3030,10 +3139,11 @@ function enviarFotoProducto() {
     .then(r => r.json())
     .then(rs => {
             if (rs && rs.success) {
-                mostrarToastInfo("Foto enviada correctamente. Se reflejará en el catálogo en unos momentos.");
+                mostrarToastInfo("Foto agregada. Puedes seguir agregando más o cerrar esta ventana.");
+                fotoProductoImagenesActuales = Array.isArray(rs.fotos) ? rs.fotos : [...fotoProductoImagenesActuales, rs.url];
+                renderizarGaleriaAdminFotos();
+                reiniciarSeleccionFoto();
                 forzarSincronizacionDatos();
-                cerrarFormularioFoto();
-                cerrarModalDetalleForzado();
             } else {
             alert("No se pudo subir la foto: " + (rs && rs.message ? rs.message : "Error desconocido. Intenta de nuevo."));
             btn.disabled = false; btn.innerText = "Enviar foto";
@@ -3043,6 +3153,35 @@ function enviarFotoProducto() {
         alert("Error de conexión al subir la foto. Verifica tu internet e intenta de nuevo.");
         btn.disabled = false; btn.innerText = "Enviar foto";
     });
+}
+
+/** Elimina una foto puntual de la galería (curar/corregir). Pide
+ *  confirmación porque no se puede deshacer una vez borrada de Drive. */
+function eliminarFotoDesdeAdmin(indice) {
+    const url = fotoProductoImagenesActuales[indice];
+    if (!url) return;
+    if (!confirm("¿Eliminar esta foto del producto? Esta acción no se puede deshacer.")) return;
+
+    fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+        body: JSON.stringify({
+            action: "eliminarFotoProducto",
+            token: tokenActual,
+            correo: usuarioActual,
+            sku: fotoProductoSkuActual,
+            urlFoto: url
+        }) })
+    .then(r => r.json())
+    .then(rs => {
+        if (rs && rs.success) {
+            fotoProductoImagenesActuales = Array.isArray(rs.fotos) ? rs.fotos : fotoProductoImagenesActuales.filter(u => u !== url);
+            renderizarGaleriaAdminFotos();
+            mostrarToastInfo("Foto eliminada.");
+            forzarSincronizacionDatos();
+        } else {
+            alert("No se pudo eliminar la foto: " + (rs && rs.message ? rs.message : "Error desconocido. Intenta de nuevo."));
+        }
+    })
+    .catch(() => alert("Error de conexión al eliminar la foto. Verifica tu internet e intenta de nuevo."));
 }
 
 function manejarTecladoBuscador(e) { if (e.key==="Enter") document.getElementById("buscador").blur(); }
