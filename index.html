@@ -989,7 +989,26 @@ function optimizarEnlaceImagen(enlace) {
              : "https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto";
 }
 
+/** NUEVO — Reintenta cargar la imagen unas cuantas veces antes de darse
+ *  por vencido. Justo después de subir una foto, el servicio de
+ *  miniaturas de Google Drive puede tardar unos segundos en generar el
+ *  thumbnail del archivo nuevo; sin este reintento automático, la
+ *  imagen se veía "rota" hasta que el admin refrescaba manualmente. */
 function gestionarFalloImagenDrive(img) {
+    const intentos = parseInt(img.dataset.reintentos || "0", 10);
+    const MAX_REINTENTOS = 5;
+    const esDrive = /drive\.google\.com|googleusercontent\.com/.test(img.src);
+
+    if (esDrive && intentos < MAX_REINTENTOS) {
+        img.dataset.reintentos = intentos + 1;
+        const espera = 1000 * Math.pow(2, intentos); // 1s, 2s, 4s, 8s, 16s
+        const srcBase = img.src.split("&_r=")[0];
+        setTimeout(() => {
+            img.src = srcBase + "&_r=" + Date.now(); // evita que el navegador reuse el fallo cacheado
+        }, espera);
+        return;
+    }
+    img.onerror = null; // ya no reintentar más, evita loop
     img.src = "https://placehold.co/400x300/1e293b/94a3b8?text=Sin+Foto";
 }
 
