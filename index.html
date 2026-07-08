@@ -372,19 +372,26 @@
             opacity: .9;
         }
         /* ══════════════════════════════════════════
-           NUEVO — Secuencia de carga en 4 fases:
-           1) fase-entrando: la moto (sin piloto) baja y aterriza al centro.
-           2) fase-montando: llega la figura del piloto con casco y se
-              sienta en la moto; al terminar se prende el faro.
-           3) fase-esperando: YA con piloto y luz encendida, arrancan las
-              llantas y el asfalto (dura lo que tarde la carga real).
-           4) fase-saliendo: todo el conjunto (moto+piloto) sale hacia la
-              DERECHA desvaneciéndose.
+           NUEVO — Animación de carga: CHOPPER/CRUISER con RUEDAS
+           REALES que giran (SVG propio: cuerpo fijo + 2 ruedas con
+           su propio <g> que rota de verdad), inspirada en la
+           referencia del motociclista con casco.
+           Secuencia de 4 fases:
+             1) "entrando"  → la moto (sola, sin jinete) baja desde
+                              arriba y se detiene al centro.
+             2) "rider"     → llega la figura con casco y SE SUBE
+                              a la moto (desliza hasta el asiento).
+             3) "rodando"   → ya montado: se prende el faro y justo
+                              después empiezan a rodar las llantas
+                              sobre el asfalto (dura lo que tarde la
+                              descarga real del inventario).
+             4) "saliendo"  → moto + jinete salen juntos hacia la
+                              DERECHA y se desvanecen.
         ══════════════════════════════════════════ */
         .escena-moto {
             position: relative;
             width: 260px;
-            height: 160px;
+            height: 178px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -394,62 +401,79 @@
         .moto-svg-real {
             position: relative;
             z-index: 2;
-            transform: translate(0, -150px);
+            transform: translate(0, -160px);
             opacity: 0;
             filter: drop-shadow(0 6px 10px rgba(0,0,0,.35));
         }
 
-        /* Ruedas: NO giran hasta que el piloto ya está montado (fase 3) */
-        .escena-moto.fase-esperando .rueda-real,
-        .escena-moto.fase-saliendo  .rueda-real {
+        /* Jinete: llega desde la izquierda y "se sube" al asiento.
+           Por defecto queda oculto/fuera de posición hasta la fase 2. */
+        .motorista-grupo {
+            transform-origin: 95px 92px;
+            transform: translate(-190px, -34px) rotate(-14deg);
+            opacity: 0;
+        }
+        .escena-moto.fase-rider .motorista-grupo {
+            animation: motorista-sube .7s cubic-bezier(.34,1.56,.64,1) forwards;
+        }
+        .escena-moto.fase-rodando .motorista-grupo,
+        .escena-moto.fase-saliendo .motorista-grupo {
+            transform: translate(0,0) rotate(0deg);
+            opacity: 1;
+        }
+        @keyframes motorista-sube {
+            0%   { transform: translate(-190px, -34px) rotate(-14deg); opacity: 0; }
+            55%  { opacity: 1; }
+            100% { transform: translate(0,0) rotate(0deg); opacity: 1; }
+        }
+
+        /* Ruedas: giro REAL sobre su propio centro. Solo giran una vez
+           el jinete ya está montado (fases "rodando" y "saliendo"). */
+        .rueda-real { animation: none; }
+        .escena-moto.fase-rodando .rueda-real,
+        .escena-moto.fase-saliendo .rueda-real {
             animation: moto-gira-rueda .5s linear infinite;
+            animation-delay: .3s;
+            animation-fill-mode: both;
         }
         @keyframes moto-gira-rueda { to { transform: rotate(360deg); } }
 
-        /* Piloto: arranca invisible y arriba, "se sube" al llegar la fase 2 */
-        .figura-piloto { transform: translate(0, -46px); opacity: 0; }
-        .escena-moto.fase-montando  .figura-piloto,
-        .escena-moto.fase-esperando .figura-piloto,
-        .escena-moto.fase-saliendo  .figura-piloto {
-            animation: piloto-se-sube .5s cubic-bezier(.3,.6,.35,1) forwards;
-        }
-        @keyframes piloto-se-sube {
-            from { transform: translate(0, -46px); opacity: 0; }
-            to   { transform: translate(0, 0); opacity: 1; }
-        }
-
-        /* Faro: se enciende al final de que el piloto se sube (fase 2) */
-        .faro { fill: #064e3b; }
-        .escena-moto.fase-montando  .faro,
-        .escena-moto.fase-esperando .faro,
-        .escena-moto.fase-saliendo  .faro {
+        /* Faro: apagado hasta que el jinete se sube; se enciende al
+           arrancar la fase "rodando" (justo antes de que rueden las
+           llantas) y se queda encendido hasta que sale de pantalla. */
+        .faro { fill: #064e3b; transition: none; }
+        .escena-moto.fase-rodando .faro {
             animation: faro-enciende .3s ease-out forwards;
-            animation-delay: .3s;
+        }
+        .escena-moto.fase-saliendo .faro {
+            fill: #fef08a;
+            filter: drop-shadow(0 0 5px #fde047) drop-shadow(0 0 10px #fde047);
         }
         @keyframes faro-enciende {
             to { fill: #fef08a; filter: drop-shadow(0 0 5px #fde047) drop-shadow(0 0 10px #fde047); }
         }
 
-        /* Fase 1: la moto (sin piloto) baja desde arriba y aterriza */
-        .escena-moto.fase-entrando  .moto-svg-real { animation: moto-baja .7s cubic-bezier(.22,.85,.32,1.1) forwards; }
-        /* Fases 2 y 3: quieta al centro, ya visible */
-        .escena-moto.fase-montando  .moto-svg-real,
-        .escena-moto.fase-esperando .moto-svg-real { transform: translate(0,0); opacity: 1; }
-        /* Fase 4: moto + piloto salen juntos hacia la DERECHA, desvanecidos */
-        .escena-moto.fase-saliendo  .moto-svg-real { animation: moto-sale-der .8s cubic-bezier(.45,0,.7,.4) forwards; }
+        /* Fase 1: baja desde arriba y se detiene al centro (sin jinete) */
+        .escena-moto.fase-entrando .moto-svg-real { animation: moto-baja .85s cubic-bezier(.22,.85,.32,1.1) forwards; }
+        /* Fases 2 y 3: moto quieta al centro, visible por completo */
+        .escena-moto.fase-rider .moto-svg-real,
+        .escena-moto.fase-rodando .moto-svg-real { transform: translate(0,0); opacity: 1; }
+        /* Fase 4: moto + jinete salen juntos hacia la DERECHA */
+        .escena-moto.fase-saliendo .moto-svg-real { animation: moto-sale-der .95s cubic-bezier(.45,0,.7,.4) forwards; }
 
         @keyframes moto-baja {
-            from { transform: translate(0, -150px); opacity: 0; }
+            from { transform: translate(0, -160px); opacity: 0; }
             55%  { opacity: 1; }
-            82%  { transform: translate(0, 6px); }
+            80%  { transform: translate(0, 6px); }
             to   { transform: translate(0, 0); opacity: 1; }
         }
         @keyframes moto-sale-der {
-            from { transform: translate(0, 0); opacity: 1; }
-            to   { transform: translate(300px, 0); opacity: 0; }
+            0%   { transform: translate(0, 0); opacity: 1; }
+            100% { transform: translate(310px, 0); opacity: 0; }
         }
 
-        /* Carril de asfalto: las rayas solo avanzan cuando las llantas ruedan */
+        /* Carril de asfalto con rayas que se desplazan simulando avance.
+           También arrancan solo cuando ya empezó a "rodar" la moto. */
         .carril-asfalto {
             width: 100%;
             height: 14px;
@@ -466,10 +490,13 @@
             top: 45%;
             height: 3px;
             background-image: repeating-linear-gradient(90deg, #64748b 0 22px, transparent 22px 44px);
+            animation: none;
         }
-        .escena-moto.fase-esperando .rayas-asfalto,
-        .escena-moto.fase-saliendo  .rayas-asfalto {
+        .escena-moto.fase-rodando .rayas-asfalto,
+        .escena-moto.fase-saliendo .rayas-asfalto {
             animation: moto-avanza-asfalto .5s linear infinite;
+            animation-delay: .3s;
+            animation-fill-mode: both;
         }
         @keyframes moto-avanza-asfalto {
             from { background-position-x: 0; }
@@ -477,12 +504,14 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .rueda-real, .rayas-asfalto, .faro, .figura-piloto,
+            .rueda-real,
+            .rayas-asfalto,
+            .faro,
+            .motorista-grupo,
             .escena-moto.fase-entrando .moto-svg-real,
-            .escena-moto.fase-saliendo .moto-svg-real { animation: none !important; }
-            .moto-svg-real  { transform: translate(0,0); opacity: 1; }
-            .figura-piloto  { transform: translate(0,0); opacity: 1; }
-            .faro           { fill: #fef08a; }
+            .escena-moto.fase-saliendo .moto-svg-real { animation: none; }
+            .moto-svg-real { transform: translate(0,0); opacity: 1; }
+            .motorista-grupo { transform: translate(0,0) rotate(0deg); opacity: 1; }
         }
     </style>
 </head>
@@ -631,67 +660,58 @@
 
     </header>
 
-    <!-- CARGANDO — animación: moto estilo chopper + piloto que se sube -->
+    <!-- CARGANDO — animación de motocicleta (ruedas reales que giran) -->
     <div id="cargando-datos" class="flex-1 flex flex-col items-center justify-center p-8 overflow-hidden">
         <div id="escena-moto" class="escena-moto">
-            <svg id="moto-svg" class="moto-svg-real" viewBox="0 0 240 150" width="220" height="137" xmlns="http://www.w3.org/2000/svg">
+            <svg id="moto-svg" class="moto-svg-real" viewBox="0 0 260 148" width="224" height="128" xmlns="http://www.w3.org/2000/svg">
+                <!-- Cuerpo fijo: chopper/crucero — asiento bajo, tanque,
+                     horquilla delantera larga y manubrio alto (ape-hanger).
+                     Una sola pieza, no rota. -->
+                <path fill="#10b981" stroke="#0f172a" stroke-width="2.5" stroke-linejoin="round" d="
+                    M50,130 C50,110 66,94 86,94
+                    L100,94
+                    L112,76 C114,72 120,70 126,72
+                    L140,50 C146,44 156,43 163,48
+                    L170,56 L154,66 L138,76 L150,86
+                    C166,88 180,102 188,130
+                    L166,130 L154,102 L128,102 L118,130 Z"/>
+                <circle class="faro" cx="152" cy="84" r="7" stroke="#0f172a" stroke-width="1.5"/>
 
-                <!-- ═══ MOTO (estilo chopper: fork delantero largo e inclinado) ═══ -->
-                <g class="grupo-moto-cuerpo">
-                    <!-- Fork delantero extendido -->
-                    <path d="M168,58 L190,112" stroke="#10b981" stroke-width="8" stroke-linecap="round"/>
-                    <!-- Manubrio alto -->
-                    <path d="M168,58 L181,36" stroke="#10b981" stroke-width="6" stroke-linecap="round"/>
-                    <circle cx="182" cy="34" r="4.5" fill="#10b981"/>
-                    <!-- Motor -->
-                    <rect x="70" y="88" width="30" height="22" rx="5" fill="#10b981"/>
-                    <circle cx="85" cy="99" r="6.5" fill="#0f172a" opacity=".3"/>
-                    <!-- Asiento -->
-                    <path d="M56,78 Q76,68 98,76 L98,83 Q76,76 59,84 Z" fill="#10b981"/>
-                    <!-- Chasis: asiento → motor → rueda trasera -->
-                    <path d="M50,110 L59,84 L98,83 L98,98 L108,110 Z" fill="#10b981"/>
-                    <!-- Conexión chasis → fork -->
-                    <path d="M98,83 L168,58 L172,66 L104,90 Z" fill="#10b981"/>
-                    <!-- Escape -->
-                    <path d="M50,110 L20,118" stroke="#94a3b8" stroke-width="5.5" stroke-linecap="round"/>
-                    <ellipse cx="16" cy="119" rx="5.5" ry="3.2" fill="#64748b"/>
-                    <!-- Faro -->
-                    <circle class="faro" cx="168" cy="58" r="8"/>
+                <!-- Jinete: casco + torso + brazo (al manubrio) + pierna (al estribo) -->
+                <g class="motorista-grupo">
+                    <path d="M95,92 Q120,105 148,120" fill="none" stroke="#0f172a" stroke-width="15" stroke-linecap="round"/>
+                    <path d="M95,92 Q120,105 148,120" fill="none" stroke="#10b981" stroke-width="10" stroke-linecap="round"/>
+
+                    <path d="M85,55 Q125,45 165,58" fill="none" stroke="#0f172a" stroke-width="14" stroke-linecap="round"/>
+                    <path d="M85,55 Q125,45 165,58" fill="none" stroke="#10b981" stroke-width="9" stroke-linecap="round"/>
+
+                    <path d="M85,55 Q78,75 95,92" fill="none" stroke="#0f172a" stroke-width="20" stroke-linecap="round"/>
+                    <path d="M85,55 Q78,75 95,92" fill="none" stroke="#10b981" stroke-width="15" stroke-linecap="round"/>
+
+                    <circle cx="80" cy="40" r="15" fill="#10b981" stroke="#0f172a" stroke-width="3"/>
+                    <path d="M67,42 Q80,53 93,41 Q88,47 80,48 Q72,47 67,42 Z" fill="#0f172a"/>
                 </g>
 
-                <!-- ═══ RUEDAS reales: cada una gira sobre su propio centro ═══ -->
-                <g class="rueda-real" style="transform-origin:50px 110px">
-                    <circle cx="50" cy="110" r="28" fill="#10b981"/>
-                    <circle cx="50" cy="110" r="28" fill="none" stroke="#0f172a" stroke-width="3"/>
-                    <circle cx="50" cy="110" r="20" fill="none" stroke="#0f172a" stroke-width="2" opacity=".35"/>
-                    <line x1="50" y1="87"   x2="50" y2="133"  stroke="#0f172a" stroke-width="3.2"/>
-                    <line x1="27" y1="110"  x2="73" y2="110"  stroke="#0f172a" stroke-width="3.2"/>
-                    <line x1="33.7" y1="93.7" x2="66.3" y2="126.3" stroke="#0f172a" stroke-width="3.2"/>
-                    <line x1="66.3" y1="93.7" x2="33.7" y2="126.3" stroke="#0f172a" stroke-width="3.2"/>
-                    <circle cx="50" cy="110" r="7.5" fill="#0f172a"/>
-                </g>
-                <g class="rueda-real" style="transform-origin:190px 112px">
-                    <circle cx="190" cy="112" r="28" fill="#10b981"/>
-                    <circle cx="190" cy="112" r="28" fill="none" stroke="#0f172a" stroke-width="3"/>
-                    <circle cx="190" cy="112" r="20" fill="none" stroke="#0f172a" stroke-width="2" opacity=".35"/>
-                    <line x1="190" y1="89"   x2="190" y2="135"  stroke="#0f172a" stroke-width="3.2"/>
-                    <line x1="167" y1="112"  x2="213" y2="112"  stroke="#0f172a" stroke-width="3.2"/>
-                    <line x1="173.7" y1="95.7" x2="206.3" y2="128.3" stroke="#0f172a" stroke-width="3.2"/>
-                    <line x1="206.3" y1="95.7" x2="173.7" y2="128.3" stroke="#0f172a" stroke-width="3.2"/>
-                    <circle cx="190" cy="112" r="7.5" fill="#0f172a"/>
+                <!-- Rueda trasera: gira sobre su propio centro -->
+                <g class="rueda-real" style="transform-origin:50px 130px">
+                    <circle cx="50" cy="130" r="24" fill="#10b981"/>
+                    <circle cx="50" cy="130" r="19.5" fill="none" stroke="#0f172a" stroke-width="2" opacity=".35"/>
+                    <line x1="50" y1="107"   x2="50" y2="153"  stroke="#0f172a" stroke-width="3"/>
+                    <line x1="27" y1="130"   x2="73" y2="130"   stroke="#0f172a" stroke-width="3"/>
+                    <line x1="33.7" y1="113.7" x2="66.3" y2="146.3" stroke="#0f172a" stroke-width="3"/>
+                    <line x1="66.3" y1="113.7" x2="33.7" y2="146.3" stroke="#0f172a" stroke-width="3"/>
+                    <circle cx="50" cy="130" r="6.5" fill="#0f172a"/>
                 </g>
 
-                <!-- ═══ PILOTO: llega y se sienta en la moto (casco redondo) ═══ -->
-                <g id="figura-piloto" class="figura-piloto">
-                    <!-- Casco redondo con visor -->
-                    <circle cx="80" cy="44" r="13" fill="#10b981"/>
-                    <path d="M69,46 Q80,57 91,46 L91,50.5 Q80,60 69,50.5 Z" fill="#0f172a"/>
-                    <!-- Torso -->
-                    <path d="M80,57 Q73,68 78,80" stroke="#10b981" stroke-width="8" stroke-linecap="round" fill="none"/>
-                    <!-- Brazo hacia el manubrio -->
-                    <path d="M81,64 L181,36" stroke="#10b981" stroke-width="5.5" stroke-linecap="round" fill="none"/>
-                    <!-- Pierna hacia el estribo del motor -->
-                    <path d="M78,80 L98,101" stroke="#10b981" stroke-width="6.5" stroke-linecap="round" fill="none"/>
+                <!-- Rueda delantera: gira sobre su propio centro (horquilla larga = mayor batalla, estilo chopper) -->
+                <g class="rueda-real" style="transform-origin:210px 130px">
+                    <circle cx="210" cy="130" r="24" fill="#10b981"/>
+                    <circle cx="210" cy="130" r="19.5" fill="none" stroke="#0f172a" stroke-width="2" opacity=".35"/>
+                    <line x1="210" y1="107"   x2="210" y2="153"  stroke="#0f172a" stroke-width="3"/>
+                    <line x1="187" y1="130"   x2="233" y2="130"   stroke="#0f172a" stroke-width="3"/>
+                    <line x1="193.7" y1="113.7" x2="226.3" y2="146.3" stroke="#0f172a" stroke-width="3"/>
+                    <line x1="226.3" y1="113.7" x2="193.7" y2="146.3" stroke="#0f172a" stroke-width="3"/>
+                    <circle cx="210" cy="130" r="6.5" fill="#0f172a"/>
                 </g>
             </svg>
             <div class="carril-asfalto">
@@ -1330,51 +1350,51 @@ function _mostrarBotonFlotante(id, visible, usarFlex) {
 }
 
 /* ══════════════════════════════════════════
-   NUEVO — Orquestación de la animación de carga (4 fases):
-   1) "entrando": la moto (sin piloto) baja y aterriza al centro (~0.7s).
-   2) "montando": llega el piloto con casco, se sienta, y se prende el
-      faro (~0.75s) — coincide con las duraciones definidas en el CSS.
-   3) "esperando": con piloto y luz encendidos, arrancan las llantas y
-      el asfalto; dura lo que tarde la descarga real del inventario
-      (no es un tiempo fijo).
-   4) "saliendo": en cuanto el inventario ya está listo, todo el
-      conjunto (moto+piloto) sale hacia la DERECHA desvaneciéndose
-      (~0.8s), y AHÍ se revela el catálogo con tarjetas y filtros.
+   NUEVO — Orquestación de la animación de carga (motocicleta chopper)
+   Fase 1 "entrando": la moto (sola) baja desde arriba (~0.85s).
+   Fase 2 "rider": llega la figura con casco y se sube al asiento (~0.7s).
+   Fase 3 "rodando": ya montado, se prende el faro y arrancan las
+     llantas + el asfalto en movimiento continuo, mientras se descarga
+     el inventario real (dura lo que tarde la descarga — no es un
+     tiempo fijo).
+   Fase 4 "saliendo": en cuanto el inventario ya está listo, moto +
+     jinete salen juntos hacia la derecha (~0.95s) y AHÍ es cuando se
+     revela el catálogo con sus tarjetas y filtros.
 ══════════════════════════════════════════ */
-const DURACION_ENTRADA_MOTO_MS   = 700;  // debe coincidir con moto-baja en el CSS
-const DURACION_MONTANDO_MS       = 750;  // tiempo para que el piloto se suba y se prenda el faro
-const DURACION_SALIDA_MOTO_MS    = 800;  // debe coincidir con moto-sale-der en el CSS
-const DURACION_SECUENCIA_MIN_MS  = DURACION_ENTRADA_MOTO_MS + DURACION_MONTANDO_MS;
+const DURACION_ENTRADA_MOTO_MS = 850;
+const DURACION_RIDER_MS        = 700;
+const DURACION_SALIDA_MOTO_MS  = 950;
 let _tsInicioAnimacionMoto = null;
 
 function iniciarAnimacionMoto() {
     const escena = document.getElementById("escena-moto");
     if (!escena) return;
-    escena.classList.remove("fase-montando", "fase-esperando", "fase-saliendo");
+    escena.classList.remove("fase-rider", "fase-rodando", "fase-saliendo");
     escena.classList.add("fase-entrando");
     _tsInicioAnimacionMoto = Date.now();
     setTimeout(() => {
         escena.classList.remove("fase-entrando");
-        escena.classList.add("fase-montando");
+        escena.classList.add("fase-rider");
         setTimeout(() => {
-            escena.classList.remove("fase-montando");
-            escena.classList.add("fase-esperando");
-        }, DURACION_MONTANDO_MS);
+            escena.classList.remove("fase-rider");
+            escena.classList.add("fase-rodando");
+        }, DURACION_RIDER_MS);
     }, DURACION_ENTRADA_MOTO_MS);
 }
 
-/** Dispara la salida de la moto y ejecuta "callback" (revelar el
- *  catálogo) justo cuando la moto ya salió de pantalla. Si el
- *  inventario cargó muy rápido (antes de que termine toda la
- *  secuencia de entrada + piloto subiéndose), se espera lo necesario
- *  para no cortarla a la mitad. */
+/** Dispara la salida de la moto (con el jinete ya montado) y ejecuta
+ *  "callback" (revelar el catálogo) justo cuando ya salió de
+ *  pantalla. Si el inventario cargó muy rápido (antes de que termine
+ *  la entrada + el jinete de subirse), se espera lo necesario para no
+ *  cortar la animación a la mitad. */
 function dispararSalidaAnimacionMoto(callback) {
     const escena = document.getElementById("escena-moto");
     if (!escena) { callback(); return; }
-    const transcurrido = _tsInicioAnimacionMoto ? (Date.now() - _tsInicioAnimacionMoto) : DURACION_SECUENCIA_MIN_MS;
-    const espera = Math.max(0, DURACION_SECUENCIA_MIN_MS - transcurrido);
+    const totalHastaRodando = DURACION_ENTRADA_MOTO_MS + DURACION_RIDER_MS;
+    const transcurrido = _tsInicioAnimacionMoto ? (Date.now() - _tsInicioAnimacionMoto) : totalHastaRodando;
+    const espera = Math.max(0, totalHastaRodando - transcurrido);
     setTimeout(() => {
-        escena.classList.remove("fase-entrando", "fase-montando", "fase-esperando");
+        escena.classList.remove("fase-entrando", "fase-rider", "fase-rodando");
         escena.classList.add("fase-saliendo");
         setTimeout(callback, DURACION_SALIDA_MOTO_MS);
     }, espera);
