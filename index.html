@@ -371,6 +371,78 @@
             cursor: default !important;
             opacity: .9;
         }
+        /* ══════════════════════════════════════════
+           NUEVO — Animación de carga: motocicleta sobre asfalto
+        ══════════════════════════════════════════ */
+        .escena-moto {
+            position: relative;
+            width: 220px;
+            height: 130px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .moto-svg {
+            position: relative;
+            z-index: 2;
+            transform: translateX(-260px);
+            opacity: 0;
+        }
+        /* Fase 1: entra desde la izquierda y se queda al centro */
+        .escena-moto.fase-entrando .moto-svg { animation: moto-entra .9s cubic-bezier(.22,.72,.28,1) forwards; }
+        /* Fase 2: reposo — ya visible al centro (sin animación de posición, solo ruedas/asfalto) */
+        .escena-moto.fase-esperando .moto-svg { transform: translateX(0); opacity: 1; }
+        /* Fase 3: sale hacia la derecha cuando ya cargó el inventario */
+        .escena-moto.fase-saliendo .moto-svg { animation: moto-sale .8s cubic-bezier(.5,0,.75,.4) forwards; }
+
+        @keyframes moto-entra {
+            from { transform: translateX(-260px); opacity: 0; }
+            60%  { opacity: 1; }
+            to   { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes moto-sale {
+            from { transform: translateX(0); opacity: 1; }
+            to   { transform: translateX(280px); opacity: 0; }
+        }
+
+        /* Ruedas: giro constante e ininterrumpido en TODAS las fases */
+        .escena-moto .rueda {
+            animation: moto-gira-rueda .55s linear infinite;
+        }
+        @keyframes moto-gira-rueda { to { transform: rotate(360deg); } }
+
+        /* Carril de asfalto con rayas que se desplazan simulando avance */
+        .carril-asfalto {
+            width: 100%;
+            height: 14px;
+            margin-top: -6px;
+            border-radius: 3px;
+            background: #1e293b;
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+        }
+        .rayas-asfalto {
+            position: absolute;
+            inset: 0;
+            top: 45%;
+            height: 3px;
+            background-image: repeating-linear-gradient(90deg, #64748b 0 22px, transparent 22px 44px);
+            animation: moto-avanza-asfalto .5s linear infinite;
+        }
+        @keyframes moto-avanza-asfalto {
+            from { background-position-x: 0; }
+            to   { background-position-x: -44px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .escena-moto .rueda,
+            .rayas-asfalto,
+            .escena-moto.fase-entrando .moto-svg,
+            .escena-moto.fase-saliendo .moto-svg { animation: none; }
+            .moto-svg { transform: translateX(0); opacity: 1; }
+        }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
@@ -518,10 +590,47 @@
 
     </header>
 
-    <!-- CARGANDO -->
-    <div id="cargando-datos" class="flex-1 flex flex-col items-center justify-center p-8">
-        <i class="fa-solid fa-rotate animate-spin text-4xl text-emerald-500 mb-4"></i>
-        <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Cargando inventario...</p>
+    <!-- CARGANDO — animación de motocicleta -->
+    <div id="cargando-datos" class="flex-1 flex flex-col items-center justify-center p-8 overflow-hidden">
+        <div id="escena-moto" class="escena-moto">
+            <svg id="moto-svg" class="moto-svg" viewBox="0 0 200 110" width="190" height="105">
+                <!-- rueda trasera -->
+                <g class="rueda" style="transform-origin:42px 80px;">
+                    <circle cx="42" cy="80" r="19" fill="#0f172a" stroke="#334155" stroke-width="3"/>
+                    <circle cx="42" cy="80" r="19" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="3 6"/>
+                    <line x1="42" y1="61" x2="42" y2="99" stroke="#10b981" stroke-width="1.4"/>
+                    <line x1="23" y1="80" x2="61" y2="80" stroke="#10b981" stroke-width="1.4"/>
+                    <line x1="29" y1="67" x2="55" y2="93" stroke="#10b981" stroke-width="1.4"/>
+                    <line x1="55" y1="67" x2="29" y2="93" stroke="#10b981" stroke-width="1.4"/>
+                    <circle cx="42" cy="80" r="5" fill="#1e293b"/>
+                </g>
+                <!-- rueda delantera -->
+                <g class="rueda" style="transform-origin:160px 80px;">
+                    <circle cx="160" cy="80" r="19" fill="#0f172a" stroke="#334155" stroke-width="3"/>
+                    <circle cx="160" cy="80" r="19" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="3 6"/>
+                    <line x1="160" y1="61" x2="160" y2="99" stroke="#10b981" stroke-width="1.4"/>
+                    <line x1="141" y1="80" x2="179" y2="80" stroke="#10b981" stroke-width="1.4"/>
+                    <line x1="147" y1="67" x2="173" y2="93" stroke="#10b981" stroke-width="1.4"/>
+                    <line x1="173" y1="67" x2="147" y2="93" stroke="#10b981" stroke-width="1.4"/>
+                    <circle cx="160" cy="80" r="5" fill="#1e293b"/>
+                </g>
+                <!-- suspensiones -->
+                <path d="M42,80 L72,53" stroke="#475569" stroke-width="4" stroke-linecap="round"/>
+                <path d="M160,80 L143,55" stroke="#475569" stroke-width="4" stroke-linecap="round"/>
+                <!-- cuerpo / tanque / manubrio -->
+                <path d="M62,58 Q80,42 102,45 L118,45 L133,32 L152,33 L156,42 L138,47 L143,55 M100,45 L108,58"
+                      fill="none" stroke="#e2e8f0" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <!-- asiento -->
+                <path d="M72,53 Q90,45 105,50" fill="none" stroke="#e2e8f0" stroke-width="6.5" stroke-linecap="round"/>
+                <!-- escape -->
+                <path d="M42,80 L18,86" stroke="#94a3b8" stroke-width="5" stroke-linecap="round"/>
+                <ellipse cx="14" cy="87" rx="5" ry="3" fill="#64748b"/>
+            </svg>
+            <div class="carril-asfalto">
+                <div class="rayas-asfalto"></div>
+            </div>
+        </div>
+        <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mt-7">Cargando inventario...</p>
     </div>
 
     <!-- ── OVERLAY del drawer de filtros ── -->
@@ -1152,7 +1261,50 @@ function _mostrarBotonFlotante(id, visible, usarFlex) {
     el.style.display = visible ? (usarFlex ? "flex" : "block") : "none";
 }
 
+/* ══════════════════════════════════════════
+   NUEVO — Orquestación de la animación de carga (motocicleta)
+   Fase 1 "entrando": la moto entra desde la izquierda (~0.95s).
+   Fase 2 "esperando": queda al centro, ruedas y asfalto en
+     movimiento continuo, mientras se descarga el inventario real
+     (dura lo que tarde la descarga — no es un tiempo fijo).
+   Fase 3 "saliendo": en cuanto el inventario ya está listo, la moto
+     sale hacia la derecha (~0.8s) y AHÍ es cuando se revela el
+     catálogo con sus tarjetas y filtros.
+══════════════════════════════════════════ */
+const DURACION_ENTRADA_MOTO_MS = 950;
+const DURACION_SALIDA_MOTO_MS  = 800;
+let _tsInicioAnimacionMoto = null;
+
+function iniciarAnimacionMoto() {
+    const escena = document.getElementById("escena-moto");
+    if (!escena) return;
+    escena.classList.remove("fase-esperando", "fase-saliendo");
+    escena.classList.add("fase-entrando");
+    _tsInicioAnimacionMoto = Date.now();
+    setTimeout(() => {
+        escena.classList.remove("fase-entrando");
+        escena.classList.add("fase-esperando");
+    }, DURACION_ENTRADA_MOTO_MS);
+}
+
+/** Dispara la salida de la moto y ejecuta "callback" (revelar el
+ *  catálogo) justo cuando la moto ya salió de pantalla. Si el
+ *  inventario cargó muy rápido (antes de que termine la entrada), se
+ *  espera lo necesario para no cortar la animación a la mitad. */
+function dispararSalidaAnimacionMoto(callback) {
+    const escena = document.getElementById("escena-moto");
+    if (!escena) { callback(); return; }
+    const transcurrido = _tsInicioAnimacionMoto ? (Date.now() - _tsInicioAnimacionMoto) : DURACION_ENTRADA_MOTO_MS;
+    const espera = Math.max(0, DURACION_ENTRADA_MOTO_MS - transcurrido);
+    setTimeout(() => {
+        escena.classList.remove("fase-entrando", "fase-esperando");
+        escena.classList.add("fase-saliendo");
+        setTimeout(callback, DURACION_SALIDA_MOTO_MS);
+    }, espera);
+}
+
 window.onload = function () {
+    iniciarAnimacionMoto();
     // Ocultado inicial con style.display para que iOS Safari no lo ignore
     _mostrarBotonFlotante("btn-carrito-flotante", false);
     _mostrarBotonFlotante("btn-cotizaciones-admin", false);
@@ -1321,6 +1473,7 @@ async function manejarInicioDeSesion() {
             document.getElementById("vista-login").classList.add("hidden");
             document.getElementById("vista-catalogo").classList.remove("hidden");
             document.getElementById("cargando-datos").classList.remove("hidden");
+            iniciarAnimacionMoto();
             cargarCarritoDesdeStorage();
             iniciarControlDeSesion();
             await obtenerInventarioDesdeServidor();
@@ -1398,12 +1551,25 @@ async function obtenerInventarioDesdeServidor() {
 }
 
 function procesarDespuesDeCarga() {
-    // Mostrar catálogo sin delay — mejora crítica para iOS
     const cargando  = document.getElementById("cargando-datos");
     const principal = document.getElementById("contenedor-principal-catalogo");
-    if (cargando)  cargando.classList.add("hidden");
-    if (principal) principal.classList.remove("hidden");
 
+    if (cargando && !cargando.classList.contains("hidden")) {
+        // NUEVO: no se oculta de golpe — se espera a que la moto termine
+        // de salir de pantalla, y AHÍ aparece el catálogo completo.
+        dispararSalidaAnimacionMoto(() => {
+            cargando.classList.add("hidden");
+            if (principal) principal.classList.remove("hidden");
+            _continuarDespuesDeAnimacionCarga();
+        });
+    } else {
+        if (cargando)  cargando.classList.add("hidden");
+        if (principal) principal.classList.remove("hidden");
+        _continuarDespuesDeAnimacionCarga();
+    }
+}
+
+function _continuarDespuesDeAnimacionCarga() {
     // ── Botones flotantes: SOLO se muestran cuando hay sesión autenticada ──
     // Verificamos que haya una sesión activa en localStorage antes de mostrar
     // cualquier bola flotante — esto evita que aparezcan en el login cuando
