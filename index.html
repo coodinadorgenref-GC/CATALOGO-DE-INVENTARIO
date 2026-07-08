@@ -372,13 +372,15 @@
             opacity: .9;
         }
         /* ══════════════════════════════════════════
-           NUEVO — Animación de carga: la MISMA moto de la portada
-           (ícono fa-motorcycle), baja desde arriba, rueda al centro
-           y sale por la izquierda cuando el inventario ya cargó.
+           NUEVO — Animación de carga: moto con RUEDAS REALES que
+           giran (SVG propio, por partes: cuerpo fijo + 2 ruedas con
+           su propio <g> que rota de verdad), mismo estilo/color que
+           la moto de la portada. Baja desde arriba, rueda al centro,
+           prende el faro y sale por la DERECHA con desvanecido.
         ══════════════════════════════════════════ */
         .escena-moto {
             position: relative;
-            width: 220px;
+            width: 240px;
             height: 150px;
             display: flex;
             flex-direction: column;
@@ -386,45 +388,35 @@
             justify-content: flex-end;
             overflow: hidden;
         }
-        .moto-icono-wrap {
+        .moto-svg-real {
             position: relative;
             z-index: 2;
-            width: 120px;
-            height: 100px;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            transform: translate(0, -120px);
+            transform: translate(0, -140px);
             opacity: 0;
-        }
-        .moto-icono-fa {
-            font-size: 76px;
-            line-height: 1;
-            color: #10b981; /* mismo verde de la portada */
             filter: drop-shadow(0 6px 10px rgba(0,0,0,.35));
         }
-        /* Anillos que giran encima de cada rueda del ícono, para dar la
-           sensación de que las llantas ruedan (el ícono en sí es una sola
-           pieza, así que "engañamos" el ojo con estos aros superpuestos). */
-        .rueda-overlay {
-            position: absolute;
-            bottom: 4px;
-            width: 21px;
-            height: 21px;
-            border-radius: 50%;
-            border: 2.5px dashed rgba(15,23,42,.65);
-            animation: moto-gira-rueda .5s linear infinite;
-        }
-        .rueda-overlay-trasera    { left: 12px; }
-        .rueda-overlay-delantera  { right: 10px; }
+
+        /* Ruedas: giro CONSTANTE y REAL (rotan sobre su propio centro,
+           independiente del cuerpo, que se queda fijo). */
+        .rueda-real { animation: moto-gira-rueda .5s linear infinite; }
         @keyframes moto-gira-rueda { to { transform: rotate(360deg); } }
 
+        /* Faro: apagado por defecto, se enciende justo antes de salir */
+        .faro { fill: #064e3b; transition: none; }
+        .escena-moto.fase-saliendo .faro {
+            animation: faro-enciende .3s ease-out forwards;
+        }
+        @keyframes faro-enciende {
+            to { fill: #fef08a; filter: drop-shadow(0 0 5px #fde047) drop-shadow(0 0 10px #fde047); }
+        }
+
         /* Fase 1: baja desde arriba y se detiene al centro */
-        .escena-moto.fase-entrando .moto-icono-wrap { animation: moto-baja .85s cubic-bezier(.22,.85,.32,1.1) forwards; }
-        /* Fase 2: reposo — ya visible al centro (ruedas/asfalto siguen en movimiento) */
-        .escena-moto.fase-esperando .moto-icono-wrap { transform: translate(0,0); opacity: 1; }
-        /* Fase 3: sale hacia la IZQUIERDA cuando ya cargó el inventario */
-        .escena-moto.fase-saliendo .moto-icono-wrap { animation: moto-sale-izq .8s cubic-bezier(.5,0,.75,.4) forwards; }
+        .escena-moto.fase-entrando .moto-svg-real { animation: moto-baja .85s cubic-bezier(.22,.85,.32,1.1) forwards; }
+        /* Fase 2: reposo — visible al centro (ruedas/asfalto en movimiento) */
+        .escena-moto.fase-esperando .moto-svg-real { transform: translate(0,0); opacity: 1; }
+        /* Fase 3: primero se ve prender el faro (bike quieta un instante),
+           luego sale hacia la DERECHA desvaneciéndose. */
+        .escena-moto.fase-saliendo .moto-svg-real { animation: moto-sale-der .95s cubic-bezier(.45,0,.7,.4) forwards; }
 
         @keyframes moto-baja {
             from { transform: translate(0, -140px); opacity: 0; }
@@ -432,9 +424,10 @@
             80%  { transform: translate(0, 6px); }
             to   { transform: translate(0, 0); opacity: 1; }
         }
-        @keyframes moto-sale-izq {
-            from { transform: translate(0, 0); opacity: 1; }
-            to   { transform: translate(-260px, 0); opacity: 0; }
+        @keyframes moto-sale-der {
+            0%   { transform: translate(0, 0); opacity: 1; }
+            22%  { transform: translate(0, 0); opacity: 1; }   /* pausa breve: se ve prender el faro */
+            100% { transform: translate(280px, 0); opacity: 0; }
         }
 
         /* Carril de asfalto con rayas que se desplazan simulando avance */
@@ -462,11 +455,12 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .rueda-overlay,
+            .rueda-real,
             .rayas-asfalto,
-            .escena-moto.fase-entrando .moto-icono-wrap,
-            .escena-moto.fase-saliendo .moto-icono-wrap { animation: none; }
-            .moto-icono-wrap { transform: translate(0,0); opacity: 1; }
+            .faro,
+            .escena-moto.fase-entrando .moto-svg-real,
+            .escena-moto.fase-saliendo .moto-svg-real { animation: none; }
+            .moto-svg-real { transform: translate(0,0); opacity: 1; }
         }
     </style>
 </head>
@@ -615,14 +609,39 @@
 
     </header>
 
-    <!-- CARGANDO — animación de motocicleta (misma moto de la portada) -->
+    <!-- CARGANDO — animación de motocicleta (ruedas reales que giran) -->
     <div id="cargando-datos" class="flex-1 flex flex-col items-center justify-center p-8 overflow-hidden">
         <div id="escena-moto" class="escena-moto">
-            <div id="moto-svg" class="moto-icono-wrap">
-                <i class="fa-solid fa-motorcycle moto-icono-fa"></i>
-                <span class="rueda-overlay rueda-overlay-trasera"></span>
-                <span class="rueda-overlay rueda-overlay-delantera"></span>
-            </div>
+            <svg id="moto-svg" class="moto-svg-real" viewBox="0 0 220 130" width="200" height="118" xmlns="http://www.w3.org/2000/svg">
+                <!-- Cuerpo fijo: asiento, tanque, manubrio y faro (una sola pieza, no rota) -->
+                <path fill="#10b981" d="
+                    M48,96 C48,78 62,64 80,64 L92,64 L102,48 C104,44 110,42 116,44
+                    L128,34 C133,30 141,29 147,33 L152,40 L138,48 L124,56 L134,64
+                    C148,66 160,78 166,96 L146,96 L136,70 L112,70 L104,96 Z"/>
+                <circle class="faro" cx="146" cy="42" r="6"/>
+
+                <!-- Rueda trasera: gira sobre su propio centro -->
+                <g class="rueda-real" style="transform-origin:48px 96px">
+                    <circle cx="48" cy="96" r="23" fill="#10b981"/>
+                    <circle cx="48" cy="96" r="19" fill="none" stroke="#0f172a" stroke-width="2" opacity=".35"/>
+                    <line x1="48" y1="77"   x2="48" y2="115"  stroke="#0f172a" stroke-width="3"/>
+                    <line x1="29" y1="96"   x2="67" y2="96"   stroke="#0f172a" stroke-width="3"/>
+                    <line x1="34.7" y1="82.7" x2="61.3" y2="109.3" stroke="#0f172a" stroke-width="3"/>
+                    <line x1="61.3" y1="82.7" x2="34.7" y2="109.3" stroke="#0f172a" stroke-width="3"/>
+                    <circle cx="48" cy="96" r="6" fill="#0f172a"/>
+                </g>
+
+                <!-- Rueda delantera: gira sobre su propio centro -->
+                <g class="rueda-real" style="transform-origin:166px 96px">
+                    <circle cx="166" cy="96" r="23" fill="#10b981"/>
+                    <circle cx="166" cy="96" r="19" fill="none" stroke="#0f172a" stroke-width="2" opacity=".35"/>
+                    <line x1="166" y1="77"   x2="166" y2="115"  stroke="#0f172a" stroke-width="3"/>
+                    <line x1="147" y1="96"   x2="185" y2="96"   stroke="#0f172a" stroke-width="3"/>
+                    <line x1="152.7" y1="82.7" x2="179.3" y2="109.3" stroke="#0f172a" stroke-width="3"/>
+                    <line x1="179.3" y1="82.7" x2="152.7" y2="109.3" stroke="#0f172a" stroke-width="3"/>
+                    <circle cx="166" cy="96" r="6" fill="#0f172a"/>
+                </g>
+            </svg>
             <div class="carril-asfalto">
                 <div class="rayas-asfalto"></div>
             </div>
@@ -1269,7 +1288,7 @@ function _mostrarBotonFlotante(id, visible, usarFlex) {
      catálogo con sus tarjetas y filtros.
 ══════════════════════════════════════════ */
 const DURACION_ENTRADA_MOTO_MS = 950;
-const DURACION_SALIDA_MOTO_MS  = 800;
+const DURACION_SALIDA_MOTO_MS  = 950;
 let _tsInicioAnimacionMoto = null;
 
 function iniciarAnimacionMoto() {
