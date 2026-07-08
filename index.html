@@ -372,45 +372,70 @@
             opacity: .9;
         }
         /* ══════════════════════════════════════════
-           NUEVO — Animación de carga: motocicleta sobre asfalto
+           NUEVO — Animación de carga: la MISMA moto de la portada
+           (ícono fa-motorcycle), baja desde arriba, rueda al centro
+           y sale por la izquierda cuando el inventario ya cargó.
         ══════════════════════════════════════════ */
         .escena-moto {
             position: relative;
             width: 220px;
-            height: 130px;
+            height: 150px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: flex-end;
+            overflow: hidden;
         }
-        .moto-svg {
+        .moto-icono-wrap {
             position: relative;
             z-index: 2;
-            transform: translateX(-260px);
+            width: 120px;
+            height: 100px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            transform: translate(0, -120px);
             opacity: 0;
         }
-        /* Fase 1: entra desde la izquierda y se queda al centro */
-        .escena-moto.fase-entrando .moto-svg { animation: moto-entra .9s cubic-bezier(.22,.72,.28,1) forwards; }
-        /* Fase 2: reposo — ya visible al centro (sin animación de posición, solo ruedas/asfalto) */
-        .escena-moto.fase-esperando .moto-svg { transform: translateX(0); opacity: 1; }
-        /* Fase 3: sale hacia la derecha cuando ya cargó el inventario */
-        .escena-moto.fase-saliendo .moto-svg { animation: moto-sale .8s cubic-bezier(.5,0,.75,.4) forwards; }
-
-        @keyframes moto-entra {
-            from { transform: translateX(-260px); opacity: 0; }
-            60%  { opacity: 1; }
-            to   { transform: translateX(0); opacity: 1; }
+        .moto-icono-fa {
+            font-size: 76px;
+            line-height: 1;
+            color: #10b981; /* mismo verde de la portada */
+            filter: drop-shadow(0 6px 10px rgba(0,0,0,.35));
         }
-        @keyframes moto-sale {
-            from { transform: translateX(0); opacity: 1; }
-            to   { transform: translateX(280px); opacity: 0; }
+        /* Anillos que giran encima de cada rueda del ícono, para dar la
+           sensación de que las llantas ruedan (el ícono en sí es una sola
+           pieza, así que "engañamos" el ojo con estos aros superpuestos). */
+        .rueda-overlay {
+            position: absolute;
+            bottom: 4px;
+            width: 21px;
+            height: 21px;
+            border-radius: 50%;
+            border: 2.5px dashed rgba(15,23,42,.65);
+            animation: moto-gira-rueda .5s linear infinite;
         }
-
-        /* Ruedas: giro constante e ininterrumpido en TODAS las fases */
-        .escena-moto .rueda {
-            animation: moto-gira-rueda .55s linear infinite;
-        }
+        .rueda-overlay-trasera    { left: 12px; }
+        .rueda-overlay-delantera  { right: 10px; }
         @keyframes moto-gira-rueda { to { transform: rotate(360deg); } }
+
+        /* Fase 1: baja desde arriba y se detiene al centro */
+        .escena-moto.fase-entrando .moto-icono-wrap { animation: moto-baja .85s cubic-bezier(.22,.85,.32,1.1) forwards; }
+        /* Fase 2: reposo — ya visible al centro (ruedas/asfalto siguen en movimiento) */
+        .escena-moto.fase-esperando .moto-icono-wrap { transform: translate(0,0); opacity: 1; }
+        /* Fase 3: sale hacia la IZQUIERDA cuando ya cargó el inventario */
+        .escena-moto.fase-saliendo .moto-icono-wrap { animation: moto-sale-izq .8s cubic-bezier(.5,0,.75,.4) forwards; }
+
+        @keyframes moto-baja {
+            from { transform: translate(0, -140px); opacity: 0; }
+            55%  { opacity: 1; }
+            80%  { transform: translate(0, 6px); }
+            to   { transform: translate(0, 0); opacity: 1; }
+        }
+        @keyframes moto-sale-izq {
+            from { transform: translate(0, 0); opacity: 1; }
+            to   { transform: translate(-260px, 0); opacity: 0; }
+        }
 
         /* Carril de asfalto con rayas que se desplazan simulando avance */
         .carril-asfalto {
@@ -437,11 +462,11 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .escena-moto .rueda,
+            .rueda-overlay,
             .rayas-asfalto,
-            .escena-moto.fase-entrando .moto-svg,
-            .escena-moto.fase-saliendo .moto-svg { animation: none; }
-            .moto-svg { transform: translateX(0); opacity: 1; }
+            .escena-moto.fase-entrando .moto-icono-wrap,
+            .escena-moto.fase-saliendo .moto-icono-wrap { animation: none; }
+            .moto-icono-wrap { transform: translate(0,0); opacity: 1; }
         }
     </style>
 </head>
@@ -590,47 +615,19 @@
 
     </header>
 
-    <!-- CARGANDO — animación de motocicleta -->
+    <!-- CARGANDO — animación de motocicleta (misma moto de la portada) -->
     <div id="cargando-datos" class="flex-1 flex flex-col items-center justify-center p-8 overflow-hidden">
         <div id="escena-moto" class="escena-moto">
-            <svg id="moto-svg" class="moto-svg" viewBox="0 0 200 110" width="190" height="105">
-                <!-- rueda trasera -->
-                <g class="rueda" style="transform-origin:42px 80px;">
-                    <circle cx="42" cy="80" r="19" fill="#0f172a" stroke="#334155" stroke-width="3"/>
-                    <circle cx="42" cy="80" r="19" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="3 6"/>
-                    <line x1="42" y1="61" x2="42" y2="99" stroke="#10b981" stroke-width="1.4"/>
-                    <line x1="23" y1="80" x2="61" y2="80" stroke="#10b981" stroke-width="1.4"/>
-                    <line x1="29" y1="67" x2="55" y2="93" stroke="#10b981" stroke-width="1.4"/>
-                    <line x1="55" y1="67" x2="29" y2="93" stroke="#10b981" stroke-width="1.4"/>
-                    <circle cx="42" cy="80" r="5" fill="#1e293b"/>
-                </g>
-                <!-- rueda delantera -->
-                <g class="rueda" style="transform-origin:160px 80px;">
-                    <circle cx="160" cy="80" r="19" fill="#0f172a" stroke="#334155" stroke-width="3"/>
-                    <circle cx="160" cy="80" r="19" fill="none" stroke="#10b981" stroke-width="2" stroke-dasharray="3 6"/>
-                    <line x1="160" y1="61" x2="160" y2="99" stroke="#10b981" stroke-width="1.4"/>
-                    <line x1="141" y1="80" x2="179" y2="80" stroke="#10b981" stroke-width="1.4"/>
-                    <line x1="147" y1="67" x2="173" y2="93" stroke="#10b981" stroke-width="1.4"/>
-                    <line x1="173" y1="67" x2="147" y2="93" stroke="#10b981" stroke-width="1.4"/>
-                    <circle cx="160" cy="80" r="5" fill="#1e293b"/>
-                </g>
-                <!-- suspensiones -->
-                <path d="M42,80 L72,53" stroke="#475569" stroke-width="4" stroke-linecap="round"/>
-                <path d="M160,80 L143,55" stroke="#475569" stroke-width="4" stroke-linecap="round"/>
-                <!-- cuerpo / tanque / manubrio -->
-                <path d="M62,58 Q80,42 102,45 L118,45 L133,32 L152,33 L156,42 L138,47 L143,55 M100,45 L108,58"
-                      fill="none" stroke="#e2e8f0" stroke-width="6.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <!-- asiento -->
-                <path d="M72,53 Q90,45 105,50" fill="none" stroke="#e2e8f0" stroke-width="6.5" stroke-linecap="round"/>
-                <!-- escape -->
-                <path d="M42,80 L18,86" stroke="#94a3b8" stroke-width="5" stroke-linecap="round"/>
-                <ellipse cx="14" cy="87" rx="5" ry="3" fill="#64748b"/>
-            </svg>
+            <div id="moto-svg" class="moto-icono-wrap">
+                <i class="fa-solid fa-motorcycle moto-icono-fa"></i>
+                <span class="rueda-overlay rueda-overlay-trasera"></span>
+                <span class="rueda-overlay rueda-overlay-delantera"></span>
+            </div>
             <div class="carril-asfalto">
                 <div class="rayas-asfalto"></div>
             </div>
         </div>
-        <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mt-7">Cargando inventario...</p>
+        <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mt-7">Cargando...</p>
     </div>
 
     <!-- ── OVERLAY del drawer de filtros ── -->
