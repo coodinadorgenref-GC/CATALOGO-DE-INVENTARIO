@@ -412,8 +412,9 @@
         }
         /* Discos que cubren y REEMPLAZAN visualmente las ruedas del
            ícono — mismo color, tamaño generoso para tapar por completo
-           la rueda estática de abajo, y con radios internos que hacen
-           evidente que SÍ giran de verdad. */
+           la rueda estática de abajo. La rotación se nota por el
+           trazo punteado de la banda de rodadura (circunferencia),
+           NO por rayos internos. */
         .rueda-real-wrap {
             position: absolute;
             bottom: 2px;
@@ -425,16 +426,17 @@
         .rueda-real { animation: moto-gira-rueda .5s linear infinite; transform-origin: 20px 20px; }
         @keyframes moto-gira-rueda { to { transform: rotate(360deg); } }
 
-        /* Faro: pequeño punto superpuesto cerca del frente del ícono,
-           apagado por defecto, se enciende justo antes de salir. */
+        /* Faro: un poco más a la izquierda y más abajo (frente real de
+           la moto), apagado por defecto, se enciende justo antes de salir. */
         .faro {
             position: absolute;
-            top: 18px;
-            right: 6px;
-            width: 12px;
-            height: 12px;
+            top: 28px;
+            right: 16px;
+            width: 11px;
+            height: 11px;
             border-radius: 50%;
             background: #064e3b;
+            z-index: 3;
         }
         .escena-moto.fase-saliendo .faro {
             animation: faro-enciende .3s ease-out forwards;
@@ -442,6 +444,25 @@
         @keyframes faro-enciende {
             to { background: #fef08a; box-shadow: 0 0 6px 2px #fde047, 0 0 14px 4px rgba(253,224,71,.6); }
         }
+
+        /* Haz de luz: cono suave que sale del faro, como el foco de una
+           moto real (imagen de referencia). Apagado por defecto. */
+        .haz-luz {
+            position: absolute;
+            top: 16px;
+            right: -46px;
+            width: 66px;
+            height: 46px;
+            clip-path: polygon(0% 38%, 0% 62%, 100% 100%, 100% 0%);
+            background: linear-gradient(90deg, rgba(254,240,138,.65), rgba(254,240,138,0) 90%);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 3;
+        }
+        .escena-moto.fase-saliendo .haz-luz {
+            animation: haz-aparece .35s ease-out forwards;
+        }
+        @keyframes haz-aparece { to { opacity: 1; } }
 
         /* Fase 1: baja desde arriba y aterriza */
         .escena-moto.fase-entrando  .moto-icono-wrap { animation: moto-baja .8s cubic-bezier(.22,.85,.32,1.1) forwards; }
@@ -489,7 +510,7 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .rueda-real, .rayas-asfalto, .faro,
+            .rueda-real, .rayas-asfalto, .faro, .haz-luz,
             .escena-moto.fase-entrando .moto-icono-wrap,
             .escena-moto.fase-saliendo .moto-icono-wrap { animation: none !important; }
             .moto-icono-wrap { transform: translate(0,0); opacity: 1; }
@@ -648,30 +669,29 @@
             <div id="moto-svg" class="moto-icono-wrap">
                 <i class="fa-solid fa-motorcycle moto-icono-fa"></i>
                 <span class="faro"></span>
+                <span class="haz-luz"></span>
 
-                <!-- Rueda trasera: disco SVG real que gira, cubre la rueda estática del ícono -->
+                <!-- Rueda trasera: punto central + espacio + "C" + línea
+                     horizontal que separa la circunferencia (igual al
+                     ícono original). El punteado del aro exterior es lo
+                     que hace notar la rotación, no rayos. -->
                 <div class="rueda-real-wrap trasera">
                     <svg class="rueda-real" viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="20" cy="20" r="20" fill="#10b981"/>
-                        <circle cx="20" cy="20" r="14" fill="none" stroke="#0f172a" stroke-width="1.6" opacity=".35"/>
-                        <line x1="20" y1="5"  x2="20" y2="35" stroke="#0f172a" stroke-width="2.4"/>
-                        <line x1="5"  y1="20" x2="35" y2="20" stroke="#0f172a" stroke-width="2.4"/>
-                        <line x1="9.5" y1="9.5" x2="30.5" y2="30.5" stroke="#0f172a" stroke-width="2.4"/>
-                        <line x1="30.5" y1="9.5" x2="9.5" y2="30.5" stroke="#0f172a" stroke-width="2.4"/>
-                        <circle cx="20" cy="20" r="5.5" fill="#0f172a"/>
+                        <circle cx="20" cy="20" r="16" fill="none" stroke="#0f172a" stroke-width="2" stroke-dasharray="2.6 4" opacity=".55"/>
+                        <circle cx="20" cy="20" r="3" fill="#0f172a"/>
+                        <path d="M29,13.7 A11 11 0 1 0 29,26.3" fill="none" stroke="#0f172a" stroke-width="2.6" stroke-linecap="round"/>
+                        <line x1="29" y1="20" x2="37" y2="20" stroke="#0f172a" stroke-width="2.6" stroke-linecap="round"/>
                     </svg>
                 </div>
 
-                <!-- Rueda delantera: mismo disco real, girando -->
+                <!-- Rueda delantera: vacío en el centro y margen de la
+                     llanta (aro simple), sin punto ni "C". -->
                 <div class="rueda-real-wrap delantera">
                     <svg class="rueda-real" viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="20" cy="20" r="20" fill="#10b981"/>
-                        <circle cx="20" cy="20" r="14" fill="none" stroke="#0f172a" stroke-width="1.6" opacity=".35"/>
-                        <line x1="20" y1="5"  x2="20" y2="35" stroke="#0f172a" stroke-width="2.4"/>
-                        <line x1="5"  y1="20" x2="35" y2="20" stroke="#0f172a" stroke-width="2.4"/>
-                        <line x1="9.5" y1="9.5" x2="30.5" y2="30.5" stroke="#0f172a" stroke-width="2.4"/>
-                        <line x1="30.5" y1="9.5" x2="9.5" y2="30.5" stroke="#0f172a" stroke-width="2.4"/>
-                        <circle cx="20" cy="20" r="5.5" fill="#0f172a"/>
+                        <circle cx="20" cy="20" r="16" fill="none" stroke="#0f172a" stroke-width="2" stroke-dasharray="2.6 4" opacity=".55"/>
+                        <circle cx="20" cy="20" r="11" fill="#0f172a"/>
                     </svg>
                 </div>
             </div>
