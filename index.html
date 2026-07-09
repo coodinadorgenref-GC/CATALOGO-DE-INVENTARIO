@@ -926,6 +926,17 @@
     <span id="texto-badge-subiendo-fotos">Subiendo fotos...</span>
 </div>
 
+<!-- NUEVO: mismo modelo, para guardado de compatibilidad en segundo
+     plano. Se posiciona arriba del de fotos para que ambos puedan
+     verse a la vez si el admin está subiendo fotos y editando
+     compatibilidad al mismo tiempo. -->
+<div id="badge-guardando-compat"
+     class="hidden flex fixed bottom-[76px] left-6 z-[70] bg-amber-600 text-white text-xs font-bold pl-3 pr-4 py-3 rounded-full shadow-2xl items-center gap-2.5"
+     style="box-shadow:0 6px 20px rgba(180,83,9,.55), 0 2px 6px rgba(0,0,0,.3)">
+    <i class="fa-solid fa-circle-notch fa-spin"></i>
+    <span id="texto-badge-guardando-compat">Guardando compatibilidad...</span>
+</div>
+
 <button id="btn-carrito-flotante" onclick="toggleCarrito()" style="display:none" title="Mi Cotización">
     <span class="btn-flotante-icon"><i class="fa-solid fa-cart-shopping"></i></span>
     <span class="btn-flotante-label">Cotización</span>
@@ -1992,6 +2003,15 @@ function guardarCarritoLocal() {
    productos "no eliminados" o cantidades inconsistentes). */
 let enviandoCarritoAlServidor  = false;
 let hayCambioCarritoPendiente  = false;
+// NUEVO: contador que sube cada vez que el carrito local cambia por
+// cualquier vía (agregar, quitar, cantidad, vaciar, cotización general).
+// La reconciliación lo usa para detectar si el usuario hizo algo
+// MIENTRAS su petición al servidor estaba en camino — si cambió,
+// descarta esa respuesta por completo en vez de aplicarla encima
+// (aplicar una respuesta vieja es justo lo que causaba que un producto
+// recién agregado desapareciera, o que uno recién enviado en cotización
+// general "reapareciera").
+let _versionCarritoLocal = 0;
 
 function sincronizarCarritoInstantaneo() {
     if (esAdmin) return;
@@ -2135,6 +2155,7 @@ function guardarCambiosCarritoManual() {
 }
 
 function agregarAlCarrito(item) {
+    _versionCarritoLocal++;
     const sku  = item.SKU || "";
     const exs  = item.Existencias || [];
     const ya   = carrito.find(c => String(c.sku) === String(sku));
@@ -2166,6 +2187,7 @@ function agregarAlCarrito(item) {
 }
 
 function cambiarCantidadCarrito(sku, delta) {
+    _versionCarritoLocal++;
     const item = carrito.find(c=>String(c.sku)===String(sku));
     if (!item) return;
     const nueva = item.cantidad + delta;
@@ -2183,6 +2205,7 @@ function cambiarCantidadCarrito(sku, delta) {
  *  input (por si el usuario lo editó manualmente sin hacer blur),
  *  lo aplica al array, y luego suma/resta el delta. */
 function cambiarCantidadDesdeBoton(sku, delta) {
+    _versionCarritoLocal++;
     const item = carrito.find(c=>String(c.sku)===String(sku));
     if (!item) return;
     // Leer el valor actual del input por si cambió sin disparar onchange
@@ -2202,6 +2225,7 @@ function cambiarCantidadDesdeBoton(sku, delta) {
 }
 
 function establecerCantidadCarrito(sku, valor) {
+    _versionCarritoLocal++;
     const item = carrito.find(c=>String(c.sku)===String(sku));
     if (!item) return;
     const nueva = parseInt(valor, 10);
@@ -2235,6 +2259,7 @@ function actualizarBadgeCarrito() {
 }
 
 function eliminarDelCarrito(sku) {
+    _versionCarritoLocal++;
     carrito = carrito.filter(c=>String(c.sku)!==String(sku));
     guardarCarritoLocal();
     sincronizarCarritoInstantaneo();
@@ -2243,6 +2268,7 @@ function eliminarDelCarrito(sku) {
 
 function vaciarCarrito() {
     if (!confirm("¿Vaciar todo el carrito?")) return;
+    _versionCarritoLocal++;
     carrito = [];
     guardarCarritoLocal();
     sincronizarCarritoInstantaneo();
@@ -2261,6 +2287,7 @@ async function solicitarCotizacionGeneral() {
     const textoOriginal = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Enviando...`;
+    _versionCarritoLocal++; // invalida cualquier reconciliación que ya esté en camino
 
     const sesion = JSON.parse(localStorage.getItem("sesion_catalogo") || "{}");
     try {
@@ -2275,6 +2302,7 @@ async function solicitarCotizacionGeneral() {
             })});
         const rs = await r.json();
         if (rs.success) {
+            _versionCarritoLocal++; // el carrito vuelve a cambiar (se vacía) — otra invalidación
             bloquesCotizacion.push(rs.bloque);
             carrito = [];
             guardarCarritoLocal(); guardarBloquesLocal();
@@ -2323,11 +2351,19 @@ async function reconciliarCarritoConServidor() {
     // usuario acaba de agregar/cambiar.
     if (hayCambioCarritoPendiente || enviandoCarritoAlServidor) return;
 
+    // NUEVO: guardamos en qué "versión" del carrito local estamos antes de
+    // preguntarle al servidor. Si para cuando la respuesta llega esa
+    // versión ya cambió (el usuario agregó/quitó algo, o mandó una
+    // cotización general mientras tanto), la respuesta quedó vieja —
+    // se descarta por completo en vez de aplicarla encima.
+    const _versionAlIniciar = _versionCarritoLocal;
+
     try {
         const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
             body: JSON.stringify({ action:"obtenerCarritoPropio", correo:usuarioActual, token:tokenActual }) });
         const rs = await r.json();
         if (!rs.success) return;
+        if (_versionCarritoLocal !== _versionAlIniciar) return; // el carrito cambió mientras esperábamos: descartar
 
         const itemsServidor = rs.items || [];
         const skusServidor  = new Set(itemsServidor.map(it => String(it.sku)));
@@ -3098,11 +3134,38 @@ function cerrarModalCotizacionExterno(e) { if (e.target.id==="modal-cotizacion")
 /* ══════════════════════════════════════════
    MODAL DETALLE PRODUCTO
 ══════════════════════════════════════════ */
-function abrirDetalleProducto(item) {
-    if (guardadoCompatibilidadPendiente) {
-        alert("Espera a que se confirme el guardado de la compatibilidad actual antes de abrir otro producto.");
-        return;
+/** Convierte el texto crudo de compatibilidad ("Marca: modelo1, modelo2")
+ *  en los bloques colapsables de la ficha de producto. Extraída como
+ *  función aparte para poder reusarla al refrescar el modal después de
+ *  un guardado en segundo plano, sin duplicar la lógica de parseo. */
+function _generarHtmlCompatibilidad(rawComp) {
+    let bloques = ""; let contador = 0;
+    if ((rawComp||"").trim()) {
+        const lineas = rawComp.split(/[\n,]+/).map(l=>l.trim()).filter(l=>l.length>0);
+        let marcaAct="", modelos=[];
+        function cerrarBloque() {
+            if (!modelos.length) return;
+            contador++;
+            bloques += `<div class="compatibilidad-container mb-4 last:mb-0">
+                <div class="compatibilidad-marca" onclick="alternarCompatibilidad(${contador})">
+                    ${escaparHTML(marcaAct)||"MODELOS"} <i id="icono-compat-${contador}" class="fa-solid fa-chevron-down text-[10px]"></i>
+                </div>
+                <ul id="lista-compat-${contador}" class="lista-compatibilidad-modal hidden-element">
+                    ${modelos.map(m=>`<li>${escaparHTML(m)}</li>`).join("")}
+                </ul></div>`;
+            modelos = [];
+        }
+        lineas.forEach(l => {
+            if (l.includes(":")) { cerrarBloque(); const p=l.split(":"); marcaAct=p[0].trim(); modelos=p[1]?[p[1].trim()]:[] }
+            else { if(!marcaAct) marcaAct="MODELOS COMPATIBLES"; modelos.push(l); }
+        });
+        cerrarBloque();
+        return bloques;
     }
+    return `<div class="compatibilidad-container"><p class="text-xs text-slate-500 italic py-1 text-center">Sin información capturada.</p></div>`;
+}
+
+function abrirDetalleProducto(item) {
     const sku             = item.SKU || "---";
     const titulo          = item.Producto || "Sin Nombre";
     const marca           = item.Marca || "GENÉRICO";
@@ -3163,31 +3226,7 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
     }
 
     // Compatibilidad
-    let bloques = ""; let contador = 0;
-    const rawComp = item.Compatibilidad || "";
-    if (rawComp.trim()) {
-        const lineas = rawComp.split(/[\n,]+/).map(l=>l.trim()).filter(l=>l.length>0);
-        let marcaAct="", modelos=[];
-        function cerrarBloque() {
-            if (!modelos.length) return;
-            contador++;
-            bloques += `<div class="compatibilidad-container mb-4 last:mb-0">
-                <div class="compatibilidad-marca" onclick="alternarCompatibilidad(${contador})">
-                    ${escaparHTML(marcaAct)||"MODELOS"} <i id="icono-compat-${contador}" class="fa-solid fa-chevron-down text-[10px]"></i>
-                </div>
-                <ul id="lista-compat-${contador}" class="lista-compatibilidad-modal hidden-element">
-                    ${modelos.map(m=>`<li>${escaparHTML(m)}</li>`).join("")}
-                </ul></div>`;
-            modelos = [];
-        }
-        lineas.forEach(l => {
-            if (l.includes(":")) { cerrarBloque(); const p=l.split(":"); marcaAct=p[0].trim(); modelos=p[1]?[p[1].trim()]:[] }
-            else { if(!marcaAct) marcaAct="MODELOS COMPATIBLES"; modelos.push(l); }
-        });
-        cerrarBloque();
-    } else {
-        bloques = `<div class="compatibilidad-container"><p class="text-xs text-slate-500 italic py-1 text-center">Sin información capturada.</p></div>`;
-    }
+    const bloques = _generarHtmlCompatibilidad(item.Compatibilidad || "");
 
     // Botón admin
     let htmlBtnAdmin = "";
@@ -3260,44 +3299,90 @@ function habilitarEdicion(sku, contenido) {
     btn.onclick = () => guardarCompatibilidad(sku);
 }
 
-/** Bandera global: true mientras hay un guardado de compatibilidad en curso */
-let guardadoCompatibilidadPendiente = false;
+// ══════════════════════════════════════════
+//  Cola en segundo plano para guardar compatibilidad — mismo modelo
+//  que la cola de fotos: al dar "Guardar Cambios" se ENCOLA y el modal
+//  se cierra de inmediato; el admin puede seguir navegando, abrir OTRO
+//  producto y editar su compatibilidad también (se suma a la misma
+//  cola), mientras un indicador flotante muestra el progreso. Los
+//  cambios ya guardados se reflejan solos en el catálogo en cuanto
+//  terminan, sin bloquear nada mientras tanto.
+// ══════════════════════════════════════════
+let colaCompatibilidad      = []; // [{sku, texto}, ...]
+let compatibilidadEnCurso   = false;
 
-function guardarCompatibilidad(sku) {
-    const texto = document.getElementById("edit-compat").value;
-    const btn   = document.getElementById("btn-edicion");
+function encolarCompatibilidad(sku, texto) {
+    colaCompatibilidad.push({ sku, texto });
+    actualizarBadgeCompatibilidad();
+    procesarColaCompatibilidad();
+}
 
-    guardadoCompatibilidadPendiente = true;
-    btn.innerText = "Guardando..."; btn.disabled = true;
-    bloquearNavegacionCatalogo(true);
+async function procesarColaCompatibilidad() {
+    if (compatibilidadEnCurso) return; // ya hay un procesador corriendo, se le suman los nuevos items solo
+    compatibilidadEnCurso = true;
+    let exitosas = 0;
 
-    // IMPORTANTE: usamos mode "cors" (no "no-cors") para poder confirmar
-    // de verdad que Google Sheets recibió y procesó el cambio antes de
-    // permitir que el admin capture otro SKU.
-    fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-                     body: JSON.stringify({ action:"actualizarCompatibilidad", token:tokenActual, correo:usuarioActual, sku, nuevaCompatibilidad:texto }) })
+    while (colaCompatibilidad.length > 0) {
+        actualizarBadgeCompatibilidad();
+        const item = colaCompatibilidad.shift();
+        const resultado = await _guardarUnaCompatibilidad(item.sku, item.texto);
+        if (resultado.ok) exitosas++;
+        else mostrarToastInfo(`No se pudo guardar la compatibilidad del SKU ${item.sku}: ${resultado.message}`);
+    }
+
+    compatibilidadEnCurso = false;
+    actualizarBadgeCompatibilidad();
+    if (exitosas > 0) {
+        mostrarToastInfo(exitosas === 1 ? "Compatibilidad guardada correctamente." : `${exitosas} compatibilidades guardadas correctamente.`);
+    }
+}
+
+function actualizarBadgeCompatibilidad() {
+    const badge = document.getElementById("badge-guardando-compat");
+    const texto = document.getElementById("texto-badge-guardando-compat");
+    if (!badge || !texto) return;
+    const pendientes = colaCompatibilidad.length + (compatibilidadEnCurso ? 1 : 0);
+    if (pendientes <= 0) { badge.classList.add("hidden"); return; }
+    badge.classList.remove("hidden");
+    texto.innerText = pendientes === 1 ? "Guardando 1 compatibilidad..." : `Guardando compatibilidad... (${pendientes} restantes)`;
+}
+
+/** Guarda UNA compatibilidad ya editada y refleja el resultado
+ *  localmente (sin re-sincronizar todo el inventario contra el
+ *  servidor), igual que el modelo de fotos. */
+function _guardarUnaCompatibilidad(sku, texto) {
+    return fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+        body: JSON.stringify({ action:"actualizarCompatibilidad", token:tokenActual, correo:usuarioActual, sku, nuevaCompatibilidad:texto }) })
     .then(r => r.json())
     .then(rs => {
         if (rs && rs.success) {
-            guardadoCompatibilidadPendiente = false;
-            bloquearNavegacionCatalogo(false);
-            alternarModal();
-            forzarSincronizacionDatos();
-            alert("¡Cambios guardados correctamente en Google Sheets!");
-        } else {
-            // Si el servidor respondió pero con error, dejamos reintentar el mismo SKU
-            guardadoCompatibilidadPendiente = false;
-            bloquearNavegacionCatalogo(false);
-            btn.innerText = "Guardar Cambios"; btn.disabled = false;
-            alert("No se pudo guardar: " + (rs && rs.message ? rs.message : "Error desconocido. Intenta de nuevo."));
+            const itemCache = (inventarioMaestro||[]).find(p => String(p.SKU) === String(sku));
+            if (itemCache) {
+                itemCache.Compatibilidad = texto;
+                try { localStorage.setItem("inventario_cache", JSON.stringify(inventarioMaestro)); } catch {}
+            }
+            // Si el admin reabrió justo ESTE producto mientras se guardaba,
+            // refrescamos la vista de compatibilidad ya en modo lectura.
+            if (String(galeriaSkuActual) === String(sku)) {
+                const cont = document.getElementById("contenedor-compatibilidad");
+                if (cont) cont.innerHTML = _generarHtmlCompatibilidad(texto);
+            }
+            filtrarProductos();
+            return { ok: true };
         }
+        return { ok: false, message: (rs && rs.message) || "Error desconocido." };
     })
-    .catch(() => {
-        // Error de red real: permitimos reintentar el mismo SKU, pero seguimos bloqueando
-        // la navegación a OTRO producto hasta que el admin decida reintentar o cancelar.
-        btn.innerText = "Reintentar Guardado"; btn.disabled = false;
-        alert("Error de conexión al guardar. Verifica tu internet e intenta de nuevo (no cierres esta tarjeta).");
-    });
+    .catch(() => ({ ok: false, message: "Error de conexión." }));
+}
+
+/** Encola la compatibilidad editada y libera al admin de inmediato:
+ *  no espera a que termine de guardar para cerrar el modal, puede
+ *  seguir navegando el catálogo mientras tanto. */
+function guardarCompatibilidad(sku) {
+    const texto = document.getElementById("edit-compat").value;
+    encolarCompatibilidad(sku, texto);
+    mostrarToastInfo("Compatibilidad en camino...");
+    alternarModal(); // ya no bloquea: el admin puede seguir de inmediato
 }
 
 /**
@@ -3322,7 +3407,6 @@ function bloquearNavegacionCatalogo(bloquear) {
    MODALES — HELPERS
 ══════════════════════════════════════════ */
 function alternarModal() {
-    if (guardadoCompatibilidadPendiente) return; // bloqueado hasta confirmar guardado
     const modal     = document.getElementById("modal-detalles");
     const contenido = document.getElementById("modal-contenido");
     if (modal.classList.contains("opacity-0")) {
@@ -3331,7 +3415,7 @@ function alternarModal() {
         modal.classList.add("opacity-0","pointer-events-none"); contenido.classList.add("translate-y-4");
     }
 }
-function cerrarModalExterno(e) { if (e.target.id==="modal-detalles" && !guardadoCompatibilidadPendiente) alternarModal(); }
+function cerrarModalExterno(e) { if (e.target.id==="modal-detalles") alternarModal(); }
 
 function abrirZoomImagen(url) {
     const m=document.getElementById("modal-zoom-imagen"), i=document.getElementById("img-ampliada");
