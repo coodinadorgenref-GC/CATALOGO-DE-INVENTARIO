@@ -410,19 +410,23 @@
             line-height: 1;
             color: #10b981; /* mismo verde de la portada */
         }
-        /* Rueda DELANTERA: disco que cubre y reemplaza visualmente la
-           rueda del ícono — mismo color, tamaño generoso para tapar
-           por completo la rueda estática de abajo. La rotación se
-           nota por el trazo punteado de la banda de rodadura. */
+        /* Rueda DELANTERA: ya no se tapa con un disco sólido — se deja
+           ver la propia llanta del ícono, y solo se dibuja encima su
+           contorno auténtico (punteado de rodadura) para simular el
+           giro, igual que en la trasera. */
         .rueda-real-wrap {
             position: absolute;
             bottom: 5px;
             width: 40px;
             height: 40px;
         }
-        .rueda-real-wrap.trasera   { left: 6px; }
-        .rueda-real-wrap.delantera { right: 2px; }
-        .rueda-real { animation: moto-gira-rueda .5s linear infinite; transform-origin: 20px 20px; }
+        .rueda-real-wrap.trasera   { left: 12px; }
+        .rueda-real-wrap.delantera { right: 7px; }
+        /* Velocidad de giro ajustada a 1s (antes .5s) para que el
+           contorno del neumático avance "a la par" del carril de
+           asfalto (que se desplaza 44px cada .5s) y no gire más
+           rápido de lo que correspondería al desplazamiento real. */
+        .rueda-real { animation: moto-gira-rueda 1s linear infinite; transform-origin: 20px 20px; }
         @keyframes moto-gira-rueda { to { transform: rotate(360deg); } }
 
         /* Rueda TRASERA: a diferencia de la delantera, aquí YA NO se
@@ -433,40 +437,22 @@
            logo. Lo único que agregamos encima es el punteado de
            rodadura, y ese punteado va RECORTADO (clip-path) a la
            misma cuña de la "C" para que nunca se dibuje sobre la
-           abertura ni distorsione la figura al girar. */
+           abertura ni distorsione la figura al girar. Misma velocidad
+           que la rueda delantera y el asfalto (1s) para que gire "a
+           la par" y no se vea acelerada. */
         .tread-gira {
-            animation: moto-gira-rueda .5s linear infinite;
+            animation: moto-gira-rueda 1s linear infinite;
             transform-origin: 20px 20px;
         }
 
-        /* Faro: reposicionado para quedar pegado justo al costado del
-           punto donde NACE el cono de luz (su extremo angosto), usando
-           la altura del cono —ya correcta— como referencia vertical.
+        /* Bola de luz (faro) eliminada. El cono de luz ahora nace
+           directamente en el punto donde antes empezaba la bola
+           (top:33px / right:27px), sin ningún círculo de por medio.
            Apagado por defecto, se enciende justo antes de salir. */
-        .faro {
-            position: absolute;
-            top: 33px;
-            right: 27px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #064e3b;
-            z-index: 3;
-        }
-        .escena-moto.fase-saliendo .faro {
-            animation: faro-enciende .3s ease-out forwards;
-        }
-        @keyframes faro-enciende {
-            to { background: #fef08a; box-shadow: 0 0 6px 2px #fde047, 0 0 14px 4px rgba(253,224,71,.6); }
-        }
-
-        /* Haz de luz: misma altura de siempre (correcta), desplazado
-           ligeramente a la izquierda para que su extremo angosto
-           (el origen del cono) quede junto al faro. */
         .haz-luz {
             position: absolute;
             top: 16px;
-            right: -36px;
+            right: -33px;
             width: 66px;
             height: 46px;
             clip-path: polygon(0% 38%, 0% 62%, 100% 100%, 100% 0%);
@@ -478,13 +464,18 @@
         .escena-moto.fase-saliendo .haz-luz {
             animation: haz-aparece .35s ease-out forwards;
         }
-        @keyframes haz-aparece { to { opacity: 1; } }
+        @keyframes haz-aparece {
+            to {
+                opacity: 1;
+                filter: drop-shadow(0 0 4px rgba(253,224,71,.6));
+            }
+        }
 
         /* Fase 1: baja desde arriba y aterriza */
         .escena-moto.fase-entrando  .moto-icono-wrap { animation: moto-baja .8s cubic-bezier(.22,.85,.32,1.1) forwards; }
         /* Fase 2: reposo — ya visible al centro */
         .escena-moto.fase-esperando .moto-icono-wrap { transform: translate(0,0); opacity: 1; }
-        /* Fase 3: se prende el faro (pausa breve) y sale hacia la DERECHA */
+        /* Fase 3: se enciende el cono de luz (pausa breve) y sale hacia la DERECHA */
         .escena-moto.fase-saliendo  .moto-icono-wrap {
             animation: moto-sale-der .85s cubic-bezier(.45,0,.7,.4) forwards;
         }
@@ -526,11 +517,10 @@
         }
 
         @media (prefers-reduced-motion: reduce) {
-            .rueda-real, .tread-gira, .rayas-asfalto, .faro, .haz-luz,
+            .rueda-real, .tread-gira, .rayas-asfalto, .haz-luz,
             .escena-moto.fase-entrando .moto-icono-wrap,
             .escena-moto.fase-saliendo .moto-icono-wrap { animation: none !important; }
             .moto-icono-wrap { transform: translate(0,0); opacity: 1; }
-            .faro { background: #fef08a; }
         }
     </style>
 </head>
@@ -684,7 +674,6 @@
         <div id="escena-moto" class="escena-moto">
             <div id="moto-svg" class="moto-icono-wrap">
                 <i class="fa-solid fa-motorcycle moto-icono-fa"></i>
-                <span class="faro"></span>
                 <span class="haz-luz"></span>
 
                 <!-- Rueda trasera: YA NO se tapa con un disco. Se deja
@@ -712,13 +701,14 @@
                     </svg>
                 </div>
 
-                <!-- Rueda delantera: vacío en el centro y margen de la
-                     llanta (aro simple), sin punto ni "C". -->
+                <!-- Rueda delantera: ya NO se tapa con un dibujo sólido
+                     encima del ícono. Igual que la trasera, solo se
+                     dibuja el contorno auténtico (punteado de
+                     rodadura) sobre la propia llanta del glifo
+                     fa-motorcycle, dejando ver el ícono real debajo. -->
                 <div class="rueda-real-wrap delantera">
                     <svg class="rueda-real" viewBox="0 0 40 40" width="40" height="40" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="20" cy="20" r="20" fill="#10b981"/>
-                        <circle cx="20" cy="20" r="16" fill="none" stroke="#0f172a" stroke-width="2" stroke-dasharray="2.6 4" opacity=".55"/>
-                        <circle cx="20" cy="20" r="11" fill="#0f172a"/>
+                        <circle cx="20" cy="20" r="14.5" fill="none" stroke="#0f172a" stroke-width="5" stroke-dasharray="3 3.5" opacity=".5"/>
                     </svg>
                 </div>
             </div>
