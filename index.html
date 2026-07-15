@@ -872,10 +872,21 @@
      onclick="cerrarZoomImagen()">
     <button onclick="cerrarZoomImagen()"
             class="absolute top-6 right-6 text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer text-2xl z-[70] shadow-xl border border-slate-700">×</button>
-    <img id="img-ampliada" src="" alt="Vista ampliada"
-         class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl transform scale-95 transition-transform duration-300">
-</div>
 
+    <button onclick="event.stopPropagation(); moverZoomImagen(-1)" id="btn-zoom-anterior"
+            class="hidden absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer text-xl z-[70] shadow-xl border border-slate-700">
+        <i class="fa-solid fa-chevron-left"></i>
+    </button>
+    <button onclick="event.stopPropagation(); moverZoomImagen(1)" id="btn-zoom-siguiente"
+            class="hidden absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-700 w-12 h-12 rounded-full flex items-center justify-center cursor-pointer text-xl z-[70] shadow-xl border border-slate-700">
+        <i class="fa-solid fa-chevron-right"></i>
+    </button>
+
+    <img id="img-ampliada" src="" alt="Vista ampliada" onclick="event.stopPropagation()"
+         class="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl transform scale-95 transition-transform duration-300">
+
+    <div id="dots-zoom-imagen" class="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-[70]"></div>
+</div>
 <!-- ════════════════════════════════════════════════
      MODAL: AGREGAR FOTO (ADMIN) — captura nativa
      Ya NO usa un formulario de Google en un iframe (Google bloquea el
@@ -1283,7 +1294,7 @@ function renderizarGaleria() {
 
     cont.innerHTML = `
         <img src="${urlActual}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
-             onclick="abrirZoomImagen('${urlActual}')"
+             onclick="abrirZoomImagen()"
              class="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition duration-300">
         <div class="absolute bottom-2 right-2 bg-black/60 text-slate-300 text-[10px] font-bold py-1 px-2 rounded-md pointer-events-none opacity-70">
             <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> Clic para ampliar
@@ -3519,10 +3530,38 @@ function alternarModal() {
 }
 function cerrarModalExterno(e) { if (e.target.id==="modal-detalles") alternarModal(); }
 
-function abrirZoomImagen(url) {
-    const m=document.getElementById("modal-zoom-imagen"), i=document.getElementById("img-ampliada");
-    i.src=url; m.classList.remove("opacity-0","pointer-events-none");
-    i.classList.remove("scale-95"); i.classList.add("scale-100");
+function actualizarImagenZoom() {
+  const img = document.getElementById("img-ampliada");
+  if (img) img.src = galeriaActual[galeriaIndiceActual] || "";
+
+  const hayVarias = galeriaActual.length > 1;
+  const btnPrev = document.getElementById("btn-zoom-anterior");
+  const btnNext = document.getElementById("btn-zoom-siguiente");
+  if (btnPrev) btnPrev.classList.toggle("hidden", !hayVarias);
+  if (btnNext) btnNext.classList.toggle("hidden", !hayVarias);
+
+  const dots = document.getElementById("dots-zoom-imagen");
+  if (dots) {
+    dots.innerHTML = hayVarias
+      ? galeriaActual.map((_, i) => `<span class="w-2 h-2 rounded-full ${i===galeriaIndiceActual?'bg-white':'bg-white/40'}"></span>`).join("")
+      : "";
+  }
+}
+
+function moverZoomImagen(delta) {
+  if (galeriaActual.length <= 1) return;
+  galeriaIndiceActual = (galeriaIndiceActual + delta + galeriaActual.length) % galeriaActual.length;
+  actualizarImagenZoom();
+  renderizarGaleria(); // mantiene sincronizada la miniatura del modal de detalle
+}
+
+function abrirZoomImagen() {
+  actualizarImagenZoom();
+  const m = document.getElementById("modal-zoom-imagen");
+  const i = document.getElementById("img-ampliada");
+  m.classList.remove("opacity-0", "pointer-events-none");
+  i.classList.remove("scale-95");
+  i.classList.add("scale-100");
 }
 function cerrarZoomImagen() {
     const m=document.getElementById("modal-zoom-imagen"), i=document.getElementById("img-ampliada");
@@ -3606,25 +3645,30 @@ function _comprimirImagen(archivo) {
  *  llamar "Agregar más" varias veces si quiere ir sumando fotos de
  *  distintas carpetas/momentos antes de enviar todo junto. */
 async function previewFotoProducto(e) {
-    const archivos = Array.from(e.target.files || []).filter(a => a.type.startsWith("image/"));
-    if (archivos.length === 0) return;
+  const archivos = Array.from(e.target.files || []).filter(a => a.type.startsWith("image/"));
+  if (archivos.length === 0) return;
 
-    const restante = MAX_FOTOS_CLIENTE - fotoProductoArchivosActuales.length;
-    if (restante <= 0) {
-        alert("Ya seleccionaste el máximo de fotos permitidas por producto (" + MAX_FOTOS_CLIENTE + ").");
-        e.target.value = "";
-        return;
-    }
-    const aProcesar = archivos.slice(0, restante);
-    if (archivos.length > aProcesar.length) {
-        alert("Solo se agregaron " + aProcesar.length + " foto(s); llegaste al máximo de " + MAX_FOTOS_CLIENTE + " por producto.");
-    }
+  const restante = MAX_FOTOS_CLIENTE - fotoProductoArchivosActuales.length;
+  if (restante <= 0) {
+    alert("Ya seleccionaste el máximo de fotos permitidas por producto (" + MAX_FOTOS_CLIENTE + ").");
+    e.target.value = "";
+    return;
+  }
+  const aProcesar = archivos.slice(0, restante);
+  if (archivos.length > aProcesar.length) {
+    alert("Solo se agregaron " + aProcesar.length + " foto(s); llegaste al máximo de " + MAX_FOTOS_CLIENTE + " por producto.");
+  }
 
-    const comprimidas = await Promise.all(aProcesar.map(_comprimirImagen));
-    fotoProductoArchivosActuales.push(...comprimidas);
-    e.target.value = ""; // permite volver a elegir el mismo archivo si lo quita y lo vuelve a agregar
+  // Se comprime UNA POR UNA, en el mismo orden en que las elegiste —
+  // garantiza que el orden de selección se respete exactamente al
+  // subirlas después.
+  for (const archivo of aProcesar) {
+    const dataUrl = await _comprimirImagen(archivo);
+    fotoProductoArchivosActuales.push(dataUrl);
+  }
+  e.target.value = "";
 
-    renderizarPreviewFotos();
+  renderizarPreviewFotos();
 }
 
 const MAX_FOTOS_CLIENTE = 8; // debe coincidir con MAX_FOTOS_POR_PRODUCTO del backend
@@ -3790,6 +3834,55 @@ function enviarMensajeCotizacionModal(sku, descripcion, numero) {
     const msg = `Hola, me interesa cotizar la siguiente refacción:\n\n*SKU:* ${sku}\n*Descripción:* ${descripcion}\n\n¿Tienen disponibilidad? Quedo en espera.`;
     window.open(`https://api.whatsapp.com/send?phone=${encodeURIComponent(numero)}&text=${encodeURIComponent(msg)}`,"_blank");
 }
+
+document.addEventListener("keydown", function (e) {
+  if (!esAdmin) return;
+  if (!e.altKey || e.ctrlKey || e.metaKey) return;
+
+  const tecla = e.key.toLowerCase();
+  const modalDetalleAbierto = document.getElementById("modal-detalles") &&
+                              !document.getElementById("modal-detalles").classList.contains("opacity-0");
+  const modalFotoAbierto = document.getElementById("modal-form-foto") &&
+                            !document.getElementById("modal-form-foto").classList.contains("opacity-0");
+  const enModoEdicionCompat = !!document.getElementById("edit-compat");
+
+  if (tecla === "a" && modalDetalleAbierto && galeriaSkuActual && !modalFotoAbierto) {
+    e.preventDefault();
+    abrirFormularioFoto(galeriaSkuActual);
+    return;
+  }
+
+  if (tecla === "e" && modalFotoAbierto) {
+    const btn = document.getElementById("btn-enviar-foto");
+    if (btn && !btn.disabled) {
+      e.preventDefault();
+      enviarFotosProducto();
+    }
+    return;
+  }
+
+  if (tecla === "c" && modalDetalleAbierto && !enModoEdicionCompat) {
+    const btn = document.getElementById("btn-edicion");
+    if (btn) { e.preventDefault(); btn.click(); }
+    return;
+  }
+
+  if (tecla === "g" && modalDetalleAbierto && enModoEdicionCompat) {
+    const btn = document.getElementById("btn-edicion");
+    if (btn) { e.preventDefault(); btn.click(); }
+    return;
+  }
+});
+   
+    document.addEventListener("keydown", function (e) {
+  const modalZoom = document.getElementById("modal-zoom-imagen");
+  if (!modalZoom || modalZoom.classList.contains("opacity-0")) return;
+  if (e.key === "ArrowLeft") moverZoomImagen(-1);
+  if (e.key === "ArrowRight") moverZoomImagen(1);
+  if (e.key === "Escape") cerrarZoomImagen();
+});
+
+    
 </script>
 </body>
 </html>
