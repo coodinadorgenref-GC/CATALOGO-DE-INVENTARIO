@@ -1273,40 +1273,39 @@ let galeriaIndiceActual = 0;
 let galeriaSkuActual    = "";
 
 function renderizarGaleria() {
-    const cont = document.getElementById("galeria-contenedor");
-    const minis = document.getElementById("galeria-miniaturas");
-    if (!cont) return;
-    if (galeriaIndiceActual >= galeriaActual.length) galeriaIndiceActual = 0;
-    const urlActual = galeriaActual[galeriaIndiceActual] || optimizarEnlaceImagen("");
+  const cont = document.getElementById("galeria-contenedor");
+  const minis = document.getElementById("galeria-miniaturas");
+  if (!cont) return;
+  if (galeriaIndiceActual >= galeriaActual.length) galeriaIndiceActual = 0;
+  const urlActual = galeriaActual[galeriaIndiceActual] || optimizarEnlaceImagen("");
 
-    const flechas = galeriaActual.length > 1 ? `
-        <button onclick="event.stopPropagation(); moverGaleria(-1)"
-                class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center z-10 cursor-pointer">
-            <i class="fa-solid fa-chevron-left"></i>
-        </button>
-        <button onclick="event.stopPropagation(); moverGaleria(1)"
-                class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center z-10 cursor-pointer">
-            <i class="fa-solid fa-chevron-right"></i>
-        </button>
-        <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-            ${galeriaActual.map((_,i) => `<span class="w-1.5 h-1.5 rounded-full ${i===galeriaIndiceActual?'bg-white':'bg-white/40'}"></span>`).join("")}
-        </div>` : "";
+  const flechas = galeriaActual.length > 1 ? `
+      <button onclick="event.stopPropagation(); moverGaleria(-1)"
+              class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center z-10 cursor-pointer">
+          <i class="fa-solid fa-chevron-left"></i>
+      </button>
+      <button onclick="event.stopPropagation(); moverGaleria(1)"
+              class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white w-8 h-8 rounded-full flex items-center justify-center z-10 cursor-pointer">
+          <i class="fa-solid fa-chevron-right"></i>
+      </button>
+      <div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+          ${galeriaActual.map((_,i) => `<span class="w-1.5 h-1.5 rounded-full ${i===galeriaIndiceActual?'bg-white':'bg-white/40'}"></span>`).join("")}
+      </div>` : "";
 
-    cont.innerHTML = `
-        <img src="${urlActual}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
-             onclick="abrirZoomImagen()"
-             class="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition duration-300">
-        <div class="absolute bottom-2 right-2 bg-black/60 text-slate-300 text-[10px] font-bold py-1 px-2 rounded-md pointer-events-none opacity-70">
-            <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> Clic para ampliar
-        </div>
-        ${flechas}`;
+  cont.innerHTML = `
+      <img src="${urlActual}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
+           onclick="abrirZoomImagen()"
+           class="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition duration-300">
+      <div class="absolute bottom-2 right-2 bg-black/60 text-slate-300 text-[10px] font-bold py-1 px-2 rounded-md pointer-events-none opacity-70">
+          <i class="fa-solid fa-magnifying-glass-plus mr-1"></i> Clic para ampliar
+      </div>
+      ${flechas}`;
 
-    if (!minis) return;
-    // Miniaturas: visibles para todos si hay más de una foto; el botón
-    // de borrar (x) solo se dibuja para admin.
-    if (galeriaActual.length > 1) {
-        minis.innerHTML = galeriaActual.map((url, i) => `
-            <div class="relative shrink-0">
+  if (!minis) return;
+  if (galeriaActual.length > 1) {
+    minis.innerHTML = galeriaActual.map((url, i) => `
+        <div class="relative shrink-0 flex flex-col items-center gap-1">
+            <div class="relative">
                 <img src="${url}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
                      onclick="irAGaleria(${i})"
                      class="w-14 h-14 object-cover rounded-lg cursor-pointer border-2 ${i===galeriaIndiceActual?'border-emerald-500':'border-slate-700'}">
@@ -1316,10 +1315,23 @@ function renderizarGaleria() {
                         class="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] cursor-pointer">
                     <i class="fa-solid fa-xmark"></i>
                 </button>` : ""}
-            </div>`).join("");
-    } else {
-        minis.innerHTML = "";
-    }
+                ${i===0 ? `<span class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[7px] font-black px-1 py-0.5 rounded uppercase whitespace-nowrap">Portada</span>` : ""}
+            </div>
+            ${esAdmin ? `
+            <div class="flex gap-1">
+                <button onclick="event.stopPropagation(); moverFotoGaleria(${i}, -1)" ${i===0?"disabled":""}
+                        class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[9px] flex items-center justify-center cursor-pointer">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <button onclick="event.stopPropagation(); moverFotoGaleria(${i}, 1)" ${i===galeriaActual.length-1?"disabled":""}
+                        class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[9px] flex items-center justify-center cursor-pointer">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>` : ""}
+        </div>`).join("");
+  } else {
+    minis.innerHTML = "";
+  }
 }
 
 function moverGaleria(delta) {
@@ -1357,7 +1369,41 @@ function eliminarFotoGaleria(url) {
     })
     .catch(() => alert("Error de conexión al eliminar la foto."));
 }
+function moverFotoGaleria(indice, direccion) {
+  const nuevoIndice = indice + direccion;
+  if (nuevoIndice < 0 || nuevoIndice >= galeriaActual.length) return;
 
+  const temp = galeriaActual[indice];
+  galeriaActual[indice] = galeriaActual[nuevoIndice];
+  galeriaActual[nuevoIndice] = temp;
+  if (galeriaIndiceActual === indice) galeriaIndiceActual = nuevoIndice;
+  else if (galeriaIndiceActual === nuevoIndice) galeriaIndiceActual = indice;
+  renderizarGaleria();
+
+  fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+      body: JSON.stringify({ action:"reordenarFotosProducto", token:tokenActual, correo:usuarioActual,
+                             sku: galeriaSkuActual, nuevoOrden: galeriaActual }) })
+  .then(r => r.json())
+  .then(rs => {
+    if (!rs.success) {
+      alert("No se pudo guardar el nuevo orden: " + (rs.message||"Error.") + " Se revierte el cambio.");
+      const temp2 = galeriaActual[indice];
+      galeriaActual[indice] = galeriaActual[nuevoIndice];
+      galeriaActual[nuevoIndice] = temp2;
+      renderizarGaleria();
+      return;
+    }
+    const itemCache = (inventarioMaestro||[]).find(p => String(p.SKU) === String(galeriaSkuActual));
+    if (itemCache) {
+      itemCache.Imagenes = rs.fotos;
+      itemCache.Imagen = rs.fotos[0] || "";
+    }
+    filtrarProductos(); // refresca la portada en la tarjeta del catálogo
+  })
+  .catch(() => {
+    alert("Error de conexión al guardar el nuevo orden.");
+  });
+}
 
 
 function generarHtmlContenedorImagen(url) {
@@ -3348,11 +3394,11 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
         <div class="grid grid-cols-2 gap-4 mt-6">
             <button onclick='abrirFormularioFoto("${sku}")'
                     class="w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider cursor-pointer flex items-center justify-center">
-                <i class="fa-solid fa-camera mr-2"></i> Agregar Foto
+                <i class="fa-solid fa-camera mr-2"></i> <span class="underline decoration-2 underline-offset-2">A</span>gregar Foto
             </button>
             <button id="btn-edicion" onclick='habilitarEdicion("${sku}", ${compatSegura})'
                     class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer">
-                <i class="fa-solid fa-pen-to-square mr-2"></i> Editar Comp.
+                <i class="fa-solid fa-pen-to-square mr-2"></i> Editar <span class="underline decoration-2 underline-offset-2">C</span>omp.
             </button>
         </div>`;
     }
@@ -3407,7 +3453,7 @@ function habilitarEdicion(sku, contenido) {
     document.getElementById("contenedor-compatibilidad").innerHTML =
         `<textarea id="edit-compat" class="w-full h-40 bg-slate-900 border border-slate-700 p-3 text-xs text-white rounded-xl">${contenido}</textarea>`;
     const btn = document.getElementById("btn-edicion");
-    btn.innerHTML = "Guardar Cambios";
+    btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Cambios';
     btn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer";
     btn.onclick = () => guardarCompatibilidad(sku);
 }
@@ -3645,7 +3691,9 @@ function _comprimirImagen(archivo) {
  *  llamar "Agregar más" varias veces si quiere ir sumando fotos de
  *  distintas carpetas/momentos antes de enviar todo junto. */
 async function previewFotoProducto(e) {
-  const archivos = Array.from(e.target.files || []).filter(a => a.type.startsWith("image/"));
+  const archivos = Array.from(e.target.files || [])
+    .filter(a => a.type.startsWith("image/"))
+    .sort((a, b) => (a.lastModified || 0) - (b.lastModified || 0)); // orden cronológico, mejor aproximación al orden real de selección
   if (archivos.length === 0) return;
 
   const restante = MAX_FOTOS_CLIENTE - fotoProductoArchivosActuales.length;
@@ -3659,9 +3707,6 @@ async function previewFotoProducto(e) {
     alert("Solo se agregaron " + aProcesar.length + " foto(s); llegaste al máximo de " + MAX_FOTOS_CLIENTE + " por producto.");
   }
 
-  // Se comprime UNA POR UNA, en el mismo orden en que las elegiste —
-  // garantiza que el orden de selección se respete exactamente al
-  // subirlas después.
   for (const archivo of aProcesar) {
     const dataUrl = await _comprimirImagen(archivo);
     fotoProductoArchivosActuales.push(dataUrl);
@@ -3674,35 +3719,49 @@ async function previewFotoProducto(e) {
 const MAX_FOTOS_CLIENTE = 8; // debe coincidir con MAX_FOTOS_POR_PRODUCTO del backend
 
 function renderizarPreviewFotos() {
-    const cont     = document.getElementById("preview-fotos-producto");
-    const contador = document.getElementById("contador-fotos-seleccionadas");
-    const btn      = document.getElementById("btn-enviar-foto");
-    const zonaCap  = document.getElementById("zona-captura-foto");
-    const zonaPrev = document.getElementById("zona-preview-foto");
+  const cont     = document.getElementById("preview-fotos-producto");
+  const contador = document.getElementById("contador-fotos-seleccionadas");
+  const btn      = document.getElementById("btn-enviar-foto");
+  const zonaCap  = document.getElementById("zona-captura-foto");
+  const zonaPrev = document.getElementById("zona-preview-foto");
 
-    if (fotoProductoArchivosActuales.length === 0) {
-        zonaCap.classList.remove("hidden-element");
-        zonaPrev.classList.add("hidden-element");
-        btn.disabled = true;
-        btn.innerText = "Enviar foto";
-        return;
-    }
+  if (fotoProductoArchivosActuales.length === 0) {
+    zonaCap.classList.remove("hidden-element");
+    zonaPrev.classList.add("hidden-element");
+    btn.disabled = true;
+    btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">E</span>nviar foto';
+    return;
+  }
 
-    zonaCap.classList.add("hidden-element");
-    zonaPrev.classList.remove("hidden-element");
+  zonaCap.classList.add("hidden-element");
+  zonaPrev.classList.remove("hidden-element");
 
-    cont.innerHTML = fotoProductoArchivosActuales.map((data, i) => `
-        <div class="relative w-20 h-20 shrink-0">
-            <img src="${data}" class="w-full h-full object-cover rounded-lg border border-slate-700">
-            <button onclick="quitarFotoPendiente(${i})" title="Quitar"
-                    class="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] cursor-pointer">
-                <i class="fa-solid fa-xmark"></i>
-            </button>
-        </div>`).join("");
+  cont.innerHTML = fotoProductoArchivosActuales.map((data, i) => `
+    <div class="relative w-20 h-24 shrink-0 flex flex-col items-center gap-1">
+      <div class="relative w-20 h-20">
+        <img src="${data}" class="w-full h-full object-cover rounded-lg border ${i===0?'border-emerald-500 border-2':'border-slate-700'}">
+        <button onclick="quitarFotoPendiente(${i})" title="Quitar"
+                class="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] cursor-pointer">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        ${i===0 ? `<span class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded uppercase whitespace-nowrap">Principal</span>` : ""}
+      </div>
+      <div class="flex gap-1">
+        <button onclick="moverFotoPendiente(${i}, -1)" ${i===0?"disabled":""}
+                class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[10px] flex items-center justify-center cursor-pointer">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <button onclick="moverFotoPendiente(${i}, 1)" ${i===fotoProductoArchivosActuales.length-1?"disabled":""}
+                class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[10px] flex items-center justify-center cursor-pointer">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>`).join("");
 
-    contador.innerText = fotoProductoArchivosActuales.length + " foto(s) lista(s) para enviar";
-    btn.disabled  = false;
-    btn.innerText = fotoProductoArchivosActuales.length === 1 ? "Enviar foto" : `Enviar ${fotoProductoArchivosActuales.length} fotos`;
+  contador.innerText = fotoProductoArchivosActuales.length + " foto(s) — la marcada como Principal será la portada del producto";
+  btn.disabled  = false;
+  var textoBase = fotoProductoArchivosActuales.length === 1 ? "Enviar foto" : `Enviar ${fotoProductoArchivosActuales.length} fotos`;
+  btn.innerHTML = textoBase.replace(/^E/, '<span class="underline decoration-2 underline-offset-2">E</span>');
 }
 
 /** Quita UNA foto de la selección pendiente antes de enviarla. */
@@ -3710,16 +3769,25 @@ function quitarFotoPendiente(indice) {
     fotoProductoArchivosActuales.splice(indice, 1);
     renderizarPreviewFotos();
 }
+function moverFotoPendiente(indice, direccion) {
+  const nuevoIndice = indice + direccion;
+  if (nuevoIndice < 0 || nuevoIndice >= fotoProductoArchivosActuales.length) return;
+  const temp = fotoProductoArchivosActuales[indice];
+  fotoProductoArchivosActuales[indice] = fotoProductoArchivosActuales[nuevoIndice];
+  fotoProductoArchivosActuales[nuevoIndice] = temp;
+  renderizarPreviewFotos();
+}    
 
 /** Descarta toda la selección pendiente y vuelve a mostrar la zona de captura. */
 function reiniciarSeleccionFoto() {
-    const input = document.getElementById("input-foto-producto");
-    if (input) input.value = "";
-    fotoProductoArchivosActuales = [];
-    document.getElementById("zona-preview-foto").classList.add("hidden-element");
-    document.getElementById("zona-captura-foto").classList.remove("hidden-element");
-    const btn = document.getElementById("btn-enviar-foto");
-    btn.disabled = true; btn.innerText = "Enviar foto";
+  const input = document.getElementById("input-foto-producto");
+  if (input) input.value = "";
+  fotoProductoArchivosActuales = [];
+  document.getElementById("zona-preview-foto").classList.add("hidden-element");
+  document.getElementById("zona-captura-foto").classList.remove("hidden-element");
+  const btn = document.getElementById("btn-enviar-foto");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">E</span>nviar foto';
 }
 
 // ══════════════════════════════════════════
