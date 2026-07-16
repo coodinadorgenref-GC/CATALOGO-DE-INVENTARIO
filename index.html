@@ -839,6 +839,7 @@
                          ontouchstart="pausarCarruselMarcas()" ontouchend="reanudarCarruselMarcasConRetraso()">
                     </div>
                 </footer>
+            <div class="h-24"></div>
         </main>
     </div><!-- /contenedor-principal-catalogo -->
 
@@ -1756,7 +1757,7 @@ function _continuarDespuesDeAnimacionCarga() {
     renderizarFiltrosFamilia();
     renderizarFiltrosMarcas();
     requestAnimationFrame(() => filtrarProductos());
-    iniciarCarruselMarcas(); // ← agrega esta línea al final
+    iniciarCarruselMarcas(); // ← agrégala de nuevo aquí, como respaldo
 }
     
 function forzarSincronizacionDatos() {
@@ -3983,14 +3984,14 @@ function renderizarCarruselMarcas(lista) {
   if (!cont) return;
   if (marcasDestacadasGlobal.length === 0) { cont.innerHTML = ""; return; }
 
-  cont.innerHTML = marcasDestacadasGlobal.map(m => `
+cont.innerHTML = marcasDestacadasGlobal.map(m => `
       <button onclick="filtrarPorMarcaDesdeFooter('${escaparHTML(m.palabraClave).replace(/'/g,"\\'")}')"
               class="snap-start shrink-0 bg-white rounded-xl shadow-md px-4 py-2.5 flex items-center cursor-pointer hover:scale-105 transition">
           ${m.logo
             ? `<img src="${m.logo}" referrerpolicy="no-referrer" alt="${escaparHTML(m.nombre)}"
                     class="h-5 md:h-6 object-contain" onerror="this.parentElement.replaceWith(_crearBadgeMarca('${escaparHTML(m.nombre)}'))">`
             : `<span class="text-[13px] font-black tracking-wide text-slate-700">${escaparHTML(m.nombre)}</span>`}
-      </button>`).join("");
+      </button>`).join("") + `<div class="w-28 shrink-0"></div>`;
 
   iniciarCarruselMarcas();
 }
