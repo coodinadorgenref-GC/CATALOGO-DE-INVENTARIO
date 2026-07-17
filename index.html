@@ -4094,33 +4094,6 @@ function moverCarruselMarcas(direccion) {
   reanudarCarruselMarcasConRetraso();
 }
 
-
-let marcasDestacadasGlobal = [];
-
-function renderizarCarruselMarcas(lista) {
-  marcasDestacadasGlobal = lista || [];
-  const cont = document.getElementById("carrusel-marcas");
-  if (!cont) return;
-  if (marcasDestacadasGlobal.length === 0) { cont.innerHTML = ""; return; }
-
-  const itemsHtml = marcasDestacadasGlobal.map(m => `
-      <button onclick="filtrarPorMarcaDesdeFooter('${escaparHTML(m.palabraClave).replace(/'/g,"\\'")}')"
-              class="snap-start shrink-0 bg-white rounded-xl shadow-md px-4 py-2.5 flex items-center cursor-pointer hover:scale-105 transition">
-          ${m.logo
-            ? `<img src="${m.logo}" referrerpolicy="no-referrer" alt="${escaparHTML(m.nombre)}"
-                    class="h-5 md:h-6 object-contain" onerror="this.parentElement.replaceWith(_crearBadgeMarca('${escaparHTML(m.nombre)}'))">`
-            : `<span class="text-[13px] font-black tracking-wide text-slate-700">${escaparHTML(m.nombre)}</span>`}
-      </button>`).join("");
-
-  // Duplicamos la tira una vez más justo después de la original. Al llegar
-  // al final de la primera, la segunda (idéntica) ya está ahí — el salto
-  // de regreso (ver iniciarCarruselMarcas) ocurre sobre contenido igual,
-  // así que no se nota el "corte" y el carrusel se siente infinito.
-  cont.innerHTML = itemsHtml + itemsHtml + `<div class="w-28 shrink-0"></div>`;
-
-  iniciarCarruselMarcas();
-}
-
 function filtrarPorMarcaDesdeFooter(palabraClave) {
   const objetivo = palabraClave.toUpperCase();
   const todasLasMarcas = [...new Set(inventarioMaestro.map(i => (i.Marca||"GENÉRICO").trim()))];
