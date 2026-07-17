@@ -4019,6 +4019,9 @@ function renderizarCarruselMarcas(lista) {
   offsetCarruselMarcas = 0;
   track.style.transform = "translateX(0px)";
   iniciarCarruselMarcas();
+  _inicializarArrastreCarrusel();   // ← AGREGAR ESTA LÍNEA
+}
+    
 }
 
 function medirAnchoTiraCarrusel() {
@@ -4093,7 +4096,76 @@ function moverCarruselMarcas(direccion) {
 
   reanudarCarruselMarcasConRetraso();
 }
+/* ══════════════════════════════════════════
+   ARRASTRE MANUAL (touch + mouse) — overflow:hidden bloquea el scroll
+   nativo del navegador, así que el arrastre se implementa a mano y
+   mueve el mismo offsetCarruselMarcas que usan el auto-scroll y las
+   flechas, para que todo quede sincronizado.
+══════════════════════════════════════════ */
+let arrastreCarruselActivo = false;
+let arrastreCarruselInicioX = 0;
+let arrastreCarruselOffsetInicial = 0;
+let arrastreCarruselSeMovio = false;
 
+function _iniciarArrastreCarrusel(clientX) {
+  const track = document.getElementById("carrusel-marcas-track");
+  if (!track || anchoTiraCarruselMarcas <= 0) return;
+  arrastreCarruselActivo = true;
+  arrastreCarruselSeMovio = false;
+  arrastreCarruselInicioX = clientX;
+  arrastreCarruselOffsetInicial = offsetCarruselMarcas;
+  pausarCarruselMarcas();
+  track.style.transition = "";
+}
+
+function _moverArrastreCarrusel(clientX) {
+  if (!arrastreCarruselActivo) return;
+  const track = document.getElementById("carrusel-marcas-track");
+  if (!track) return;
+  const delta = clientX - arrastreCarruselInicioX;
+  if (Math.abs(delta) > 4) arrastreCarruselSeMovio = true;
+
+  let nuevoOffset = arrastreCarruselOffsetInicial - delta;
+  // Bucle cerrado también mientras se arrastra
+  nuevoOffset = ((nuevoOffset % anchoTiraCarruselMarcas) + anchoTiraCarruselMarcas) % anchoTiraCarruselMarcas;
+  offsetCarruselMarcas = nuevoOffset;
+  track.style.transform = `translateX(-${offsetCarruselMarcas}px)`;
+}
+
+function _terminarArrastreCarrusel() {
+  if (!arrastreCarruselActivo) return;
+  arrastreCarruselActivo = false;
+  reanudarCarruselMarcasConRetraso();
+}
+
+/** Evita que un arrastre se interprete como clic accidental en un logo
+ *  (por ejemplo, arrastrar y soltar encima de un botón de marca). */
+function _clicFueArrastreCarrusel(e) {
+  if (arrastreCarruselSeMovio) { e.preventDefault(); e.stopPropagation(); }
+}
+
+function _inicializarArrastreCarrusel() {
+  const cont = document.getElementById("carrusel-marcas");
+  if (!cont || cont.dataset.arrastreListo) return;
+  cont.dataset.arrastreListo = "1";
+
+  // Touch (móvil)
+  cont.addEventListener("touchstart", e => _iniciarArrastreCarrusel(e.touches[0].clientX), { passive: true });
+  cont.addEventListener("touchmove",  e => _moverArrastreCarrusel(e.touches[0].clientX), { passive: true });
+  cont.addEventListener("touchend",   _terminarArrastreCarrusel);
+
+  // Mouse (escritorio)
+  cont.addEventListener("mousedown", e => { e.preventDefault(); _iniciarArrastreCarrusel(e.clientX); });
+  window.addEventListener("mousemove", e => { if (arrastreCarruselActivo) _moverArrastreCarrusel(e.clientX); });
+  window.addEventListener("mouseup", _terminarArrastreCarrusel);
+
+  cont.style.cursor = "grab";
+  cont.addEventListener("mousedown", () => cont.style.cursor = "grabbing");
+  window.addEventListener("mouseup", () => cont.style.cursor = "grab");
+
+  // Bloquea el clic en un logo si el usuario en realidad estaba arrastrando
+  cont.addEventListener("click", _clicFueArrastreCarrusel, true);
+}
 function filtrarPorMarcaDesdeFooter(palabraClave) {
   const objetivo = palabraClave.toUpperCase();
   const todasLasMarcas = [...new Set(inventarioMaestro.map(i => (i.Marca||"GENÉRICO").trim()))];
