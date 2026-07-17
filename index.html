@@ -548,6 +548,19 @@
                     </button>
                 </div>
             </div>
+                        <button type="button" onclick="alternarVisibilidadPin()" tabindex="-1"
+                            class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-emerald-400 cursor-pointer">
+                        <i id="icono-ojo-pin" class="fa-solid fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="text-left mb-4 flex items-center gap-2">
+                <input type="checkbox" id="input-recordarme" class="w-4 h-4 rounded accent-emerald-600 cursor-pointer">
+                <label for="input-recordarme" class="text-xs font-semibold text-slate-400 cursor-pointer select-none">
+                    Recuérdame (mantener sesión abierta 30 min)
+                </label>
+            </div>
 
             <div id="error-login" class="hidden bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 border border-red-900/50"></div>
 
@@ -1098,6 +1111,8 @@
 ══════════════════════════════════════════ */
 const API_URL = "https://catalogo-labarata-proxy.catalogo-labarata.workers.dev";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
+const DURACION_RECORDARME_MS = 30 * 60 * 1000;
+let duracionSesionActualMs = TIEMPO_EXPIRACION_MS; // se ajusta según "Recuérdame" al iniciar sesión
 // NOTA: ya no se usa un formulario de Google para las fotos (ver
 // abrirFormularioFoto), así que URL_FORM_ADMIN fue retirado. El
 // formulario de Google Forms original puede eliminarse si ya no lo
@@ -1479,7 +1494,8 @@ function verificarSesionGuardada() {
     const str = localStorage.getItem("sesion_catalogo");
     if (!str) { document.getElementById("cargando-datos").classList.add("hidden"); return; }
     const s = JSON.parse(str);
-    if (new Date().getTime() - s.timestamp > TIEMPO_EXPIRACION_MS) {
+        duracionSesionActualMs = s.duracionMs || TIEMPO_EXPIRACION_MS;
+        if (new Date().getTime() - s.timestamp > duracionSesionActualMs) {
         // Liberamos el lugar de esa sesión vencida usando sus propios datos
         // (usuarioActual/tokenActual todavía no se han asignado en esta carga).
         try {
@@ -1510,8 +1526,13 @@ function verificarSesionGuardada() {
     iniciarControlDeSesion();
 }
 
-function guardarSesionEnDispositivo(correo, token, nombre, admin, rol, almacenAdmin, accesoNumParteBajaj) {
-    localStorage.setItem("sesion_catalogo", JSON.stringify({ correo, token, nombre, esAdmin: admin, rol: rol || "", almacenAdmin: almacenAdmin || "", accesoNumeroParteBajaj: !!accesoNumParteBajaj, timestamp: new Date().getTime() }));
+function guardarSesionEnDispositivo(correo, token, nombre, admin, rol, almacenAdmin, accesoNumParteBajaj, duracionMs) {
+    localStorage.setItem("sesion_catalogo", JSON.stringify({
+        correo, token, nombre, esAdmin: admin, rol: rol || "",
+        almacenAdmin: almacenAdmin || "", accesoNumeroParteBajaj: !!accesoNumParteBajaj,
+        duracionMs: duracionMs || TIEMPO_EXPIRACION_MS,
+        timestamp: new Date().getTime()
+    }));
 }
 function actualizarTimestampSesion() {
     const s = localStorage.getItem("sesion_catalogo");
@@ -1547,15 +1568,16 @@ function _liberarSesionEnServidor() {
 function reiniciarTemporizadorInactividad() {
     actualizarTimestampSesion();
     clearTimeout(temporizadorInactividad);
-    temporizadorInactividad = setTimeout(cerrarSesionPorInactividad, TIEMPO_EXPIRACION_MS);
+    temporizadorInactividad = setTimeout(cerrarSesionPorInactividad, duracionSesionActualMs);
 }
 
 function cerrarSesionPorInactividad() {
     _liberarSesionEnServidor();
     detenerControlDeSesion();
     localStorage.removeItem("sesion_catalogo");
-    localStorage.removeItem("inventario_cache"); // NUEVO: no dejar el catálogo legible sin sesión
-    alert("Tu sesión se cerró automáticamente por 15 minutos de inactividad.");
+    localStorage.removeItem("inventario_cache");
+    const minutos = Math.round(duracionSesionActualMs / 60000);
+    alert("Tu sesión se cerró automáticamente por " + minutos + " minutos de inactividad.");
     location.reload();
 }
 
@@ -1633,7 +1655,9 @@ async function manejarInicioDeSesion() {
             if(_nm2) _nm2.innerText = rs.nombre || "";
             if(_rm2) _rm2.innerText = rs.rol ? "· " + rs.rol : "";
             document.getElementById("rol-usuario-wrapper").classList.toggle("hidden", !rs.rol);
-            guardarSesionEnDispositivo(usuarioActual, rs.token, rs.nombre, esAdmin, rs.rol, almacenAdminActual, accesoNumeroParteBajaj);
+            const recordarme = document.getElementById("input-recordarme")?.checked || false;
+            duracionSesionActualMs = recordarme ? DURACION_RECORDARME_MS : TIEMPO_EXPIRACION_MS;
+            guardarSesionEnDispositivo(usuarioActual, rs.token, rs.nombre, esAdmin, rs.rol, almacenAdminActual, accesoNumeroParteBajaj, duracionSesionActualMs);
             document.getElementById("vista-login").classList.add("hidden");
             document.getElementById("vista-catalogo").classList.remove("hidden");
             document.getElementById("cargando-datos").classList.remove("hidden");
@@ -3962,10 +3986,10 @@ function iniciarCarruselMarcas() {
   clearInterval(intervaloCarruselMarcas);
   intervaloCarruselMarcas = setInterval(() => {
     if (!cont) return;
-    const maxScroll = cont.scrollWidth - cont.clientWidth;
-    if (maxScroll <= 0) return; // no hay suficiente contenido para desplazar
-    if (cont.scrollLeft >= maxScroll - 1) {
-      cont.scrollLeft = 0; // reinicia el recorrido
+    const mitad = cont.scrollWidth / 2; // ancho de UNA tira completa (hay 2 idénticas)
+    if (mitad <= cont.clientWidth) return; // no hay suficiente contenido para desplazar
+    if (cont.scrollLeft >= mitad) {
+      cont.scrollLeft -= mitad; // salto invisible: el contenido de ahí es idéntico
     } else {
       cont.scrollLeft += 1;
     }
@@ -3989,26 +4013,24 @@ function reanudarCarruselMarcasConRetraso() {
 function moverCarruselMarcas(direccion) {
   const cont = document.getElementById("carrusel-marcas");
   if (!cont) return;
-  pausarCarruselMarcas(); // el clic manual pausa el auto-scroll un momento
+  pausarCarruselMarcas();
 
-  const maxScroll = cont.scrollWidth - cont.clientWidth;
-  const salto = cont.clientWidth * 0.8; // avanza casi una pantalla completa por clic
+  const mitad = cont.scrollWidth / 2;
+  const salto = cont.clientWidth * 0.8;
 
   if (direccion > 0) {
-    if (cont.scrollLeft >= maxScroll - 5) {
-      cont.scrollTo({ left: 0, behavior: "smooth" }); // llegó al final: regresa al inicio
-    } else {
-      cont.scrollTo({ left: cont.scrollLeft + salto, behavior: "smooth" });
+    if (cont.scrollLeft + salto >= mitad * 2 - 5) {
+      cont.scrollLeft -= mitad; // vuelve al punto equivalente de la primera tira, sin animación
     }
+    cont.scrollTo({ left: cont.scrollLeft + salto, behavior: "smooth" });
   } else {
-    if (cont.scrollLeft <= 5) {
-      cont.scrollTo({ left: maxScroll, behavior: "smooth" }); // estaba al inicio: salta al final
-    } else {
-      cont.scrollTo({ left: cont.scrollLeft - salto, behavior: "smooth" });
+    if (cont.scrollLeft - salto <= 5) {
+      cont.scrollLeft += mitad;
     }
+    cont.scrollTo({ left: cont.scrollLeft - salto, behavior: "smooth" });
   }
 
-  reanudarCarruselMarcasConRetraso(); // reanuda el auto-scroll tras la pausa
+  reanudarCarruselMarcasConRetraso();
 }
 
 
@@ -4020,14 +4042,20 @@ function renderizarCarruselMarcas(lista) {
   if (!cont) return;
   if (marcasDestacadasGlobal.length === 0) { cont.innerHTML = ""; return; }
 
-cont.innerHTML = marcasDestacadasGlobal.map(m => `
+  const itemsHtml = marcasDestacadasGlobal.map(m => `
       <button onclick="filtrarPorMarcaDesdeFooter('${escaparHTML(m.palabraClave).replace(/'/g,"\\'")}')"
               class="snap-start shrink-0 bg-white rounded-xl shadow-md px-4 py-2.5 flex items-center cursor-pointer hover:scale-105 transition">
           ${m.logo
             ? `<img src="${m.logo}" referrerpolicy="no-referrer" alt="${escaparHTML(m.nombre)}"
                     class="h-5 md:h-6 object-contain" onerror="this.parentElement.replaceWith(_crearBadgeMarca('${escaparHTML(m.nombre)}'))">`
             : `<span class="text-[13px] font-black tracking-wide text-slate-700">${escaparHTML(m.nombre)}</span>`}
-      </button>`).join("") + `<div class="w-28 shrink-0"></div>`;
+      </button>`).join("");
+
+  // Duplicamos la tira una vez más justo después de la original. Al llegar
+  // al final de la primera, la segunda (idéntica) ya está ahí — el salto
+  // de regreso (ver iniciarCarruselMarcas) ocurre sobre contenido igual,
+  // así que no se nota el "corte" y el carrusel se siente infinito.
+  cont.innerHTML = itemsHtml + itemsHtml + `<div class="w-28 shrink-0"></div>`;
 
   iniciarCarruselMarcas();
 }
