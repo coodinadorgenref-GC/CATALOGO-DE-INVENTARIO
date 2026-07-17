@@ -832,14 +832,24 @@
                  colores/tipografía reales, sin dominar visualmente la
                  pantalla oscura. -->
                 <footer class="mt-4 pt-5 pb-5 border-t border-slate-800">
-                    <p class="text-center text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-3">Nuestras marcas</p>
-                    <div id="carrusel-marcas"
-                         class="overflow-x-auto no-scrollbar flex gap-3 px-2 py-1 snap-x snap-mandatory scroll-smooth"
-                         onmouseenter="pausarCarruselMarcas()" onmouseleave="reanudarCarruselMarcas()"
-                         ontouchstart="pausarCarruselMarcas()" ontouchend="reanudarCarruselMarcasConRetraso()">
-                    </div>
-                </footer>
-            <div class="h-24"></div>
+    <p class="text-center text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-3">Nuestras marcas</p>
+    <div class="relative">
+        <button onclick="moverCarruselMarcas(-1)"
+                class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-slate-800 hover:bg-slate-700 text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer shadow-lg border border-slate-700">
+            <i class="fa-solid fa-chevron-left text-xs"></i>
+        </button>
+        <div id="carrusel-marcas"
+             class="overflow-x-auto no-scrollbar flex gap-3 px-10 py-1 snap-x snap-mandatory scroll-smooth"
+             onmouseenter="pausarCarruselMarcas()" onmouseleave="reanudarCarruselMarcas()"
+             ontouchstart="pausarCarruselMarcas()" ontouchend="reanudarCarruselMarcasConRetraso()">
+        </div>
+        <button onclick="moverCarruselMarcas(1)"
+                class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-slate-800 hover:bg-slate-700 text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer shadow-lg border border-slate-700">
+            <i class="fa-solid fa-chevron-right text-xs"></i>
+        </button>
+    </div>
+</footer>
+<div class="h-24"></div>
         </main>
     </div><!-- /contenedor-principal-catalogo -->
 
@@ -3975,6 +3985,32 @@ function reanudarCarruselMarcasConRetraso() {
   clearTimeout(timeoutReanudarCarrusel);
   timeoutReanudarCarrusel = setTimeout(iniciarCarruselMarcas, 2500); // espera tras soltar el dedo
 }
+
+function moverCarruselMarcas(direccion) {
+  const cont = document.getElementById("carrusel-marcas");
+  if (!cont) return;
+  pausarCarruselMarcas(); // el clic manual pausa el auto-scroll un momento
+
+  const maxScroll = cont.scrollWidth - cont.clientWidth;
+  const salto = cont.clientWidth * 0.8; // avanza casi una pantalla completa por clic
+
+  if (direccion > 0) {
+    if (cont.scrollLeft >= maxScroll - 5) {
+      cont.scrollTo({ left: 0, behavior: "smooth" }); // llegó al final: regresa al inicio
+    } else {
+      cont.scrollTo({ left: cont.scrollLeft + salto, behavior: "smooth" });
+    }
+  } else {
+    if (cont.scrollLeft <= 5) {
+      cont.scrollTo({ left: maxScroll, behavior: "smooth" }); // estaba al inicio: salta al final
+    } else {
+      cont.scrollTo({ left: cont.scrollLeft - salto, behavior: "smooth" });
+    }
+  }
+
+  reanudarCarruselMarcasConRetraso(); // reanuda el auto-scroll tras la pausa
+}
+
 
 let marcasDestacadasGlobal = [];
 
