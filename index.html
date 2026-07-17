@@ -845,9 +845,10 @@
             <i class="fa-solid fa-chevron-left text-xs"></i>
         </button>
         <div id="carrusel-marcas"
-             class="overflow-x-auto no-scrollbar flex gap-3 px-10 py-1 snap-x snap-mandatory scroll-smooth"
+             class="overflow-hidden px-10 py-1"
              onmouseenter="pausarCarruselMarcas()" onmouseleave="reanudarCarruselMarcas()"
              ontouchstart="pausarCarruselMarcas()" ontouchend="reanudarCarruselMarcasConRetraso()">
+            <div id="carrusel-marcas-track" class="flex gap-3" style="will-change:transform;"></div>
         </div>
         <button onclick="moverCarruselMarcas(1)"
                 class="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-slate-800 hover:bg-slate-700 text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer shadow-lg border border-slate-700">
@@ -3970,27 +3971,94 @@ document.addEventListener("keydown", function (e) {
   if (e.key === "ArrowRight") moverZoomImagen(1);
   if (e.key === "Escape") cerrarZoomImagen();
 });
-let intervaloCarruselMarcas = null;
-let timeoutReanudarCarrusel = null;
+    
+/* ══════════════════════════════════════════
+   CARRUSEL DE MARCAS — bucle cerrado real
+   ══════════════════════════════════════════
+   Ya no usa scrollLeft/setInterval (dependía del ancho medido al inicio,
+   que quedaba mal calculado porque los logos <img> cargan async). Ahora
+   mueve un track con transform:translateX() vía requestAnimationFrame,
+   con velocidad constante en px/segundo, y un ResizeObserver que
+   reajusta el ancho real de la tira en cuanto las imágenes terminan de
+   cargar — así el bucle nunca se corta antes de tiempo. */
+let rafCarruselMarcas         = null;
+let offsetCarruselMarcas      = 0;
+let anchoTiraCarruselMarcas   = 0;
+let ultimoTimestampCarrusel   = null;
+let resizeObserverCarrusel    = null;
+let timeoutReanudarCarrusel   = null;
+const VELOCIDAD_CARRUSEL_PX_S = 40; // ~equivalente a la velocidad anterior
+
+let marcasDestacadasGlobal = [];
+
+function renderizarCarruselMarcas(lista) {
+  marcasDestacadasGlobal = lista || [];
+  const track = document.getElementById("carrusel-marcas-track");
+  if (!track) return;
+  if (marcasDestacadasGlobal.length === 0) { track.innerHTML = ""; return; }
+
+  const itemsHtml = marcasDestacadasGlobal.map(m => `
+      <button onclick="filtrarPorMarcaDesdeFooter('${escaparHTML(m.palabraClave).replace(/'/g,"\\'")}')"
+              class="shrink-0 bg-white rounded-xl shadow-md px-4 py-2.5 flex items-center cursor-pointer hover:scale-105 transition">
+          ${m.logo
+            ? `<img src="${m.logo}" referrerpolicy="no-referrer" alt="${escaparHTML(m.nombre)}"
+                    class="h-5 md:h-6 object-contain" onerror="this.parentElement.replaceWith(_crearBadgeMarca('${escaparHTML(m.nombre)}'))">`
+            : `<span class="text-[13px] font-black tracking-wide text-slate-700">${escaparHTML(m.nombre)}</span>`}
+      </button>`).join("");
+
+  // Duplicamos la tira una vez: al desplazar exactamente el ancho de UNA
+  // tira, lo que queda visible es idéntico al inicio — ahí reseteamos el
+  // offset a 0 sin que se note el salto (bucle cerrado real).
+  track.innerHTML = itemsHtml + itemsHtml;
+
+  medirAnchoTiraCarrusel();
+  if (resizeObserverCarrusel) resizeObserverCarrusel.disconnect();
+  resizeObserverCarrusel = new ResizeObserver(() => medirAnchoTiraCarrusel());
+  resizeObserverCarrusel.observe(track);
+
+  offsetCarruselMarcas = 0;
+  track.style.transform = "translateX(0px)";
+  iniciarCarruselMarcas();
+}
+
+function medirAnchoTiraCarrusel() {
+  const track = document.getElementById("carrusel-marcas-track");
+  if (!track) return;
+  anchoTiraCarruselMarcas = track.scrollWidth / 2; // hay 2 copias idénticas
+}
 
 function iniciarCarruselMarcas() {
-  const cont = document.getElementById("carrusel-marcas");
-  if (!cont) return;
-  clearInterval(intervaloCarruselMarcas);
-  intervaloCarruselMarcas = setInterval(() => {
-    if (!cont) return;
-    const mitad = cont.scrollWidth / 2; // ancho de UNA tira completa (hay 2 idénticas)
-    if (mitad <= cont.clientWidth) return; // no hay suficiente contenido para desplazar
-    if (cont.scrollLeft >= mitad) {
-      cont.scrollLeft -= mitad; // salto invisible: el contenido de ahí es idéntico
-    } else {
-      cont.scrollLeft += 1;
-    }
-  }, 25);
+  cancelAnimationFrame(rafCarruselMarcas);
+  ultimoTimestampCarrusel = null;
+  rafCarruselMarcas = requestAnimationFrame(_tickCarruselMarcas);
+}
+
+function _tickCarruselMarcas(timestamp) {
+  const track = document.getElementById("carrusel-marcas-track");
+  const cont  = document.getElementById("carrusel-marcas");
+  if (!track || !cont || anchoTiraCarruselMarcas <= 0 || anchoTiraCarruselMarcas <= cont.clientWidth) {
+    // Aún no hay suficiente contenido medido (o cabe todo sin desbordar):
+    // seguimos pidiendo frames para reintentar en cuanto el ResizeObserver
+    // actualice el ancho real.
+    rafCarruselMarcas = requestAnimationFrame(_tickCarruselMarcas);
+    ultimoTimestampCarrusel = timestamp;
+    return;
+  }
+  if (ultimoTimestampCarrusel === null) ultimoTimestampCarrusel = timestamp;
+  const deltaS = (timestamp - ultimoTimestampCarrusel) / 1000;
+  ultimoTimestampCarrusel = timestamp;
+
+  offsetCarruselMarcas += VELOCIDAD_CARRUSEL_PX_S * deltaS;
+  if (offsetCarruselMarcas >= anchoTiraCarruselMarcas) {
+    offsetCarruselMarcas -= anchoTiraCarruselMarcas; // salto invisible: contenido idéntico
+  }
+  track.style.transform = `translateX(-${offsetCarruselMarcas}px)`;
+
+  rafCarruselMarcas = requestAnimationFrame(_tickCarruselMarcas);
 }
 
 function pausarCarruselMarcas() {
-  clearInterval(intervaloCarruselMarcas);
+  cancelAnimationFrame(rafCarruselMarcas);
   clearTimeout(timeoutReanudarCarrusel);
 }
 
@@ -4000,28 +4068,28 @@ function reanudarCarruselMarcas() {
 
 function reanudarCarruselMarcasConRetraso() {
   clearTimeout(timeoutReanudarCarrusel);
-  timeoutReanudarCarrusel = setTimeout(iniciarCarruselMarcas, 2500); // espera tras soltar el dedo
+  timeoutReanudarCarrusel = setTimeout(iniciarCarruselMarcas, 2500);
 }
 
 function moverCarruselMarcas(direccion) {
-  const cont = document.getElementById("carrusel-marcas");
-  if (!cont) return;
+  const track = document.getElementById("carrusel-marcas-track");
+  const cont  = document.getElementById("carrusel-marcas");
+  if (!track || !cont || anchoTiraCarruselMarcas <= 0) return;
   pausarCarruselMarcas();
 
-  const mitad = cont.scrollWidth / 2;
   const salto = cont.clientWidth * 0.8;
+  offsetCarruselMarcas += direccion * salto;
 
-  if (direccion > 0) {
-    if (cont.scrollLeft + salto >= mitad * 2 - 5) {
-      cont.scrollLeft -= mitad; // vuelve al punto equivalente de la primera tira, sin animación
-    }
-    cont.scrollTo({ left: cont.scrollLeft + salto, behavior: "smooth" });
-  } else {
-    if (cont.scrollLeft - salto <= 5) {
-      cont.scrollLeft += mitad;
-    }
-    cont.scrollTo({ left: cont.scrollLeft - salto, behavior: "smooth" });
-  }
+  // Bucle cerrado también en el salto manual: si nos pasamos de la tira
+  // completa hacia cualquier lado, regresamos al punto equivalente en la
+  // otra copia — nunca se "acaba" el carrusel en ningún sentido, ni con
+  // las flechas ni con el auto-scroll.
+  if (offsetCarruselMarcas < 0) offsetCarruselMarcas += anchoTiraCarruselMarcas;
+  if (offsetCarruselMarcas >= anchoTiraCarruselMarcas) offsetCarruselMarcas -= anchoTiraCarruselMarcas;
+
+  track.style.transition = "transform .4s ease";
+  track.style.transform = `translateX(-${offsetCarruselMarcas}px)`;
+  setTimeout(() => { track.style.transition = ""; }, 400);
 
   reanudarCarruselMarcasConRetraso();
 }
