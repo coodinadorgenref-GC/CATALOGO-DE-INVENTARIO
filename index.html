@@ -4006,9 +4006,6 @@ function renderizarCarruselMarcas(lista) {
             : `<span class="text-[13px] font-black tracking-wide text-slate-700">${escaparHTML(m.nombre)}</span>`}
       </button>`).join("");
 
-  // Duplicamos la tira una vez: al desplazar exactamente el ancho de UNA
-  // tira, lo que queda visible es idéntico al inicio — ahí reseteamos el
-  // offset a 0 sin que se note el salto (bucle cerrado real).
   track.innerHTML = itemsHtml + itemsHtml;
 
   medirAnchoTiraCarrusel();
@@ -4019,15 +4016,13 @@ function renderizarCarruselMarcas(lista) {
   offsetCarruselMarcas = 0;
   track.style.transform = "translateX(0px)";
   iniciarCarruselMarcas();
-  _inicializarArrastreCarrusel();   // ← AGREGAR ESTA LÍNEA
-}
-    
+  _inicializarArrastreCarrusel();
 }
 
 function medirAnchoTiraCarrusel() {
   const track = document.getElementById("carrusel-marcas-track");
   if (!track) return;
-  anchoTiraCarruselMarcas = track.scrollWidth / 2; // hay 2 copias idénticas
+  anchoTiraCarruselMarcas = track.scrollWidth / 2;
 }
 
 function iniciarCarruselMarcas() {
@@ -4040,9 +4035,6 @@ function _tickCarruselMarcas(timestamp) {
   const track = document.getElementById("carrusel-marcas-track");
   const cont  = document.getElementById("carrusel-marcas");
   if (!track || !cont || anchoTiraCarruselMarcas <= 0 || anchoTiraCarruselMarcas <= cont.clientWidth) {
-    // Aún no hay suficiente contenido medido (o cabe todo sin desbordar):
-    // seguimos pidiendo frames para reintentar en cuanto el ResizeObserver
-    // actualice el ancho real.
     rafCarruselMarcas = requestAnimationFrame(_tickCarruselMarcas);
     ultimoTimestampCarrusel = timestamp;
     return;
@@ -4053,7 +4045,7 @@ function _tickCarruselMarcas(timestamp) {
 
   offsetCarruselMarcas += VELOCIDAD_CARRUSEL_PX_S * deltaS;
   if (offsetCarruselMarcas >= anchoTiraCarruselMarcas) {
-    offsetCarruselMarcas -= anchoTiraCarruselMarcas; // salto invisible: contenido idéntico
+    offsetCarruselMarcas -= anchoTiraCarruselMarcas;
   }
   track.style.transform = `translateX(-${offsetCarruselMarcas}px)`;
 
@@ -4083,10 +4075,6 @@ function moverCarruselMarcas(direccion) {
   const salto = cont.clientWidth * 0.8;
   offsetCarruselMarcas += direccion * salto;
 
-  // Bucle cerrado también en el salto manual: si nos pasamos de la tira
-  // completa hacia cualquier lado, regresamos al punto equivalente en la
-  // otra copia — nunca se "acaba" el carrusel en ningún sentido, ni con
-  // las flechas ni con el auto-scroll.
   if (offsetCarruselMarcas < 0) offsetCarruselMarcas += anchoTiraCarruselMarcas;
   if (offsetCarruselMarcas >= anchoTiraCarruselMarcas) offsetCarruselMarcas -= anchoTiraCarruselMarcas;
 
@@ -4096,11 +4084,9 @@ function moverCarruselMarcas(direccion) {
 
   reanudarCarruselMarcasConRetraso();
 }
+
 /* ══════════════════════════════════════════
-   ARRASTRE MANUAL (touch + mouse) — overflow:hidden bloquea el scroll
-   nativo del navegador, así que el arrastre se implementa a mano y
-   mueve el mismo offsetCarruselMarcas que usan el auto-scroll y las
-   flechas, para que todo quede sincronizado.
+   ARRASTRE MANUAL (touch + mouse)
 ══════════════════════════════════════════ */
 let arrastreCarruselActivo = false;
 let arrastreCarruselInicioX = 0;
@@ -4126,7 +4112,6 @@ function _moverArrastreCarrusel(clientX) {
   if (Math.abs(delta) > 4) arrastreCarruselSeMovio = true;
 
   let nuevoOffset = arrastreCarruselOffsetInicial - delta;
-  // Bucle cerrado también mientras se arrastra
   nuevoOffset = ((nuevoOffset % anchoTiraCarruselMarcas) + anchoTiraCarruselMarcas) % anchoTiraCarruselMarcas;
   offsetCarruselMarcas = nuevoOffset;
   track.style.transform = `translateX(-${offsetCarruselMarcas}px)`;
@@ -4138,8 +4123,6 @@ function _terminarArrastreCarrusel() {
   reanudarCarruselMarcasConRetraso();
 }
 
-/** Evita que un arrastre se interprete como clic accidental en un logo
- *  (por ejemplo, arrastrar y soltar encima de un botón de marca). */
 function _clicFueArrastreCarrusel(e) {
   if (arrastreCarruselSeMovio) { e.preventDefault(); e.stopPropagation(); }
 }
@@ -4149,12 +4132,10 @@ function _inicializarArrastreCarrusel() {
   if (!cont || cont.dataset.arrastreListo) return;
   cont.dataset.arrastreListo = "1";
 
-  // Touch (móvil)
   cont.addEventListener("touchstart", e => _iniciarArrastreCarrusel(e.touches[0].clientX), { passive: true });
   cont.addEventListener("touchmove",  e => _moverArrastreCarrusel(e.touches[0].clientX), { passive: true });
   cont.addEventListener("touchend",   _terminarArrastreCarrusel);
 
-  // Mouse (escritorio)
   cont.addEventListener("mousedown", e => { e.preventDefault(); _iniciarArrastreCarrusel(e.clientX); });
   window.addEventListener("mousemove", e => { if (arrastreCarruselActivo) _moverArrastreCarrusel(e.clientX); });
   window.addEventListener("mouseup", _terminarArrastreCarrusel);
@@ -4163,9 +4144,9 @@ function _inicializarArrastreCarrusel() {
   cont.addEventListener("mousedown", () => cont.style.cursor = "grabbing");
   window.addEventListener("mouseup", () => cont.style.cursor = "grab");
 
-  // Bloquea el clic en un logo si el usuario en realidad estaba arrastrando
   cont.addEventListener("click", _clicFueArrastreCarrusel, true);
 }
+    
 function filtrarPorMarcaDesdeFooter(palabraClave) {
   const objetivo = palabraClave.toUpperCase();
   const todasLasMarcas = [...new Set(inventarioMaestro.map(i => (i.Marca||"GENÉRICO").trim()))];
