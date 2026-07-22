@@ -2,8 +2,18 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>La Barata del Hogar - Catálogo Maestro</title>
+
+    <!-- Instalable como app (PWA): funciona en computadora y celular -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1d293d">
+
+    <!-- Instalable en iPhone (Safari) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Catálogo BH">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -4174,6 +4184,40 @@ function filtrarPorMarcaDesdeFooter(palabraClave) {
   document.getElementById("contenedor-principal-catalogo")?.scrollIntoView({ behavior: "smooth" });
 }
     
+</script>
+
+<!-- Registro del service worker: hace que la app sea instalable y funcione
+     sin internet (mismo mecanismo que ya usa Libro·Diario). No afecta en
+     nada las llamadas al backend de Google Sheets. -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').then(function (reg) {
+        reg.update();
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') reg.update();
+        });
+        reg.addEventListener('updatefound', function () {
+          var nuevo = reg.installing;
+          if (!nuevo) return;
+          nuevo.addEventListener('statechange', function () {
+            if (nuevo.state === 'installed' && reg.waiting) {
+              reg.waiting.postMessage('SKIP_WAITING');
+            }
+          });
+        });
+      }).catch(function (err) {
+        console.warn('No se pudo registrar el service worker:', err);
+      });
+
+      var yaRecargo = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (yaRecargo) return;
+        yaRecargo = true;
+        location.reload();
+      });
+    });
+  }
 </script>
 </body>
 </html>
