@@ -78,21 +78,6 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* ══ ÁREA SEGURA (notch / barra de estado iOS) ══════════════
-           Con "black-translucent" el contenido de la app puede quedar
-           DEBAJO de la barra de estado (reloj, señal, batería), tapando
-           el encabezado. env(safe-area-inset-top) mide ese espacio y lo
-           usamos como relleno superior para que el fondo del encabezado
-           llegue hasta arriba (look "borde a borde") pero el texto/los
-           botones queden siempre visibles debajo del reloj. En Android
-           o escritorio ese valor es 0px, así que no cambia nada ahí. */
-        header,
-        #sidebar-filtros,
-        #panel-carrito,
-        #panel-cotizaciones-admin {
-            padding-top: env(safe-area-inset-top, 0px);
-        }
-
         /* ══ DRAWER DE FILTROS (móvil) ════════════════════════════
            Desliza desde la izquierda. CRÍTICO para iOS:
            - overflow-y: scroll (no "auto" — iOS ignora "auto" en position:fixed)
@@ -223,6 +208,8 @@
             z-index: 300; display: flex; flex-direction: column;
             transition: right .3s cubic-bezier(.4,0,.2,1);
             box-shadow: -8px 0 32px rgba(0,0,0,.4);
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
         }
         #panel-cotizaciones-admin.abierto { right: 0; }
         .tarjeta-usuario-admin {
@@ -248,6 +235,8 @@
             z-index: 300; display: flex; flex-direction: column;
             transition: right .3s cubic-bezier(.4,0,.2,1);
             box-shadow: -8px 0 32px rgba(0,0,0,.4);
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
         }
         #panel-carrito.abierto { right: 0; }
         #overlay-carrito {
@@ -596,7 +585,8 @@
 <div id="vista-catalogo" class="hidden min-h-screen flex flex-col">
 
     <!-- HEADER — sticky en todas las pantallas -->
-    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-md">
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-md"
+            style="padding-top: env(safe-area-inset-top, 0px);">
 
         <!-- Fila 1: Logo + Actualizar · usuario · Cerrar Sesión -->
         <div class="max-w-7xl mx-auto flex flex-row items-center justify-between gap-2 px-3 py-2 lg:px-6 lg:py-4">
@@ -1259,46 +1249,14 @@ function validarFormatoIdentificador(valor) {
     return { valido: true, tipo: "telefono" };
 }
 
-/** NUEVO — Genera el marcador visual "Imagen no disponible" como un
- *  SVG en memoria (ya no depende del servicio externo placehold.co,
- *  que también podía tardar o fallar). Incluye un ícono de pistón +
- *  balata para que se note de un vistazo que es una refacción y no
- *  un error de carga. Se usa en todos los lugares donde un producto
- *  no tiene foto. */
-function _placeholderSinImagen() {
-    const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
-  <rect width="400" height="300" fill="#1e293b"/>
-  <g stroke="#94a3b8" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-    <g transform="translate(162,116)">
-      <rect x="-20" y="-50" width="40" height="22" rx="6"/>
-      <line x1="-20" y1="-38" x2="20" y2="-38"/>
-      <line x1="-20" y1="-30" x2="20" y2="-30"/>
-      <path d="M -20,-28 C -20,-8 -15,2 -14,10 L -14,32 C -14,39 -8,44 0,44 C 8,44 14,39 14,32 L 14,10 C 15,2 20,-8 20,-28"/>
-      <circle cx="0" cy="9" r="7"/>
-      <line x1="-20" y1="9" x2="-27" y2="9"/>
-      <line x1="20" y1="9" x2="27" y2="9"/>
-    </g>
-    <g transform="translate(240,116)">
-      <path d="M -20,18 C -20,-16 -13,-32 0,-40 C 13,-32 20,-16 20,18 C 20,33 10,42 0,42 C -10,42 -20,33 -20,18 Z"/>
-      <line x1="-18" y1="6" x2="18" y2="6"/>
-      <rect x="-6" y="-34" width="12" height="8" rx="2"/>
-    </g>
-  </g>
-  <text x="201" y="207" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="800" fill="#94a3b8">Imagen no</text>
-  <text x="201" y="234" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="800" fill="#94a3b8">disponible</text>
-</svg>`.trim();
-    return "data:image/svg+xml;utf8," + encodeURIComponent(svg);
-}
-
 function optimizarEnlaceImagen(enlace) {
     if (!enlace || typeof enlace !== "string")
-        return _placeholderSinImagen();
+        return "imagen-no-disponible.png";
     let l = enlace.trim();
     if (l.includes("drive.google.com/thumbnail") || l.includes("googleusercontent.com")) return l;
     const m = l.match(/([-\w]{25,})/);
     return m ? `https://drive.google.com/thumbnail?id=${m[0]}&sz=w600`
-             : _placeholderSinImagen();
+             : "imagen-no-disponible.png";
 }
 
 /** NUEVO — Reintenta cargar la imagen unas cuantas veces antes de darse
@@ -1321,7 +1279,7 @@ function gestionarFalloImagenDrive(img) {
         return;
     }
     img.onerror = null; // ya no reintentar más, evita loop
-    img.src = _placeholderSinImagen();
+    img.src = "imagen-no-disponible.png";
 }
 
 /** NUEVO — arma la lista de fotos de un producto para la galería.
@@ -3649,8 +3607,12 @@ function alternarModal() {
     const contenido = document.getElementById("modal-contenido");
     if (modal.classList.contains("opacity-0")) {
         modal.classList.remove("opacity-0","pointer-events-none"); contenido.classList.remove("translate-y-4");
+        // Bloquea el scroll de la página de fondo mientras el modal está abierto.
+        document.body.style.overflow = "hidden";
     } else {
         modal.classList.add("opacity-0","pointer-events-none"); contenido.classList.add("translate-y-4");
+        // Restaura el scroll de la página al cerrar el modal.
+        document.body.style.overflow = "";
     }
 }
 function cerrarModalExterno(e) { if (e.target.id==="modal-detalles") alternarModal(); }
