@@ -86,6 +86,19 @@
             position: absolute; left: 2px; top: -2px;
         }
         .hidden-element { display: none; }
+        .recorte-manija {
+            position: absolute;
+            width: 22px; height: 22px;
+            background: #10b981;
+            border: 2px solid white;
+            border-radius: 6px;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            touch-action: none;
+            z-index: 5;
+            box-shadow: 0 1px 4px rgba(0,0,0,.4);
+        }
+        .recorte-manija:active { cursor: grabbing; background:#059669; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -647,9 +660,20 @@
             <!-- Buscador desktop (solo desktop) -->
             <div class="hidden lg:flex items-center gap-2 flex-1 max-w-xl mx-4" id="buscador-header-wrapper">
                 <div class="relative flex-1">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 z-10">
+                    <span id="icono-lupa-desktop" class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 z-10 pointer-events-none">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </span>
+                    <!-- NUEVO: miniatura de la foto usada para buscar — reemplaza la lupa
+                         mientras hay una búsqueda por foto activa. Clic = quitar la foto. -->
+                    <div id="chip-foto-buscador-desktop" onclick="quitarChipFotoBuscador()" title="Quitar foto de la búsqueda"
+                         class="hidden-element absolute inset-y-0 left-0 flex items-center pl-2 z-10 cursor-pointer group">
+                        <div class="relative">
+                            <img id="img-chip-foto-buscador-desktop" class="w-6 h-6 rounded-md object-cover border-2 border-emerald-500">
+                            <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center text-[8px] group-hover:scale-110 transition">
+                                <i class="fa-solid fa-xmark"></i>
+                            </span>
+                        </div>
+                    </div>
                     <input type="text" id="buscador" oninput="ejecutarBusquedaCombinada()"
                            onkeydown="manejarTecladoBuscador(event)"
                            placeholder="Buscar por SKU, refacción..."
@@ -679,9 +703,18 @@
         <div id="barra-movil" class="px-3 pb-2.5 pt-0 flex items-center gap-2">
             <!-- Buscador — ocupa todo el espacio disponible -->
             <div class="relative flex-1">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 z-10 pointer-events-none">
+                <span id="icono-lupa-movil" class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 z-10 pointer-events-none">
                     <i class="fa-solid fa-magnifying-glass text-xs"></i>
                 </span>
+                <div id="chip-foto-buscador-movil" onclick="quitarChipFotoBuscador()" title="Quitar foto de la búsqueda"
+                     class="hidden-element absolute inset-y-0 left-0 flex items-center pl-1.5 z-10 cursor-pointer group">
+                    <div class="relative">
+                        <img id="img-chip-foto-buscador-movil" class="w-5 h-5 rounded-md object-cover border-2 border-emerald-500">
+                        <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center text-[8px]">
+                            <i class="fa-solid fa-xmark"></i>
+                        </span>
+                    </div>
+                </div>
                 <input type="text" id="buscador-movil"
                        oninput="sincronizarBuscadorMovil(this.value)"
                        onkeydown="manejarTecladoBuscador(event)"
@@ -1011,14 +1044,19 @@
 
 <!-- ════════════════════════════════════════════════
      MODAL: BUSCAR POR FOTO (ADMIN) — tipo "Google Lens".
-     1) El admin toma/sube una foto de una refacción.
-     2) Se manda a una IA con visión (Gemini), que regresa una
-        descripción corta y palabras clave.
-     3) El admin puede editar esa descripción antes de buscar.
-     4) Se buscan coincidencias en el catálogo YA CARGADO en el
-        navegador (sin volver a tocar el servidor) y se muestran
-        ordenadas por cuántas palabras clave coinciden — el catálogo
-        completo no se filtra de golpe, se "puntúa" cada producto.
+     1) El admin arrastra/suelta o toca para subir una foto.
+     2) Puede ajustar el recorte (4 esquinas) para enfocar solo la pieza.
+     3) La búsqueda se dispara SOLA (sin botones): al soltar la foto, y de
+        nuevo cada vez que se deja de mover una esquina del recorte
+        (con una pequeña pausa, para no mandar una petición por cada
+        pixel que se arrastra).
+     4) El resultado (miniatura + descripción editable) se coloca
+        directo en la barra de búsqueda principal — el modal se cierra
+        solo. Desde ahí se puede seguir editando el texto o quitar la
+        foto con la "x" de la miniatura.
+     5) El "match" contra el catálogo ya cargado ocurre en el navegador,
+        sin costo ni carga adicional al servidor — solo el análisis de
+        la imagen usa la IA (una vez por foto/recorte).
 ═════════════════════════════════════════════════ -->
 <div id="modal-buscar-foto"
      class="fixed inset-0 bg-black/85 z-[75] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300"
@@ -1033,40 +1071,36 @@
             </button>
         </div>
 
-        <div class="p-5 flex flex-col gap-4 overflow-y-auto">
+        <div class="p-5 flex flex-col gap-3 overflow-y-auto">
             <input type="file" id="input-foto-busqueda" accept="image/*"
-                   class="hidden-element" onchange="previewFotoBusqueda(event)">
+                   class="hidden-element" onchange="manejarArchivoElegido(event.target.files[0]); event.target.value=''">
 
             <div id="zona-captura-foto-busqueda" onclick="document.getElementById('input-foto-busqueda').click()"
-                 class="cursor-pointer border-2 border-dashed border-slate-600 hover:border-emerald-400 rounded-xl h-48 flex flex-col items-center justify-center gap-3 text-slate-400 transition">
+                 ondragover="event.preventDefault(); this.classList.add('border-emerald-400','text-emerald-400')"
+                 ondragleave="this.classList.remove('border-emerald-400','text-emerald-400')"
+                 ondrop="manejarSoltarArchivo(event)"
+                 class="cursor-pointer border-2 border-dashed border-slate-600 hover:border-emerald-400 hover:text-emerald-400 rounded-xl h-48 flex flex-col items-center justify-center gap-3 text-slate-400 transition">
                 <i class="fa-solid fa-camera text-4xl"></i>
-                <p class="text-sm font-semibold text-center px-6">Toca para tomar o elegir una foto de la refacción</p>
+                <p class="text-sm font-semibold text-center px-6">Arrastra una foto aquí, o toca para tomarla/subirla</p>
             </div>
 
             <div id="zona-preview-foto-busqueda" class="hidden-element flex flex-col gap-3">
-                <img id="img-preview-busqueda" class="w-full h-48 object-contain bg-slate-900 rounded-xl border border-slate-700">
+                <div id="contenedor-recorte-foto" class="relative w-full bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
+                    <img id="img-preview-busqueda" class="w-full block pointer-events-none select-none" draggable="false">
 
-                <button id="btn-analizar-foto-busqueda" onclick="analizarFotoBusqueda()"
-                        class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl transition text-xs uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> Analizar foto con IA
-                </button>
+                    <div id="recorte-rectangulo" class="absolute border-2 border-emerald-400 bg-emerald-400/10 pointer-events-none"></div>
+                    <div class="recorte-manija" data-esquina="tl" onpointerdown="iniciarArrastreRecorte(event,'tl')"></div>
+                    <div class="recorte-manija" data-esquina="tr" onpointerdown="iniciarArrastreRecorte(event,'tr')"></div>
+                    <div class="recorte-manija" data-esquina="bl" onpointerdown="iniciarArrastreRecorte(event,'bl')"></div>
+                    <div class="recorte-manija" data-esquina="br" onpointerdown="iniciarArrastreRecorte(event,'br')"></div>
 
-                <div id="spinner-analizando-foto" class="hidden-element flex items-center justify-center gap-2 text-slate-400 text-xs py-2">
-                    <i class="fa-solid fa-spinner fa-spin"></i> Analizando la foto...
+                    <div id="spinner-analizando-foto" class="hidden-element absolute inset-0 bg-black/60 flex items-center justify-center gap-2 text-white text-xs font-bold">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Analizando...
+                    </div>
                 </div>
-
-                <div id="zona-descripcion-foto-busqueda" class="hidden-element flex flex-col gap-2">
-                    <label class="text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                        Descripción (puedes editarla antes de buscar)
-                    </label>
-                    <textarea id="texto-descripcion-busqueda" rows="3"
-                              class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
-                    <button onclick="buscarPorDescripcionFoto()"
-                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl transition text-xs uppercase tracking-wider cursor-pointer">
-                        <i class="fa-solid fa-magnifying-glass mr-1"></i> Buscar coincidencias
-                    </button>
-                </div>
-
+                <p class="text-[11px] text-slate-500 text-center leading-snug">
+                    Ajusta las esquinas para enfocar solo la pieza — la búsqueda se hace sola, no hay que tocar nada más.
+                </p>
                 <button onclick="reiniciarBusquedaFoto()"
                         class="text-xs text-slate-400 hover:text-white underline self-center cursor-pointer">
                     <i class="fa-solid fa-rotate-left mr-1"></i> Elegir otra foto
@@ -2019,7 +2053,11 @@ function ejecutarBusquedaCombinada() {
     const btnLimpiar = document.getElementById("btn-limpiar-buscador");
     btnLimpiar.classList.toggle("hidden", buscador.value.length === 0);
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => { paginaActual = 1; filtrarProductos(); }, 300);
+    debounceTimer = setTimeout(() => {
+        paginaActual = 1;
+        if (chipFotoBuscadorActivo) { _reejecutarBusquedaFotoConTextoActual(buscador.value); }
+        else { filtrarProductos(); }
+    }, 300);
 }
 
 /** Borra SOLO los filtros del panel izquierdo (agencia, orden,
@@ -2097,10 +2135,8 @@ function _compararSKU(a, b) {
 
 function filtrarProductos() {
     actualizarTimestampSesion();
-    if (modoBusquedaFotoActivo) {
-        modoBusquedaFotoActivo = false;
-        const banner = document.getElementById("banner-busqueda-foto");
-        if (banner) banner.classList.add("hidden-element");
+    if (modoBusquedaFotoActivo || chipFotoBuscadorActivo) {
+        _limpiarEstadoBusquedaFoto();
     }
     const orden    = document.getElementById("orden-alfabetico").value;
     const agencia  = (document.getElementById("filtro-agencia")||{}).value || "";
@@ -2899,7 +2935,11 @@ function sincronizarBuscadorMovil(valor) {
     if (buscadorDesktop) buscadorDesktop.value = valor;
     if (btnLimpiar) btnLimpiar.classList.toggle("hidden", !valor);
     clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => { paginaActual = 1; filtrarProductos(); }, 300);
+    debounceTimer = setTimeout(() => {
+        paginaActual = 1;
+        if (chipFotoBuscadorActivo) { _reejecutarBusquedaFotoConTextoActual(valor); }
+        else { filtrarProductos(); }
+    }, 300);
 }
 
 function limpiarBuscadorMovil() {
@@ -3921,13 +3961,30 @@ function renderizarPreviewFotos() {
 
 // ══════════════════════════════════════════
 //  NUEVO — BUSCAR POR FOTO (solo admin), tipo "Google Lens".
-//  La IA (Gemini) solo se usa para "leer" la foto y devolver una
+//  La IA (Groq) solo se usa para "leer" la foto y devolver una
 //  descripción + palabras clave. La búsqueda en sí ocurre 100% en el
 //  navegador contra inventarioMaestro (que ya está cargado) — no se
 //  vuelve a tocar el backend para eso, así que es instantánea y no
 //  tiene costo adicional.
+//
+//  Flujo (sin botones manuales, como Lens):
+//   1) Arrastran/sueltan o eligen una foto -> se muestra con un
+//      recorte de 4 esquinas (por defecto: la imagen completa).
+//   2) ~700ms después de soltar la foto (o de soltar una esquina que
+//      se movió), se dispara el análisis SOLO.
+//   3) Al responder la IA: se cierra el modal, aparece una miniatura +
+//      la descripción (editable) directo en la barra de búsqueda
+//      principal, y ya se corrió la búsqueda.
+//   4) Mientras la miniatura esté puesta en la barra, seguir
+//      escribiendo ahí re-busca por palabras (no por texto exacto). La
+//      "x" de la miniatura quita la foto y regresa al buscador normal.
 // ══════════════════════════════════════════
-let fotoBusquedaDataUrl = null;
+let imagenOriginalCargada = null;      // objeto Image() con la foto tal cual se cargó (tamaño real)
+let recorteRect = { x: 0, y: 0, w: 100, h: 100 }; // % del recuadro de recorte sobre la imagen mostrada
+let debounceRecorteTimer = null;
+let fotoBusquedaPalabrasClaveActuales = [];
+let chipFotoBuscadorActivo = false;
+let modoBusquedaFotoActivo = false;
 
 function abrirModalBuscarFoto() {
     reiniciarBusquedaFoto();
@@ -3938,95 +3995,276 @@ function cerrarModalBuscarFoto(e) {
     document.getElementById("modal-buscar-foto").classList.add("opacity-0", "pointer-events-none");
 }
 function reiniciarBusquedaFoto() {
-    fotoBusquedaDataUrl = null;
+    clearTimeout(debounceRecorteTimer);
+    imagenOriginalCargada = null;
+    recorteRect = { x: 0, y: 0, w: 100, h: 100 };
     const input = document.getElementById("input-foto-busqueda");
     if (input) input.value = "";
     document.getElementById("zona-captura-foto-busqueda").classList.remove("hidden-element");
     document.getElementById("zona-preview-foto-busqueda").classList.add("hidden-element");
-    document.getElementById("zona-descripcion-foto-busqueda").classList.add("hidden-element");
     document.getElementById("spinner-analizando-foto").classList.add("hidden-element");
-    document.getElementById("btn-analizar-foto-busqueda").classList.remove("hidden-element");
-    document.getElementById("texto-descripcion-busqueda").value = "";
 }
 
-async function previewFotoBusqueda(e) {
-    const archivo = (e.target.files || [])[0];
-    if (!archivo || !archivo.type.startsWith("image/")) return;
-
-    fotoBusquedaDataUrl = await _comprimirImagen(archivo);
-    document.getElementById("img-preview-busqueda").src = fotoBusquedaDataUrl;
-    document.getElementById("zona-captura-foto-busqueda").classList.add("hidden-element");
-    document.getElementById("zona-preview-foto-busqueda").classList.remove("hidden-element");
+/** Arrastrar y soltar una imagen sobre la zona de captura (estilo Lens). */
+function manejarSoltarArchivo(e) {
+    e.preventDefault();
+    e.currentTarget.classList.remove("border-emerald-400", "text-emerald-400");
+    const archivo = (e.dataTransfer && e.dataTransfer.files || [])[0];
+    manejarArchivoElegido(archivo);
 }
 
-/** Manda la foto al backend para que la IA la describa. La búsqueda
- *  real (contra el catálogo) pasa después, en buscarPorDescripcionFoto,
- *  ya sin necesidad de volver a llamar al servidor. */
+/** Punto de entrada único ya sea que la foto venga de arrastrar/soltar,
+ *  del selector de archivos, o de la cámara. Carga la imagen, resetea
+ *  el recorte a "imagen completa", y dispara el primer análisis
+ *  automático (sin que el usuario tenga que tocar nada más). */
+function manejarArchivoElegido(archivo) {
+    if (!archivo || !archivo.type || !archivo.type.startsWith("image/")) return;
+
+    const lector = new FileReader();
+    lector.onload = (evt) => {
+        const img = new Image();
+        img.onload = () => {
+            imagenOriginalCargada = img;
+            recorteRect = { x: 0, y: 0, w: 100, h: 100 };
+
+            document.getElementById("img-preview-busqueda").src = evt.target.result;
+            document.getElementById("zona-captura-foto-busqueda").classList.add("hidden-element");
+            document.getElementById("zona-preview-foto-busqueda").classList.remove("hidden-element");
+
+            requestAnimationFrame(() => {
+                _actualizarRectanguloRecorte();
+                _dispararAnalisisConDebounce(400); // arranca solo, con un respiro corto
+            });
+        };
+        img.src = evt.target.result;
+    };
+    lector.readAsDataURL(archivo);
+}
+
+/** Reposiciona el rectángulo verde y sus 4 manijas según recorteRect
+ *  (en %), sobre el tamaño real que está ocupando la imagen en pantalla. */
+function _actualizarRectanguloRecorte() {
+    const cont = document.getElementById("contenedor-recorte-foto");
+    const rect = document.getElementById("recorte-rectangulo");
+    if (!cont || !rect) return;
+    const w = cont.clientWidth, h = cont.clientHeight;
+
+    rect.style.left   = (recorteRect.x * w / 100) + "px";
+    rect.style.top    = (recorteRect.y * h / 100) + "px";
+    rect.style.width  = (recorteRect.w * w / 100) + "px";
+    rect.style.height = (recorteRect.h * h / 100) + "px";
+
+    const esquinas = {
+        tl: [recorteRect.x, recorteRect.y],
+        tr: [recorteRect.x + recorteRect.w, recorteRect.y],
+        bl: [recorteRect.x, recorteRect.y + recorteRect.h],
+        br: [recorteRect.x + recorteRect.w, recorteRect.y + recorteRect.h]
+    };
+    document.querySelectorAll(".recorte-manija").forEach(m => {
+        const [px, py] = esquinas[m.dataset.esquina];
+        m.style.left = (px * w / 100) + "px";
+        m.style.top  = (py * h / 100) + "px";
+    });
+}
+
+/** Arrastrar UNA esquina del recorte. Al soltarla, dispara un nuevo
+ *  análisis automático (con una pequeña pausa) — así "seleccionar el
+ *  área" y "buscar" son el mismo gesto, sin botón de por medio. */
+function iniciarArrastreRecorte(e, esquina) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const mover = (ev) => _moverRecorte(ev, esquina);
+    const soltar = () => {
+        document.removeEventListener("pointermove", mover);
+        document.removeEventListener("pointerup", soltar);
+        _dispararAnalisisConDebounce(700);
+    };
+    document.addEventListener("pointermove", mover);
+    document.addEventListener("pointerup", soltar);
+}
+
+function _moverRecorte(e, esquina) {
+    const cont = document.getElementById("contenedor-recorte-foto");
+    const box = cont.getBoundingClientRect();
+    let px = ((e.clientX - box.left) / box.width) * 100;
+    let py = ((e.clientY - box.top) / box.height) * 100;
+    px = Math.max(0, Math.min(100, px));
+    py = Math.max(0, Math.min(100, py));
+
+    let { x, y, w, h } = recorteRect;
+    const MIN = 12; // % mínimo, para que no lo puedan reducir a un punto
+
+    if (esquina === "tl") { w = (x + w) - px; h = (y + h) - py; x = px; y = py; }
+    if (esquina === "tr") { w = px - x;       h = (y + h) - py; y = py; }
+    if (esquina === "bl") { w = (x + w) - px; h = py - y;       x = px; }
+    if (esquina === "br") { w = px - x;       h = py - y; }
+
+    if (w < MIN) { if (esquina === "tl" || esquina === "bl") x = (recorteRect.x + recorteRect.w) - MIN; w = MIN; }
+    if (h < MIN) { if (esquina === "tl" || esquina === "tr") y = (recorteRect.y + recorteRect.h) - MIN; h = MIN; }
+
+    recorteRect = { x, y, w, h };
+    _actualizarRectanguloRecorte();
+}
+
+function _dispararAnalisisConDebounce(ms) {
+    clearTimeout(debounceRecorteTimer);
+    debounceRecorteTimer = setTimeout(() => analizarFotoBusqueda(), ms || 700);
+}
+
+/** Recorta (según recorteRect) y comprime la imagen ya cargada, lista
+ *  para mandar a la IA. Se usa una compresión más agresiva que la de
+ *  "subir foto de producto" a propósito — aquí la prioridad es
+ *  velocidad, no calidad de archivo. */
+function _extraerRecorteComoDataUrl() {
+    const img = imagenOriginalCargada;
+    const sx = (recorteRect.x / 100) * img.naturalWidth;
+    const sy = (recorteRect.y / 100) * img.naturalHeight;
+    const sw = (recorteRect.w / 100) * img.naturalWidth;
+    const sh = (recorteRect.h / 100) * img.naturalHeight;
+
+    const LADO_MAX = 768;
+    let outW = sw, outH = sh;
+    if (outW > LADO_MAX || outH > LADO_MAX) {
+        const escala = LADO_MAX / Math.max(outW, outH);
+        outW = Math.round(outW * escala);
+        outH = Math.round(outH * escala);
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(outW));
+    canvas.height = Math.max(1, Math.round(outH));
+    canvas.getContext("2d").drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL("image/jpeg", 0.75);
+}
+
+/** Miniatura chiquita (48x48, recortada a cuadrado) para el ícono que
+ *  se queda en la barra de búsqueda — se genera aparte de la imagen que
+ *  se manda a analizar, para que la barra cargue instantáneo. */
+function _generarMiniaturaChip(dataUrlOrigen) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+            const LADO = 48;
+            const s = Math.min(img.width, img.height);
+            const sx = (img.width - s) / 2, sy = (img.height - s) / 2;
+            const canvas = document.createElement("canvas");
+            canvas.width = LADO; canvas.height = LADO;
+            canvas.getContext("2d").drawImage(img, sx, sy, s, s, 0, 0, LADO, LADO);
+            resolve(canvas.toDataURL("image/jpeg", 0.7));
+        };
+        img.src = dataUrlOrigen;
+    });
+}
+
+/** Manda el recorte actual al backend para que la IA lo describa, y
+ *  encadena todo lo demás (miniatura en la barra, texto editable,
+ *  búsqueda de coincidencias, cerrar el modal) — sin ningún clic extra. */
 async function analizarFotoBusqueda() {
-    if (!fotoBusquedaDataUrl) return;
+    if (!imagenOriginalCargada) return;
 
-    document.getElementById("btn-analizar-foto-busqueda").classList.add("hidden-element");
-    document.getElementById("spinner-analizando-foto").classList.remove("hidden-element");
-    document.getElementById("zona-descripcion-foto-busqueda").classList.add("hidden-element");
+    const spinner = document.getElementById("spinner-analizando-foto");
+    if (spinner) spinner.classList.remove("hidden-element");
+
+    const dataUrlRecorte = _extraerRecorteComoDataUrl();
 
     try {
-        const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+        const r = await fetch(API_URL, {
+            method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" },
             body: JSON.stringify({
                 action: "analizarFotoProducto",
                 token: tokenActual,
                 correo: usuarioActual,
-                imagenBase64: fotoBusquedaDataUrl,
+                imagenBase64: dataUrlRecorte,
                 mimeType: "image/jpeg"
-            }) });
+            })
+        });
         const rs = await r.json();
+        if (spinner) spinner.classList.add("hidden-element");
 
-        document.getElementById("spinner-analizando-foto").classList.add("hidden-element");
+        if (!rs.success) { alert(rs.message || "No se pudo analizar la foto."); return; }
 
-        if (!rs.success) {
-            document.getElementById("btn-analizar-foto-busqueda").classList.remove("hidden-element");
-            alert(rs.message || "No se pudo analizar la foto.");
-            return;
-        }
+        fotoBusquedaPalabrasClaveActuales = Array.isArray(rs.palabrasClave) ? rs.palabrasClave : [];
+        const descripcion = rs.descripcion || "";
 
-        document.getElementById("texto-descripcion-busqueda").value = rs.descripcion || "";
-        document.getElementById("texto-descripcion-busqueda").dataset.palabrasClave = JSON.stringify(rs.palabrasClave || []);
-        document.getElementById("zona-descripcion-foto-busqueda").classList.remove("hidden-element");
+        const miniatura = await _generarMiniaturaChip(dataUrlRecorte);
+        activarChipFotoBuscador(miniatura);
+
+        document.getElementById("buscador").value = descripcion;
+        const bm = document.getElementById("buscador-movil");
+        if (bm) bm.value = descripcion;
+
+        const palabras = [...new Set([...fotoBusquedaPalabrasClaveActuales, ...descripcion.split(/[\s,]+/)]
+            .map(p => normalizarTexto(p)))].filter(p => p.length > 2);
+        ejecutarBusquedaPorPalabrasClave(palabras);
+
+        cerrarModalBuscarFoto();
     } catch (err) {
-        document.getElementById("spinner-analizando-foto").classList.add("hidden-element");
-        document.getElementById("btn-analizar-foto-busqueda").classList.remove("hidden-element");
+        if (spinner) spinner.classList.add("hidden-element");
         alert("Error de conexión al analizar la foto.");
     }
 }
 
-/** Toma el texto (editable) + las palabras clave que regresó la IA, y
- *  puntúa cada producto del catálogo ya cargado según cuántas de esas
- *  palabras aparecen en su SKU/nombre/marca/compatibilidad/familia.
- *  A diferencia del buscador normal (que exige TODAS las palabras),
- *  aquí se ordena por coincidencias — más parecido a "resultados
- *  similares" que a una búsqueda exacta. */
-function buscarPorDescripcionFoto() {
-    const textarea = document.getElementById("texto-descripcion-busqueda");
-    const textoEditado = textarea.value.trim();
-    if (!textoEditado) { alert("Escribe o genera una descripción antes de buscar."); return; }
-
-    let palabrasClave = [];
-    try { palabrasClave = JSON.parse(textarea.dataset.palabrasClave || "[]"); } catch (e) { palabrasClave = []; }
-
-    // Se combinan las palabras clave originales de la IA con las
-    // palabras del texto editado (por si el admin agregó o quitó algo),
-    // sin duplicados.
-    const palabrasTexto = textoEditado.split(/[\s,]+/).filter(p => p.length > 2);
-    const todasLasPalabras = [...new Set([...palabrasClave, ...palabrasTexto].map(p => normalizarTexto(p)))]
-        .filter(p => p.length > 2);
-
-    ejecutarBusquedaPorPalabrasClave(todasLasPalabras, textoEditado);
-    cerrarModalBuscarFoto();
+/** Pone (o quita) la miniatura de la foto en las DOS barras de búsqueda
+ *  (desktop y móvil), reemplazando el ícono de lupa mientras está
+ *  activa. Es lo que el usuario ve/edita/quita — ya no hay un aviso
+ *  aparte arriba del catálogo. */
+function activarChipFotoBuscador(dataUrlMiniatura) {
+    chipFotoBuscadorActivo = true;
+    ["desktop", "movil"].forEach(suf => {
+        const chip = document.getElementById("chip-foto-buscador-" + suf);
+        const img  = document.getElementById("img-chip-foto-buscador-" + suf);
+        const lupa = document.getElementById("icono-lupa-" + suf);
+        if (img)  img.src = dataUrlMiniatura;
+        if (chip) chip.classList.remove("hidden-element");
+        if (lupa) lupa.classList.add("hidden-element");
+    });
 }
 
-let modoBusquedaFotoActivo = false;
+/** Solo limpia banderas/UI de "modo foto" — NO dispara re-render (para
+ *  poder usarse tanto desde quitarChipFotoBuscador() como desde dentro
+ *  de filtrarProductos() sin caer en recursión infinita). */
+function _limpiarEstadoBusquedaFoto() {
+    modoBusquedaFotoActivo = false;
+    chipFotoBuscadorActivo = false;
+    fotoBusquedaPalabrasClaveActuales = [];
+    ["desktop", "movil"].forEach(suf => {
+        const chip = document.getElementById("chip-foto-buscador-" + suf);
+        const lupa = document.getElementById("icono-lupa-" + suf);
+        if (chip) chip.classList.add("hidden-element");
+        if (lupa) lupa.classList.remove("hidden-element");
+    });
+}
 
-function ejecutarBusquedaPorPalabrasClave(palabras, descripcionOriginal) {
-    if (palabras.length === 0) { alert("No se encontraron palabras suficientes para buscar."); return; }
+/** Clic en la "x" de la miniatura: quita la foto Y el texto, y regresa
+ *  al buscador normal (vacío). */
+function quitarChipFotoBuscador() {
+    _limpiarEstadoBusquedaFoto();
+    const b = document.getElementById("buscador"); if (b) b.value = "";
+    const bm = document.getElementById("buscador-movil"); if (bm) bm.value = "";
+    document.getElementById("btn-limpiar-buscador")?.classList.add("hidden");
+    document.getElementById("btn-limpiar-buscador-movil")?.classList.add("hidden");
+    paginaActual = 1;
+    filtrarProductos();
+}
+
+/** Re-ejecuta la búsqueda por palabras usando lo que haya AHORA en la
+ *  barra de búsqueda (por si el admin editó la descripción a mano
+ *  después de la búsqueda por foto), combinado con las palabras clave
+ *  originales de la IA. Se usa mientras la miniatura sigue puesta. */
+function _reejecutarBusquedaFotoConTextoActual(texto) {
+    const limpio = (texto || "").trim();
+    if (!limpio) { quitarChipFotoBuscador(); return; }
+    const palabras = [...new Set([...fotoBusquedaPalabrasClaveActuales, ...limpio.split(/[\s,]+/)]
+        .map(p => normalizarTexto(p)))].filter(p => p.length > 2);
+    ejecutarBusquedaPorPalabrasClave(palabras);
+}
+
+/** Puntúa cada producto del catálogo ya cargado según cuántas palabras
+ *  clave aparecen en su SKU/nombre/marca/compatibilidad/familia, y
+ *  muestra los que sí tuvieron alguna coincidencia ordenados de mayor a
+ *  menor — es "parecidos", no una búsqueda exacta (como Lens). */
+function ejecutarBusquedaPorPalabrasClave(palabras) {
+    if (!palabras || palabras.length === 0) return;
 
     const puntuados = inventarioMaestro.map(item => {
         const marcaEsBajaj = (item.Marca || "").toUpperCase().trim() === "BAJAJ";
@@ -4041,33 +4279,8 @@ function ejecutarBusquedaPorPalabrasClave(palabras, descripcionOriginal) {
 
     modoBusquedaFotoActivo = true;
     paginaActual = 1;
-    mostrarBannerBusquedaFoto(puntuados.length, descripcionOriginal);
     renderizarTarjetasProductos(puntuados);
-    document.getElementById("grid-productos").scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-function mostrarBannerBusquedaFoto(cantidad, descripcion) {
-    let banner = document.getElementById("banner-busqueda-foto");
-    if (!banner) {
-        banner = document.createElement("div");
-        banner.id = "banner-busqueda-foto";
-        banner.className = "bg-emerald-950/50 border border-emerald-800 text-emerald-300 text-xs font-semibold px-4 py-3 rounded-xl mb-4 flex items-center justify-between gap-3";
-        const grid = document.getElementById("grid-productos");
-        grid.parentNode.insertBefore(banner, grid);
-    }
-    banner.innerHTML = `
-        <span><i class="fa-solid fa-camera-retro mr-1.5"></i> ${cantidad} resultado(s) similares a: "${escaparHTML(descripcion)}"</span>
-        <button onclick="salirModoBusquedaFoto()" class="text-emerald-400 hover:text-white shrink-0 cursor-pointer">
-            <i class="fa-solid fa-xmark"></i> Quitar
-        </button>`;
-    banner.classList.remove("hidden-element");
-}
-
-function salirModoBusquedaFoto() {
-    modoBusquedaFotoActivo = false;
-    const banner = document.getElementById("banner-busqueda-foto");
-    if (banner) banner.classList.add("hidden-element");
-    filtrarProductos();
+    document.getElementById("grid-productos")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 /** Quita UNA foto de la selección pendiente antes de enviarla. */
