@@ -19,6 +19,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Catálogo BH">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <!-- Adelanta la conexión (DNS + TLS) al servidor del catálogo y a los
+         CDN externos, para que cuando el login/inventario hagan su
+         primer fetch() ya no tengan que esperar ese "apretón de manos". -->
+    <link rel="preconnect" href="https://catalogo-labarata-proxy.catalogo-labarata.workers.dev">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -425,8 +431,9 @@
             filter: drop-shadow(0 6px 10px rgba(0,0,0,.35));
         }
         .moto-icono-fa {
-            font-size: 80px;
-            line-height: 1;
+            width: 100px;
+            height: 80px;
+            display: block;
             color: #10b981; /* mismo verde de la portada */
         }
         /* Rueda DELANTERA: ya no se tapa con un disco sólido — se deja
@@ -522,8 +529,19 @@
             to   { background-position-x: -44px; }
         }
 
+        /* NOTA: antes esto también apagaba .rueda-real y .rayas-asfalto
+           (el giro de las ruedas y el avance del asfalto), que es un
+           movimiento pequeño y contenido — igual que los spinners
+           fa-spin que se usan en el resto de la app sin ningún reparo
+           de "reducir movimiento". Eso hacía que en dispositivos con
+           esa preferencia activada (muy común por defecto en algunos
+           Android/iPhone) la moto se viera "congelada" mientras carga,
+           pareciendo un error. Ahora solo se respeta la preferencia
+           para el movimiento GRANDE (la moto entrando/saliendo de
+           pantalla), que si puede resultar incómodo para alguien con
+           sensibilidad al movimiento. */
         @media (prefers-reduced-motion: reduce) {
-            .rueda-real, .rayas-asfalto, .haz-luz,
+            .haz-luz,
             .escena-moto.fase-entrando .moto-icono-wrap,
             .escena-moto.fase-saliendo .moto-icono-wrap { animation: none !important; }
             .moto-icono-wrap { transform: translate(0,0); opacity: 1; }
@@ -641,6 +659,12 @@
                         <i class="fa-solid fa-circle-xmark"></i>
                     </span>
                 </div>
+                <!-- NUEVO: buscar por foto (solo admin) — se muestra/oculta según
+                     el rol en _continuarDespuesDeAnimacionCarga(). -->
+                <button id="btn-buscar-foto-desktop" onclick="abrirModalBuscarFoto()" title="Buscar por foto"
+                        class="hidden shrink-0 bg-slate-900 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl h-[38px] w-[38px] items-center justify-center cursor-pointer transition">
+                    <i class="fa-solid fa-camera-retro"></i>
+                </button>
             </div>
 
             <!-- Cerrar sesión — punto 3: más grande y siempre visible -->
@@ -668,6 +692,11 @@
                     <i class="fa-solid fa-circle-xmark text-sm"></i>
                 </span>
             </div>
+            <!-- NUEVO: buscar por foto (solo admin), versión móvil -->
+            <button id="btn-buscar-foto-movil" onclick="abrirModalBuscarFoto()" title="Buscar por foto"
+                    class="hidden shrink-0 bg-slate-900 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl h-[38px] w-[38px] items-center justify-center cursor-pointer transition">
+                <i class="fa-solid fa-camera-retro"></i>
+            </button>
             <!-- Botón Filtros — a la DERECHA del buscador (punto 1) -->
             <button onclick="abrirDrawerFiltros()" id="btn-abrir-filtros"
                     class="flex items-center gap-1.5 bg-slate-700 hover:bg-emerald-700 text-white text-xs font-bold px-3 rounded-xl transition cursor-pointer shrink-0 h-[38px]">
@@ -687,7 +716,9 @@
     <div id="cargando-datos" class="flex-1 flex flex-col items-center justify-center p-8 overflow-hidden">
         <div id="escena-moto" class="escena-moto">
             <div id="moto-svg" class="moto-icono-wrap">
-                <i class="fa-solid fa-motorcycle moto-icono-fa"></i>
+                <svg class="moto-icono-fa" viewBox="0 0 640 512" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path fill="currentColor" d="M280 32c-13.3 0-24 10.7-24 24s10.7 24 24 24h57.7l16.4 30.3L256 192l-45.3-45.3c-12-12-28.3-18.7-45.3-18.7H64c-17.7 0-32 14.3-32 32v32h96c88.4 0 160 71.6 160 160c0 11-1.1 21.7-3.2 32h70.4c-2.1-10.3-3.2-21-3.2-32c0-52.2 25-98.6 63.7-127.8l15.4 28.6C402.4 276.3 384 312 384 352c0 70.7 57.3 128 128 128s128-57.3 128-128s-57.3-128-128-128c-13.5 0-26.5 2.1-38.7 6L418.2 128H480c17.7 0 32-14.3 32-32V64c0-17.7-14.3-32-32-32H459.6c-7.5 0-14.7 2.6-20.5 7.4L391.7 78.9l-14-26c-7-12.9-20.5-21-35.2-21H280zM462.7 311.2l28.2 52.2c6.3 11.7 20.9 16 32.5 9.7s16-20.9 9.7-32.5l-28.2-52.2c2.3-.3 4.7-.4 7.1-.4c35.3 0 64 28.7 64 64s-28.7 64-64 64s-64-28.7-64-64c0-15.5 5.5-29.7 14.7-40.8zM187.3 376c-9.5 23.5-32.5 40-59.3 40c-35.3 0-64-28.7-64-64s28.7-64 64-64c26.9 0 49.9 16.5 59.3 40h66.4C242.5 268.8 190.5 224 128 224C57.3 224 0 281.3 0 352s57.3 128 128 128c62.5 0 114.5-44.8 125.8-104H187.3zM128 384a32 32 0 1 0 0-64 32 32 0 1 0 0 64z"/>
+                </svg>
                 <span class="haz-luz"></span>
 
                 <!-- Rueda trasera: mismo diseño que la delantera —
@@ -978,6 +1009,72 @@
     </div>
 </div>
 
+<!-- ════════════════════════════════════════════════
+     MODAL: BUSCAR POR FOTO (ADMIN) — tipo "Google Lens".
+     1) El admin toma/sube una foto de una refacción.
+     2) Se manda a una IA con visión (Gemini), que regresa una
+        descripción corta y palabras clave.
+     3) El admin puede editar esa descripción antes de buscar.
+     4) Se buscan coincidencias en el catálogo YA CARGADO en el
+        navegador (sin volver a tocar el servidor) y se muestran
+        ordenadas por cuántas palabras clave coinciden — el catálogo
+        completo no se filtra de golpe, se "puntúa" cada producto.
+═════════════════════════════════════════════════ -->
+<div id="modal-buscar-foto"
+     class="fixed inset-0 bg-black/85 z-[75] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300"
+     onclick="cerrarModalBuscarFoto(event)">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md relative overflow-hidden flex flex-col shadow-2xl max-h-[90vh]" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700 bg-slate-800 shrink-0">
+            <h3 class="text-sm font-black uppercase tracking-wide text-white flex items-center gap-2">
+                <i class="fa-solid fa-camera-retro text-emerald-400"></i> Buscar por Foto
+            </h3>
+            <button onclick="cerrarModalBuscarFoto()" class="text-slate-400 hover:text-white text-xl cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <div class="p-5 flex flex-col gap-4 overflow-y-auto">
+            <input type="file" id="input-foto-busqueda" accept="image/*"
+                   class="hidden-element" onchange="previewFotoBusqueda(event)">
+
+            <div id="zona-captura-foto-busqueda" onclick="document.getElementById('input-foto-busqueda').click()"
+                 class="cursor-pointer border-2 border-dashed border-slate-600 hover:border-emerald-400 rounded-xl h-48 flex flex-col items-center justify-center gap-3 text-slate-400 transition">
+                <i class="fa-solid fa-camera text-4xl"></i>
+                <p class="text-sm font-semibold text-center px-6">Toca para tomar o elegir una foto de la refacción</p>
+            </div>
+
+            <div id="zona-preview-foto-busqueda" class="hidden-element flex flex-col gap-3">
+                <img id="img-preview-busqueda" class="w-full h-48 object-contain bg-slate-900 rounded-xl border border-slate-700">
+
+                <button id="btn-analizar-foto-busqueda" onclick="analizarFotoBusqueda()"
+                        class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 px-4 rounded-xl transition text-xs uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Analizar foto con IA
+                </button>
+
+                <div id="spinner-analizando-foto" class="hidden-element flex items-center justify-center gap-2 text-slate-400 text-xs py-2">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Analizando la foto...
+                </div>
+
+                <div id="zona-descripcion-foto-busqueda" class="hidden-element flex flex-col gap-2">
+                    <label class="text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                        Descripción (puedes editarla antes de buscar)
+                    </label>
+                    <textarea id="texto-descripcion-busqueda" rows="3"
+                              class="w-full p-3 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"></textarea>
+                    <button onclick="buscarPorDescripcionFoto()"
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl transition text-xs uppercase tracking-wider cursor-pointer">
+                        <i class="fa-solid fa-magnifying-glass mr-1"></i> Buscar coincidencias
+                    </button>
+                </div>
+
+                <button onclick="reiniciarBusquedaFoto()"
+                        class="text-xs text-slate-400 hover:text-white underline self-center cursor-pointer">
+                    <i class="fa-solid fa-rotate-left mr-1"></i> Elegir otra foto
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- ════════════════════════════════════════════════
      BOTÓN CARRITO FLOTANTE (solo no-admin)
@@ -1791,6 +1888,13 @@ function _continuarDespuesDeAnimacionCarga() {
 
         _mostrarBotonFlotante("btn-carrito-flotante", mostrarVerde, true);
         _mostrarBotonFlotante("btn-cotizaciones-admin", mostrarAzul, true);
+
+        // NUEVO: botón "Buscar por foto" — solo admin.
+        const btnFotoDesktop = document.getElementById("btn-buscar-foto-desktop");
+        const btnFotoMovil   = document.getElementById("btn-buscar-foto-movil");
+        if (btnFotoDesktop) { btnFotoDesktop.classList.toggle("hidden", !esAdmin); btnFotoDesktop.classList.toggle("flex", esAdmin); }
+        if (btnFotoMovil)   { btnFotoMovil.classList.toggle("hidden", !esAdmin);   btnFotoMovil.classList.toggle("flex", esAdmin); }
+
         if (esAdmin) { cargarCotizacionesAdmin(); iniciarPollingAdminCotizaciones(); }
         else iniciarReconciliacionCarrito();
     }
@@ -1993,6 +2097,11 @@ function _compararSKU(a, b) {
 
 function filtrarProductos() {
     actualizarTimestampSesion();
+    if (modoBusquedaFotoActivo) {
+        modoBusquedaFotoActivo = false;
+        const banner = document.getElementById("banner-busqueda-foto");
+        if (banner) banner.classList.add("hidden-element");
+    }
     const orden    = document.getElementById("orden-alfabetico").value;
     const agencia  = (document.getElementById("filtro-agencia")||{}).value || "";
     const query    = normalizarTexto(document.getElementById("buscador").value);
@@ -3808,6 +3917,157 @@ function renderizarPreviewFotos() {
   btn.disabled  = false;
   var textoBase = fotoProductoArchivosActuales.length === 1 ? "Enviar foto" : `Enviar ${fotoProductoArchivosActuales.length} fotos`;
   btn.innerHTML = textoBase.replace(/^E/, '<span class="underline decoration-2 underline-offset-2">E</span>');
+}
+
+// ══════════════════════════════════════════
+//  NUEVO — BUSCAR POR FOTO (solo admin), tipo "Google Lens".
+//  La IA (Gemini) solo se usa para "leer" la foto y devolver una
+//  descripción + palabras clave. La búsqueda en sí ocurre 100% en el
+//  navegador contra inventarioMaestro (que ya está cargado) — no se
+//  vuelve a tocar el backend para eso, así que es instantánea y no
+//  tiene costo adicional.
+// ══════════════════════════════════════════
+let fotoBusquedaDataUrl = null;
+
+function abrirModalBuscarFoto() {
+    reiniciarBusquedaFoto();
+    document.getElementById("modal-buscar-foto").classList.remove("opacity-0", "pointer-events-none");
+}
+function cerrarModalBuscarFoto(e) {
+    if (e && e.target && e.target.id !== "modal-buscar-foto") return;
+    document.getElementById("modal-buscar-foto").classList.add("opacity-0", "pointer-events-none");
+}
+function reiniciarBusquedaFoto() {
+    fotoBusquedaDataUrl = null;
+    const input = document.getElementById("input-foto-busqueda");
+    if (input) input.value = "";
+    document.getElementById("zona-captura-foto-busqueda").classList.remove("hidden-element");
+    document.getElementById("zona-preview-foto-busqueda").classList.add("hidden-element");
+    document.getElementById("zona-descripcion-foto-busqueda").classList.add("hidden-element");
+    document.getElementById("spinner-analizando-foto").classList.add("hidden-element");
+    document.getElementById("btn-analizar-foto-busqueda").classList.remove("hidden-element");
+    document.getElementById("texto-descripcion-busqueda").value = "";
+}
+
+async function previewFotoBusqueda(e) {
+    const archivo = (e.target.files || [])[0];
+    if (!archivo || !archivo.type.startsWith("image/")) return;
+
+    fotoBusquedaDataUrl = await _comprimirImagen(archivo);
+    document.getElementById("img-preview-busqueda").src = fotoBusquedaDataUrl;
+    document.getElementById("zona-captura-foto-busqueda").classList.add("hidden-element");
+    document.getElementById("zona-preview-foto-busqueda").classList.remove("hidden-element");
+}
+
+/** Manda la foto al backend para que la IA la describa. La búsqueda
+ *  real (contra el catálogo) pasa después, en buscarPorDescripcionFoto,
+ *  ya sin necesidad de volver a llamar al servidor. */
+async function analizarFotoBusqueda() {
+    if (!fotoBusquedaDataUrl) return;
+
+    document.getElementById("btn-analizar-foto-busqueda").classList.add("hidden-element");
+    document.getElementById("spinner-analizando-foto").classList.remove("hidden-element");
+    document.getElementById("zona-descripcion-foto-busqueda").classList.add("hidden-element");
+
+    try {
+        const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+            body: JSON.stringify({
+                action: "analizarFotoProducto",
+                token: tokenActual,
+                correo: usuarioActual,
+                imagenBase64: fotoBusquedaDataUrl,
+                mimeType: "image/jpeg"
+            }) });
+        const rs = await r.json();
+
+        document.getElementById("spinner-analizando-foto").classList.add("hidden-element");
+
+        if (!rs.success) {
+            document.getElementById("btn-analizar-foto-busqueda").classList.remove("hidden-element");
+            alert(rs.message || "No se pudo analizar la foto.");
+            return;
+        }
+
+        document.getElementById("texto-descripcion-busqueda").value = rs.descripcion || "";
+        document.getElementById("texto-descripcion-busqueda").dataset.palabrasClave = JSON.stringify(rs.palabrasClave || []);
+        document.getElementById("zona-descripcion-foto-busqueda").classList.remove("hidden-element");
+    } catch (err) {
+        document.getElementById("spinner-analizando-foto").classList.add("hidden-element");
+        document.getElementById("btn-analizar-foto-busqueda").classList.remove("hidden-element");
+        alert("Error de conexión al analizar la foto.");
+    }
+}
+
+/** Toma el texto (editable) + las palabras clave que regresó la IA, y
+ *  puntúa cada producto del catálogo ya cargado según cuántas de esas
+ *  palabras aparecen en su SKU/nombre/marca/compatibilidad/familia.
+ *  A diferencia del buscador normal (que exige TODAS las palabras),
+ *  aquí se ordena por coincidencias — más parecido a "resultados
+ *  similares" que a una búsqueda exacta. */
+function buscarPorDescripcionFoto() {
+    const textarea = document.getElementById("texto-descripcion-busqueda");
+    const textoEditado = textarea.value.trim();
+    if (!textoEditado) { alert("Escribe o genera una descripción antes de buscar."); return; }
+
+    let palabrasClave = [];
+    try { palabrasClave = JSON.parse(textarea.dataset.palabrasClave || "[]"); } catch (e) { palabrasClave = []; }
+
+    // Se combinan las palabras clave originales de la IA con las
+    // palabras del texto editado (por si el admin agregó o quitó algo),
+    // sin duplicados.
+    const palabrasTexto = textoEditado.split(/[\s,]+/).filter(p => p.length > 2);
+    const todasLasPalabras = [...new Set([...palabrasClave, ...palabrasTexto].map(p => normalizarTexto(p)))]
+        .filter(p => p.length > 2);
+
+    ejecutarBusquedaPorPalabrasClave(todasLasPalabras, textoEditado);
+    cerrarModalBuscarFoto();
+}
+
+let modoBusquedaFotoActivo = false;
+
+function ejecutarBusquedaPorPalabrasClave(palabras, descripcionOriginal) {
+    if (palabras.length === 0) { alert("No se encontraron palabras suficientes para buscar."); return; }
+
+    const puntuados = inventarioMaestro.map(item => {
+        const marcaEsBajaj = (item.Marca || "").toUpperCase().trim() === "BAJAJ";
+        const puedeVerNumParte = esAdmin || (accesoNumeroParteBajaj && marcaEsBajaj);
+        const texto = normalizarTexto(`${item.SKU} ${item.Producto} ${item.Marca} ${item.Compatibilidad} ${item.Familia || ""} ${puedeVerNumParte ? item.Pr_Numero_Parte : ""}`);
+        const puntaje = palabras.reduce((acc, p) => acc + (texto.includes(p) ? 1 : 0), 0);
+        return { item, puntaje };
+    })
+    .filter(x => x.puntaje > 0)
+    .sort((a, b) => b.puntaje - a.puntaje)
+    .map(x => x.item);
+
+    modoBusquedaFotoActivo = true;
+    paginaActual = 1;
+    mostrarBannerBusquedaFoto(puntuados.length, descripcionOriginal);
+    renderizarTarjetasProductos(puntuados);
+    document.getElementById("grid-productos").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function mostrarBannerBusquedaFoto(cantidad, descripcion) {
+    let banner = document.getElementById("banner-busqueda-foto");
+    if (!banner) {
+        banner = document.createElement("div");
+        banner.id = "banner-busqueda-foto";
+        banner.className = "bg-emerald-950/50 border border-emerald-800 text-emerald-300 text-xs font-semibold px-4 py-3 rounded-xl mb-4 flex items-center justify-between gap-3";
+        const grid = document.getElementById("grid-productos");
+        grid.parentNode.insertBefore(banner, grid);
+    }
+    banner.innerHTML = `
+        <span><i class="fa-solid fa-camera-retro mr-1.5"></i> ${cantidad} resultado(s) similares a: "${escaparHTML(descripcion)}"</span>
+        <button onclick="salirModoBusquedaFoto()" class="text-emerald-400 hover:text-white shrink-0 cursor-pointer">
+            <i class="fa-solid fa-xmark"></i> Quitar
+        </button>`;
+    banner.classList.remove("hidden-element");
+}
+
+function salirModoBusquedaFoto() {
+    modoBusquedaFotoActivo = false;
+    const banner = document.getElementById("banner-busqueda-foto");
+    if (banner) banner.classList.add("hidden-element");
+    filtrarProductos();
 }
 
 /** Quita UNA foto de la selección pendiente antes de enviarla. */
