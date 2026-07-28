@@ -664,14 +664,17 @@
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </span>
                     <!-- NUEVO: miniatura de la foto usada para buscar — reemplaza la lupa
-                         mientras hay una búsqueda por foto activa. Clic = quitar la foto. -->
-                    <div id="chip-foto-buscador-desktop" onclick="quitarChipFotoBuscador()" title="Quitar foto de la búsqueda"
+                         mientras hay una búsqueda por foto activa. Clic = reabrir el
+                         recorte para ajustar el área (como el lápiz de Google Lens).
+                         Para quitar la foto por completo se usa la "x" normal del
+                         buscador (btn-limpiar-buscador), igual que con texto. -->
+                    <div id="chip-foto-buscador-desktop" onclick="editarBusquedaFotoActual()" title="Editar búsqueda visual"
                          class="hidden-element absolute inset-y-0 left-0 flex items-center pl-2 z-10 cursor-pointer group">
                         <div class="relative">
                             <img id="img-chip-foto-buscador-desktop" class="w-6 h-6 rounded-md object-cover border-2 border-emerald-500">
-                            <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center text-[8px] group-hover:scale-110 transition">
-                                <i class="fa-solid fa-xmark"></i>
-                            </span>
+                            <div class="absolute inset-0 bg-black/55 rounded-md opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                                <i class="fa-solid fa-pen text-white text-[9px]"></i>
+                            </div>
                         </div>
                     </div>
                     <input type="text" id="buscador" oninput="ejecutarBusquedaCombinada()"
@@ -706,13 +709,13 @@
                 <span id="icono-lupa-movil" class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 z-10 pointer-events-none">
                     <i class="fa-solid fa-magnifying-glass text-xs"></i>
                 </span>
-                <div id="chip-foto-buscador-movil" onclick="quitarChipFotoBuscador()" title="Quitar foto de la búsqueda"
+                <div id="chip-foto-buscador-movil" onclick="editarBusquedaFotoActual()" title="Editar búsqueda visual"
                      class="hidden-element absolute inset-y-0 left-0 flex items-center pl-1.5 z-10 cursor-pointer group">
                     <div class="relative">
                         <img id="img-chip-foto-buscador-movil" class="w-5 h-5 rounded-md object-cover border-2 border-emerald-500">
-                        <span class="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center text-[8px]">
-                            <i class="fa-solid fa-xmark"></i>
-                        </span>
+                        <div class="absolute inset-0 bg-black/55 rounded-md opacity-0 active:opacity-100 flex items-center justify-center transition">
+                            <i class="fa-solid fa-pen text-white text-[8px]"></i>
+                        </div>
                     </div>
                 </div>
                 <input type="text" id="buscador-movil"
@@ -2115,6 +2118,7 @@ function irAInicioLimpio() {
 }
 
 function limpiarBuscadorTexto() {
+    if (chipFotoBuscadorActivo) { quitarChipFotoBuscador(); document.getElementById("buscador")?.focus(); return; }
     const b = document.getElementById("buscador"); b.value = "";
     const bm = document.getElementById("buscador-movil"); if(bm) bm.value = "";
     document.getElementById("btn-limpiar-buscador").classList.add("hidden");
@@ -2943,6 +2947,7 @@ function sincronizarBuscadorMovil(valor) {
 }
 
 function limpiarBuscadorMovil() {
+    if (chipFotoBuscadorActivo) { quitarChipFotoBuscador(); return; }
     const inp = document.getElementById("buscador-movil");
     const buscadorDesktop = document.getElementById("buscador");
     if (inp) inp.value = "";
@@ -3990,6 +3995,17 @@ function abrirModalBuscarFoto() {
     reiniciarBusquedaFoto();
     document.getElementById("modal-buscar-foto").classList.remove("opacity-0", "pointer-events-none");
 }
+/** NUEVO: reabre el modal SIN resetear nada — conserva la foto y el
+ *  recorte actuales, para que el admin pueda mover las esquinas y
+ *  volver a analizar. Es lo que dispara el lápiz sobre la miniatura en
+ *  la barra de búsqueda (igual que "Editar búsqueda visual" en Lens). */
+function editarBusquedaFotoActual() {
+    if (!imagenOriginalCargada) { abrirModalBuscarFoto(); return; }
+    document.getElementById("modal-buscar-foto").classList.remove("opacity-0", "pointer-events-none");
+    document.getElementById("zona-captura-foto-busqueda").classList.add("hidden-element");
+    document.getElementById("zona-preview-foto-busqueda").classList.remove("hidden-element");
+    requestAnimationFrame(() => _actualizarRectanguloRecorte());
+}
 function cerrarModalBuscarFoto(e) {
     if (e && e.target && e.target.id !== "modal-buscar-foto") return;
     document.getElementById("modal-buscar-foto").classList.add("opacity-0", "pointer-events-none");
@@ -4218,6 +4234,10 @@ function activarChipFotoBuscador(dataUrlMiniatura) {
         if (chip) chip.classList.remove("hidden-element");
         if (lupa) lupa.classList.add("hidden-element");
     });
+    // El texto se puso por código (no tecleado), así que el botón "x" de
+    // limpiar no se mostró solo — lo mostramos a mano.
+    document.getElementById("btn-limpiar-buscador")?.classList.remove("hidden");
+    document.getElementById("btn-limpiar-buscador-movil")?.classList.remove("hidden");
 }
 
 /** Solo limpia banderas/UI de "modo foto" — NO dispara re-render (para
@@ -4235,10 +4255,13 @@ function _limpiarEstadoBusquedaFoto() {
     });
 }
 
-/** Clic en la "x" de la miniatura: quita la foto Y el texto, y regresa
- *  al buscador normal (vacío). */
+/** Quita la foto POR COMPLETO (igual que borrar el texto de una
+ *  búsqueda normal): la dispara la "x" de siempre del buscador, ya no
+ *  hay una "x" aparte sobre la miniatura — esa ahora es el lápiz para
+ *  editar (ver editarBusquedaFotoActual). */
 function quitarChipFotoBuscador() {
     _limpiarEstadoBusquedaFoto();
+    imagenOriginalCargada = null;
     const b = document.getElementById("buscador"); if (b) b.value = "";
     const bm = document.getElementById("buscador-movil"); if (bm) bm.value = "";
     document.getElementById("btn-limpiar-buscador")?.classList.add("hidden");
@@ -4266,14 +4289,32 @@ function _reejecutarBusquedaFotoConTextoActual(texto) {
 function ejecutarBusquedaPorPalabrasClave(palabras) {
     if (!palabras || palabras.length === 0) return;
 
+    // Con pocas palabras clave exigir 2 coincidencias sería imposible;
+    // con varias, exigir al menos 2 filtra bastante ruido (una sola
+    // palabra genérica compartida por casualidad, como "metal" o "12v",
+    // ya no basta para que aparezca algo sin relación real).
+    const umbralMinimo = palabras.length >= 2 ? 2 : 1;
+
     const puntuados = inventarioMaestro.map(item => {
         const marcaEsBajaj = (item.Marca || "").toUpperCase().trim() === "BAJAJ";
         const puedeVerNumParte = esAdmin || (accesoNumeroParteBajaj && marcaEsBajaj);
-        const texto = normalizarTexto(`${item.SKU} ${item.Producto} ${item.Marca} ${item.Compatibilidad} ${item.Familia || ""} ${puedeVerNumParte ? item.Pr_Numero_Parte : ""}`);
-        const puntaje = palabras.reduce((acc, p) => acc + (texto.includes(p) ? 1 : 0), 0);
+
+        // Producto y Familia son los campos que dicen QUÉ TIPO de pieza
+        // es — pesan más. Compatibilidad/SKU/Marca solo listan modelos
+        // de vehículo o códigos, y pueden traer una palabra suelta que
+        // coincida de pura casualidad con piezas totalmente distintas
+        // (por eso antes salían cadenas o balatas al buscar un foco).
+        const textoImportante  = normalizarTexto(`${item.Producto} ${item.Familia || ""}`);
+        const textoSecundario  = normalizarTexto(`${item.SKU} ${item.Marca} ${item.Compatibilidad} ${puedeVerNumParte ? item.Pr_Numero_Parte : ""}`);
+
+        const puntaje = palabras.reduce((acc, p) => {
+            if (textoImportante.includes(p)) return acc + 3;
+            if (textoSecundario.includes(p)) return acc + 1;
+            return acc;
+        }, 0);
         return { item, puntaje };
     })
-    .filter(x => x.puntaje > 0)
+    .filter(x => x.puntaje >= umbralMinimo)
     .sort((a, b) => b.puntaje - a.puntaje)
     .map(x => x.item);
 
