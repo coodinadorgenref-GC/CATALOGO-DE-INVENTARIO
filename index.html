@@ -42,6 +42,36 @@
         .bg-camejo     { background-color: var(--verde); }
         .border-camejo:hover { border-color: var(--verde); }
 
+        /* ── CAMPOS DE FORMULARIO DE EDICIÓN (admin) ─────
+           Estilo unificado para todos los formularios de captura/edición:
+           etiqueta pequeña en mayúsculas + campo espacioso con foco verde. */
+        .campo-label {
+            display: block;
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: #94a3b8; /* slate-400 */
+            margin-bottom: 6px;
+        }
+        .campo-input {
+            width: 100%;
+            background-color: #0f172a; /* slate-900 */
+            border: 1px solid #334155; /* slate-700 */
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 14px;
+            color: #ffffff;
+            transition: border-color .15s ease, box-shadow .15s ease;
+        }
+        .campo-input::placeholder { color: #475569; }
+        .campo-input:focus {
+            outline: none;
+            border-color: var(--verde);
+            box-shadow: 0 0 0 3px rgba(34, 177, 76, 0.18);
+        }
+        .campo-input:disabled { opacity: .5; }
+
         /* ── DROPDOWN LEGACY ──────────────────────────── */
         .dropdown-content {
             display: none; position: absolute;
@@ -3667,8 +3697,12 @@ function alternarCompatibilidad(id) {
    EDICIÓN COMPATIBILIDAD (ADMIN)
 ══════════════════════════════════════════ */
 function habilitarEdicion(sku, contenido) {
-    document.getElementById("contenedor-compatibilidad").innerHTML =
-        `<textarea id="edit-compat" class="w-full h-40 bg-slate-900 border border-slate-700 p-3 text-xs text-white rounded-xl">${contenido}</textarea>`;
+    document.getElementById("contenedor-compatibilidad").innerHTML = `
+        <div class="bg-slate-800/40 rounded-2xl border border-slate-700/50 p-4">
+            <label class="campo-label">Compatibilidad (una por línea)</label>
+            <textarea id="edit-compat" rows="7"
+                      class="campo-input resize-none leading-relaxed">${contenido}</textarea>
+        </div>`;
     const btn = document.getElementById("btn-edicion");
     btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Cambios';
     btn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer";
@@ -3708,30 +3742,33 @@ function habilitarEdicionEstator(sku) {
     const item = (inventarioMaestro || []).find(p => String(p.SKU) === String(sku)) || {};
 
     document.getElementById("contenedor-estator").innerHTML = `
-        <div class="grid grid-cols-2 gap-2 bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
+        <div class="grid grid-cols-2 gap-3 bg-slate-800/40 rounded-2xl border border-slate-700/50 p-4">
             <div class="col-span-2">
-                <label class="text-[10px] text-slate-400 uppercase font-bold">Fase</label>
-                <select id="edit-estator-fase" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
-                    <option value="">— Selecciona —</option>
-                    <option value="Monofásico">Monofásico</option>
-                    <option value="Bifásico">Bifásico</option>
-                    <option value="Trifásico">Trifásico</option>
-                </select>
+                <label class="campo-label">Fase</label>
+                <div class="relative">
+                    <select id="edit-estator-fase" class="campo-input appearance-none pr-9">
+                        <option value="">— Selecciona —</option>
+                        <option value="Monofásico">Monofásico</option>
+                        <option value="Bifásico">Bifásico</option>
+                        <option value="Trifásico">Trifásico</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
+                </div>
             </div>
             <div>
-                <label class="text-[10px] text-slate-400 uppercase font-bold">Bobinas</label>
-                <input id="edit-estator-bobinas" type="number" min="1" step="1"
-                       class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
+                <label class="campo-label">Bobinas</label>
+                <input id="edit-estator-bobinas" type="number" min="1" step="1" inputmode="numeric" placeholder="0"
+                       class="campo-input">
             </div>
             <div>
-                <label class="text-[10px] text-slate-400 uppercase font-bold">Conductores/Cables</label>
-                <input id="edit-estator-conductores" type="number" min="1" step="1"
-                       class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
+                <label class="campo-label">Conductores/Cables</label>
+                <input id="edit-estator-conductores" type="number" min="1" step="1" inputmode="numeric" placeholder="0"
+                       class="campo-input">
             </div>
             <div class="col-span-2">
-                <label class="text-[10px] text-slate-400 uppercase font-bold">Longitud Cable (cm)</label>
-                <input id="edit-estator-longitud" type="number" min="0" step="0.1"
-                       class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
+                <label class="campo-label">Longitud Cable (cm)</label>
+                <input id="edit-estator-longitud" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0.0"
+                       class="campo-input">
             </div>
         </div>`;
 
