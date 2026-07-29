@@ -42,36 +42,6 @@
         .bg-camejo     { background-color: var(--verde); }
         .border-camejo:hover { border-color: var(--verde); }
 
-        /* ── CAMPOS DE FORMULARIO DE EDICIÓN (admin) ─────
-           Estilo unificado para todos los formularios de captura/edición:
-           etiqueta pequeña en mayúsculas + campo espacioso con foco verde. */
-        .campo-label {
-            display: block;
-            font-size: 10px;
-            font-weight: 800;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            color: #94a3b8; /* slate-400 */
-            margin-bottom: 6px;
-        }
-        .campo-input {
-            width: 100%;
-            background-color: #0f172a; /* slate-900 */
-            border: 1px solid #334155; /* slate-700 */
-            border-radius: 12px;
-            padding: 12px 14px;
-            font-size: 14px;
-            color: #ffffff;
-            transition: border-color .15s ease, box-shadow .15s ease;
-        }
-        .campo-input::placeholder { color: #475569; }
-        .campo-input:focus {
-            outline: none;
-            border-color: var(--verde);
-            box-shadow: 0 0 0 3px rgba(34, 177, 76, 0.18);
-        }
-        .campo-input:disabled { opacity: .5; }
-
         /* ── DROPDOWN LEGACY ──────────────────────────── */
         .dropdown-content {
             display: none; position: absolute;
@@ -3087,6 +3057,7 @@ function toggleCotizacionesAdmin() {
     panel.classList.toggle("abierto");
     if (panel.classList.contains("abierto")) {
         cargarCotizacionesAdmin();
+        pedirPermisoNotificacionesEscritorio();
     }
 }
 
@@ -3142,6 +3113,7 @@ async function cargarCotizacionesAdmin(silencioso) {
         // incluso si el panel está cerrado (pantalla principal del catálogo).
         if (totalBloquesPendientesPrevio !== null && totalBloquesPendientes > totalBloquesPendientesPrevio) {
             mostrarToastInfo(`📩 Nueva cotización recibida. Pendientes: #${totalBloquesPendientes}`);
+            _notificarNuevaCotizacionEnPantalla(totalBloquesPendientes - totalBloquesPendientesPrevio);
         }
         totalBloquesPendientesPrevio = totalBloquesPendientes;
 
@@ -3260,12 +3232,47 @@ async function cargarCotizacionesAdmin(silencioso) {
                     ? new Date(bloqueFecha.fecha).toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"})
                     : "";
 
-                return `<div class="bloque-fecha-admin ${tonoClase}">
+                // NUEVO: "Atender prospecto" — evita que dos agencias le
+                // contesten al mismo cliente. Se guarda a nivel BLOQUE.
+                const atendidoPor = (bloqueFecha.items[0] || {})._atendidoPor || null;
+                const idBloqueCardSeg = String(bloqueFecha.id).replace(/'/g,"\\'");
+                const loAtiendoYo = atendidoPor && atendidoPor.correo === usuarioActual;
+
+                let htmlAtencion;
+                if (!atendidoPor) {
+                    htmlAtencion = `<button onclick="atenderCotizacionAdmin('${correoSeg}','${idBloqueCardSeg}')"
+                            class="text-[9px] font-bold px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white cursor-pointer flex items-center gap-1">
+                        <i class="fa-solid fa-hand"></i> Atender
+                    </button>`;
+                } else if (loAtiendoYo) {
+                    htmlAtencion = `<button onclick="liberarCotizacionAdmin('${correoSeg}','${idBloqueCardSeg}')"
+                            title="Liberar (dejar que otro asesor la pueda atender)"
+                            class="text-[9px] font-bold px-2 py-1 rounded-lg bg-emerald-700 hover:bg-red-900 text-emerald-100 hover:text-red-200 cursor-pointer flex items-center gap-1">
+                        <i class="fa-solid fa-user-check"></i> La atiendes tú
+                    </button>`;
+                } else {
+                    htmlAtencion = `<span class="text-[9px] font-bold px-2 py-1 rounded-lg bg-slate-700 text-slate-300 flex items-center gap-1">
+                        <i class="fa-solid fa-lock"></i> Atiende: ${escaparHTML(atendidoPor.nombre)}
+                    </span>`;
+                }
+
+                const telClienteSeg = escaparHTML(String(u.telefono || "")).replace(/'/g,"\\'");
+                const htmlWhatsApp = u.telefono ? `
+                    <button onclick="contactarClientePorWhatsApp('${telClienteSeg}','${nombreSeg.replace(/'/g,"\\'")}')"
+                            class="text-[9px] font-bold px-2 py-1 rounded-lg bg-green-700 hover:bg-green-600 text-white cursor-pointer flex items-center gap-1">
+                        <i class="fa-brands fa-whatsapp"></i> Contactar
+                    </button>` : "";
+
+                return `<div class="bloque-fecha-admin ${tonoClase} ${atendidoPor && !loAtiendoYo ? 'opacity-70' : ''}">
                     <div class="encabezado-fecha-admin">
                         <span class="etiqueta-fecha-admin"><i class="fa-solid fa-paper-plane"></i> Cotización solicitada <span class="opacity-70">#${idxBloque + 1}</span></span>
                         ${fechaBloqueTxt ? `<span class="text-[9px] text-slate-500"><i class="fa-regular fa-clock mr-0.5"></i> ${fechaBloqueTxt}</span>` : ""}
                     </div>
-                    ${subBloques}
+                    <div class="flex items-center gap-2 mb-2">
+                        ${htmlAtencion}
+                        ${htmlWhatsApp}
+                    </div>
+                    <div ${atendidoPor && !loAtiendoYo ? 'style="pointer-events:none;"' : ''}>${subBloques}</div>
                 </div>`;
             }).join("");
 
@@ -3300,9 +3307,94 @@ async function cargarCotizacionesAdmin(silencioso) {
     }
 }
 
-/** Admin: cambia el estado de UN GRUPO de agencia (por almacén) dentro
- *  de la cotización general de un usuario. Cada almacén puede marcar su
- *  parte como enviada de forma independiente (punto 3 del sistema). */
+/** Admin: "Atender" un bloque de cotización — evita que otra agencia le
+ *  conteste al mismo cliente. Si alguien más ya lo atiende, el backend
+ *  responde con el nombre de esa persona. */
+async function atenderCotizacionAdmin(correoUsuario, bloqueId) {
+    try {
+        const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+            body: JSON.stringify({ action:"atenderCotizacion", token:tokenActual, correo:usuarioActual, correoUsuario, bloqueId }) });
+        const rs = await r.json();
+        if (!rs.success) { mostrarToastInfo(rs.message || "No se pudo tomar esta cotización."); }
+        cargarCotizacionesAdmin(true);
+    } catch (err) {
+        mostrarToastInfo("Error de conexión.");
+    }
+}
+
+/** Admin: libera un bloque que estaba atendiendo (o que un admin de
+ *  Zona Valladolid está reasignando). */
+async function liberarCotizacionAdmin(correoUsuario, bloqueId) {
+    try {
+        const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+            body: JSON.stringify({ action:"liberarCotizacion", token:tokenActual, correo:usuarioActual, correoUsuario, bloqueId }) });
+        const rs = await r.json();
+        if (!rs.success) { mostrarToastInfo(rs.message || "No se pudo liberar."); }
+        cargarCotizacionesAdmin(true);
+    } catch (err) {
+        mostrarToastInfo("Error de conexión.");
+    }
+}
+
+/** Abre WhatsApp Web/App con el mensaje de plantilla ya escrito, listo
+ *  para mandar al cliente — usa el nombre y rol del asesor que tiene la
+ *  sesión abierta ahora mismo. */
+function contactarClientePorWhatsApp(telefono, nombreCliente) {
+    const telLimpio = String(telefono || "").replace(/\D/g, "");
+    if (!telLimpio) { mostrarToastInfo("Este cliente no tiene teléfono registrado."); return; }
+
+    const primerNombre = (nombreCliente || "Cliente").trim().split(/\s+/)[0];
+    const nombreAsesor = (document.getElementById("nombre-usuario")?.innerText || "Asesor").trim();
+    const rolAsesor    = (document.getElementById("rol-usuario")?.innerText || "Asesor de Refacciones").trim();
+
+    const mensaje = `Hola ${primerNombre}, soy ${nombreAsesor} ${rolAsesor}, me pongo en contacto con usted para compartirle su cotización.`;
+
+    const tel10 = telLimpio.length > 10 ? telLimpio.slice(-10) : telLimpio;
+    const telConLada = tel10.length === 10 ? "52" + tel10 : telLimpio; // ajusta si tu operación no es en México
+
+    window.open(`https://wa.me/${telConLada}?text=${encodeURIComponent(mensaje)}`, "_blank");
+}
+
+/** Notificación de escritorio (fuera del navegador) + sonido cuando
+ *  llega una cotización nueva mientras el catálogo está abierto en
+ *  segundo plano. Pide permiso la primera vez que un admin abre el
+ *  panel de Cotizaciones — si lo niega, simplemente no vuelve a insistir
+ *  (el aviso dentro de la app, el toast, sigue funcionando siempre). */
+function _notificarNuevaCotizacionEnPantalla(cuantasNuevas) {
+    try {
+        const audio = new Audio("data:audio/wav;base64,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");
+        audio.volume = 0.5;
+        audio.play().catch(() => {});
+    } catch (e) { /* algunos navegadores bloquean audio sin interacción previa: no pasa nada */ }
+
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+        _dispararNotificacionEscritorio(cuantasNuevas);
+    }
+    // Si no se ha pedido permiso todavía, se pide desde
+    // pedirPermisoNotificacionesEscritorio() (ver toggleCotizacionesAdmin).
+}
+
+function _dispararNotificacionEscritorio(cuantasNuevas) {
+    try {
+        const n = new Notification("La Barata del Hogar", {
+            body: cuantasNuevas === 1 ? "Nueva cotización recibida." : `${cuantasNuevas} cotizaciones nuevas recibidas.`,
+            icon: "icon-192.png"
+        });
+        n.onclick = () => { window.focus(); toggleCotizacionesAdmin(); n.close(); };
+    } catch (e) { /* ignorar */ }
+}
+
+/** Pide permiso de notificaciones de escritorio UNA sola vez (la
+ *  primera vez que el admin abre el panel de Cotizaciones). */
+function pedirPermisoNotificacionesEscritorio() {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "default") {
+        Notification.requestPermission();
+    }
+}
+
+
 async function cambiarEstadoGrupoAdmin(correoUsuario, grupo, nuevoEstado) {
     try {
         const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
@@ -3697,12 +3789,8 @@ function alternarCompatibilidad(id) {
    EDICIÓN COMPATIBILIDAD (ADMIN)
 ══════════════════════════════════════════ */
 function habilitarEdicion(sku, contenido) {
-    document.getElementById("contenedor-compatibilidad").innerHTML = `
-        <div class="bg-slate-800/40 rounded-2xl border border-slate-700/50 p-4">
-            <label class="campo-label">Compatibilidad (una por línea)</label>
-            <textarea id="edit-compat" rows="7"
-                      class="campo-input resize-none leading-relaxed">${contenido}</textarea>
-        </div>`;
+    document.getElementById("contenedor-compatibilidad").innerHTML =
+        `<textarea id="edit-compat" class="w-full h-40 bg-slate-900 border border-slate-700 p-3 text-xs text-white rounded-xl">${contenido}</textarea>`;
     const btn = document.getElementById("btn-edicion");
     btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Cambios';
     btn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer";
@@ -3742,33 +3830,30 @@ function habilitarEdicionEstator(sku) {
     const item = (inventarioMaestro || []).find(p => String(p.SKU) === String(sku)) || {};
 
     document.getElementById("contenedor-estator").innerHTML = `
-        <div class="grid grid-cols-2 gap-3 bg-slate-800/40 rounded-2xl border border-slate-700/50 p-4">
+        <div class="grid grid-cols-2 gap-2 bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
             <div class="col-span-2">
-                <label class="campo-label">Fase</label>
-                <div class="relative">
-                    <select id="edit-estator-fase" class="campo-input appearance-none pr-9">
-                        <option value="">— Selecciona —</option>
-                        <option value="Monofásico">Monofásico</option>
-                        <option value="Bifásico">Bifásico</option>
-                        <option value="Trifásico">Trifásico</option>
-                    </select>
-                    <i class="fa-solid fa-chevron-down absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs pointer-events-none"></i>
-                </div>
+                <label class="text-[10px] text-slate-400 uppercase font-bold">Fase</label>
+                <select id="edit-estator-fase" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
+                    <option value="">— Selecciona —</option>
+                    <option value="Monofásico">Monofásico</option>
+                    <option value="Bifásico">Bifásico</option>
+                    <option value="Trifásico">Trifásico</option>
+                </select>
             </div>
             <div>
-                <label class="campo-label">Bobinas</label>
-                <input id="edit-estator-bobinas" type="number" min="1" step="1" inputmode="numeric" placeholder="0"
-                       class="campo-input">
+                <label class="text-[10px] text-slate-400 uppercase font-bold">Bobinas</label>
+                <input id="edit-estator-bobinas" type="number" min="1" step="1"
+                       class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
             </div>
             <div>
-                <label class="campo-label">Conductores/Cables</label>
-                <input id="edit-estator-conductores" type="number" min="1" step="1" inputmode="numeric" placeholder="0"
-                       class="campo-input">
+                <label class="text-[10px] text-slate-400 uppercase font-bold">Conductores/Cables</label>
+                <input id="edit-estator-conductores" type="number" min="1" step="1"
+                       class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
             </div>
             <div class="col-span-2">
-                <label class="campo-label">Longitud Cable (cm)</label>
-                <input id="edit-estator-longitud" type="number" min="0" step="0.1" inputmode="decimal" placeholder="0.0"
-                       class="campo-input">
+                <label class="text-[10px] text-slate-400 uppercase font-bold">Longitud Cable (cm)</label>
+                <input id="edit-estator-longitud" type="number" min="0" step="0.1"
+                       class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
             </div>
         </div>`;
 
