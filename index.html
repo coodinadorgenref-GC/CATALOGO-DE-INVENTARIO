@@ -1088,21 +1088,43 @@
             </div>
 
             <div id="zona-preview-foto-busqueda" class="hidden-element flex flex-col gap-3">
-                <div id="contenedor-recorte-foto" class="relative w-full bg-slate-900 rounded-xl border border-slate-700 overflow-hidden">
-                    <img id="img-preview-busqueda" class="w-full block pointer-events-none select-none" draggable="false">
+                <div id="contenedor-recorte-foto" onwheel="manejarRuedaZoom(event)"
+                     class="relative w-full bg-slate-900 rounded-xl border border-slate-700 overflow-hidden" style="touch-action:none;">
+                    <div id="lente-zoom-interno" style="transform-origin: 0 0; position:relative; width:100%;">
+                        <img id="img-preview-busqueda" onpointerdown="iniciarPaneo(event)"
+                             class="w-full block select-none" style="touch-action:none;" draggable="false">
 
-                    <div id="recorte-rectangulo" class="absolute border-2 border-emerald-400 bg-emerald-400/10 pointer-events-none"></div>
-                    <div class="recorte-manija" data-esquina="tl" onpointerdown="iniciarArrastreRecorte(event,'tl')"></div>
-                    <div class="recorte-manija" data-esquina="tr" onpointerdown="iniciarArrastreRecorte(event,'tr')"></div>
-                    <div class="recorte-manija" data-esquina="bl" onpointerdown="iniciarArrastreRecorte(event,'bl')"></div>
-                    <div class="recorte-manija" data-esquina="br" onpointerdown="iniciarArrastreRecorte(event,'br')"></div>
+                        <div id="recorte-rectangulo" class="absolute border-2 border-emerald-400 bg-emerald-400/10 pointer-events-none"></div>
+                        <div class="recorte-manija" data-esquina="tl" onpointerdown="iniciarArrastreRecorte(event,'tl')"></div>
+                        <div class="recorte-manija" data-esquina="tr" onpointerdown="iniciarArrastreRecorte(event,'tr')"></div>
+                        <div class="recorte-manija" data-esquina="bl" onpointerdown="iniciarArrastreRecorte(event,'bl')"></div>
+                        <div class="recorte-manija" data-esquina="br" onpointerdown="iniciarArrastreRecorte(event,'br')"></div>
+                    </div>
 
-                    <div id="spinner-analizando-foto" class="hidden-element absolute inset-0 bg-black/60 flex items-center justify-center gap-2 text-white text-xs font-bold">
+                    <!-- NUEVO: controles de zoom, como Lens — acercar para ajustar el
+                         recorte con más precisión. El zoom es solo una ayuda visual: NO
+                         cambia el recorte por sí solo, solo facilita moverlo bien. -->
+                    <div class="absolute bottom-2 right-2 flex flex-col gap-1.5 z-20">
+                        <button type="button" onclick="ajustarZoom(0.5)" title="Acercar"
+                                class="w-8 h-8 rounded-full bg-slate-900/85 border border-slate-600 text-white flex items-center justify-center cursor-pointer hover:bg-slate-700">
+                            <i class="fa-solid fa-plus text-xs"></i>
+                        </button>
+                        <button type="button" onclick="ajustarZoom(-0.5)" title="Alejar"
+                                class="w-8 h-8 rounded-full bg-slate-900/85 border border-slate-600 text-white flex items-center justify-center cursor-pointer hover:bg-slate-700">
+                            <i class="fa-solid fa-minus text-xs"></i>
+                        </button>
+                        <button type="button" onclick="reiniciarZoom()" title="Restablecer zoom"
+                                class="w-8 h-8 rounded-full bg-slate-900/85 border border-slate-600 text-white flex items-center justify-center cursor-pointer hover:bg-slate-700">
+                            <i class="fa-solid fa-compress text-[10px]"></i>
+                        </button>
+                    </div>
+
+                    <div id="spinner-analizando-foto" class="hidden-element absolute inset-0 bg-black/60 flex items-center justify-center gap-2 text-white text-xs font-bold z-30">
                         <i class="fa-solid fa-spinner fa-spin"></i> Analizando...
                     </div>
                 </div>
                 <p class="text-[11px] text-slate-500 text-center leading-snug">
-                    Ajusta las esquinas para enfocar solo la pieza — la búsqueda se hace sola, no hay que tocar nada más.
+                    Ajusta las esquinas para enfocar solo la pieza. Pellizca, usa la rueda del mouse o los botones +/− para acercar y ajustar con más precisión — la búsqueda se hace sola.
                 </p>
                 <button onclick="reiniciarBusquedaFoto()"
                         class="text-xs text-slate-400 hover:text-white underline self-center cursor-pointer">
@@ -1110,6 +1132,7 @@
                 </button>
             </div>
         </div>
+
     </div>
 </div>
 
@@ -4261,6 +4284,15 @@ let fotoBusquedaPalabrasClaveActuales = [];
 let chipFotoBuscadorActivo = false;
 let modoBusquedaFotoActivo = false;
 
+// NUEVO — zoom/paneo tipo Lens: es SOLO una ayuda visual para poder
+// acercarse y ajustar el recorte con más precisión. No cambia por sí
+// solo qué área está seleccionada (recorteRect) — únicamente cambia
+// cómo se VE mientras la ajustas.
+let zoomEstado = { escala: 1, panX: 0, panY: 0 };
+let punterosActivos = new Map(); // id de puntero -> {x, y} (para detectar pellizco con 2 dedos)
+let paneoInicial = null;
+let pinchInicial = null;
+
 function abrirModalBuscarFoto() {
     reiniciarBusquedaFoto();
     document.getElementById("modal-buscar-foto").classList.remove("opacity-0", "pointer-events-none");
@@ -4274,6 +4306,7 @@ function editarBusquedaFotoActual() {
     document.getElementById("modal-buscar-foto").classList.remove("opacity-0", "pointer-events-none");
     document.getElementById("zona-captura-foto-busqueda").classList.add("hidden-element");
     document.getElementById("zona-preview-foto-busqueda").classList.remove("hidden-element");
+    reiniciarZoom();
     requestAnimationFrame(() => _actualizarRectanguloRecorte());
 }
 function cerrarModalBuscarFoto(e) {
@@ -4284,11 +4317,13 @@ function reiniciarBusquedaFoto() {
     clearTimeout(debounceRecorteTimer);
     imagenOriginalCargada = null;
     recorteRect = { x: 0, y: 0, w: 100, h: 100 };
+    zoomEstado = { escala: 1, panX: 0, panY: 0 };
     const input = document.getElementById("input-foto-busqueda");
     if (input) input.value = "";
     document.getElementById("zona-captura-foto-busqueda").classList.remove("hidden-element");
     document.getElementById("zona-preview-foto-busqueda").classList.add("hidden-element");
     document.getElementById("spinner-analizando-foto").classList.add("hidden-element");
+    _aplicarTransformZoom();
 }
 
 /** Arrastrar y soltar una imagen sobre la zona de captura (estilo Lens). */
@@ -4312,10 +4347,12 @@ function manejarArchivoElegido(archivo) {
         img.onload = () => {
             imagenOriginalCargada = img;
             recorteRect = { x: 0, y: 0, w: 100, h: 100 };
+            zoomEstado = { escala: 1, panX: 0, panY: 0 };
 
             document.getElementById("img-preview-busqueda").src = evt.target.result;
             document.getElementById("zona-captura-foto-busqueda").classList.add("hidden-element");
             document.getElementById("zona-preview-foto-busqueda").classList.remove("hidden-element");
+            _aplicarTransformZoom();
 
             requestAnimationFrame(() => {
                 _actualizarRectanguloRecorte();
@@ -4325,6 +4362,127 @@ function manejarArchivoElegido(archivo) {
         img.src = evt.target.result;
     };
     lector.readAsDataURL(archivo);
+}
+
+/** Aplica el zoom/paneo actual al contenido (imagen + recuadro +
+ *  manijas) — todos están dentro del mismo contenedor transformado, así
+ *  que se ven y se mueven juntos, como en Lens. */
+function _aplicarTransformZoom() {
+    const inner = document.getElementById("lente-zoom-interno");
+    if (!inner) return;
+    inner.style.transform = `translate(${zoomEstado.panX}px, ${zoomEstado.panY}px) scale(${zoomEstado.escala})`;
+}
+
+function _limitesPan(cont) {
+    const w = cont.clientWidth, h = cont.clientHeight;
+    return { minX: w * (1 - zoomEstado.escala), maxX: 0, minY: h * (1 - zoomEstado.escala), maxY: 0 };
+}
+function _clampPan(cont) {
+    const lim = _limitesPan(cont);
+    zoomEstado.panX = Math.min(lim.maxX, Math.max(lim.minX, zoomEstado.panX));
+    zoomEstado.panY = Math.min(lim.maxY, Math.max(lim.minY, zoomEstado.panY));
+}
+
+function reiniciarZoom() {
+    zoomEstado = { escala: 1, panX: 0, panY: 0 };
+    _aplicarTransformZoom();
+}
+
+/** Zoom con los botones +/− — centrado en medio del recuadro. */
+function ajustarZoom(delta) {
+    const cont = document.getElementById("contenedor-recorte-foto");
+    if (!cont) return;
+    _zoomHacia(cont.clientWidth / 2, cont.clientHeight / 2, delta);
+}
+
+/** Zoom con la rueda del mouse — centrado justo donde está el cursor,
+ *  como en Lens/Google Maps. */
+function manejarRuedaZoom(e) {
+    e.preventDefault();
+    const cont = document.getElementById("contenedor-recorte-foto");
+    const box = cont.getBoundingClientRect();
+    _zoomHacia(e.clientX - box.left, e.clientY - box.top, e.deltaY < 0 ? 0.3 : -0.3);
+}
+
+/** Cambia el nivel de zoom manteniendo fijo el punto (screenX,screenY)
+ *  — así el usuario no "pierde" de vista lo que estaba mirando. */
+function _zoomHacia(screenX, screenY, delta) {
+    const cont = document.getElementById("contenedor-recorte-foto");
+    if (!cont) return;
+    const nuevaEscala = Math.min(4, Math.max(1, zoomEstado.escala + delta));
+    if (nuevaEscala === zoomEstado.escala) return;
+
+    const ix = (screenX - zoomEstado.panX) / zoomEstado.escala;
+    const iy = (screenY - zoomEstado.panY) / zoomEstado.escala;
+    zoomEstado.escala = nuevaEscala;
+    zoomEstado.panX = screenX - ix * nuevaEscala;
+    zoomEstado.panY = screenY - iy * nuevaEscala;
+    _clampPan(cont);
+    _aplicarTransformZoom();
+}
+
+/** Un dedo (o mouse) arrastrando sobre la imagen = mover la vista
+ *  (paneo). Dos dedos = pellizco para hacer zoom. Si el arrastre
+ *  empezó en una manija de recorte, esa función ya hizo
+ *  stopPropagation antes, así que aquí nunca llega ese caso. */
+function iniciarPaneo(e) {
+    punterosActivos.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    if (punterosActivos.size === 1) {
+        paneoInicial = { startX: e.clientX, startY: e.clientY, panX: zoomEstado.panX, panY: zoomEstado.panY };
+    } else if (punterosActivos.size === 2) {
+        const pts = [...punterosActivos.values()];
+        pinchInicial = {
+            distancia: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y) || 1,
+            escala: zoomEstado.escala,
+            panX: zoomEstado.panX, panY: zoomEstado.panY,
+            midX: (pts[0].x + pts[1].x) / 2, midY: (pts[0].y + pts[1].y) / 2
+        };
+    }
+
+    const mover = (ev) => _manejarMoverPuntero(ev);
+    const soltar = (ev) => {
+        punterosActivos.delete(ev.pointerId);
+        if (punterosActivos.size < 2) pinchInicial = null;
+        if (punterosActivos.size === 0) {
+            paneoInicial = null;
+            document.removeEventListener("pointermove", mover);
+            document.removeEventListener("pointerup", soltar);
+            document.removeEventListener("pointercancel", soltar);
+        }
+    };
+    document.addEventListener("pointermove", mover);
+    document.addEventListener("pointerup", soltar);
+    document.addEventListener("pointercancel", soltar);
+}
+
+function _manejarMoverPuntero(e) {
+    if (!punterosActivos.has(e.pointerId)) return;
+    punterosActivos.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const cont = document.getElementById("contenedor-recorte-foto");
+    if (!cont) return;
+    const box = cont.getBoundingClientRect();
+
+    if (punterosActivos.size >= 2 && pinchInicial) {
+        const pts = [...punterosActivos.values()];
+        const distanciaNueva = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
+        const factor = distanciaNueva / pinchInicial.distancia;
+        const nuevaEscala = Math.min(4, Math.max(1, pinchInicial.escala * factor));
+
+        const midX = pinchInicial.midX - box.left, midY = pinchInicial.midY - box.top;
+        const ix = (midX - pinchInicial.panX) / pinchInicial.escala;
+        const iy = (midY - pinchInicial.panY) / pinchInicial.escala;
+        zoomEstado.escala = nuevaEscala;
+        zoomEstado.panX = midX - ix * nuevaEscala;
+        zoomEstado.panY = midY - iy * nuevaEscala;
+        _clampPan(cont);
+        _aplicarTransformZoom();
+    } else if (punterosActivos.size === 1 && paneoInicial && zoomEstado.escala > 1) {
+        zoomEstado.panX = paneoInicial.panX + (e.clientX - paneoInicial.startX);
+        zoomEstado.panY = paneoInicial.panY + (e.clientY - paneoInicial.startY);
+        _clampPan(cont);
+        _aplicarTransformZoom();
+    }
 }
 
 /** Reposiciona el rectángulo verde y sus 4 manijas según recorteRect
@@ -4373,8 +4531,14 @@ function iniciarArrastreRecorte(e, esquina) {
 function _moverRecorte(e, esquina) {
     const cont = document.getElementById("contenedor-recorte-foto");
     const box = cont.getBoundingClientRect();
-    let px = ((e.clientX - box.left) / box.width) * 100;
-    let py = ((e.clientY - box.top) / box.height) * 100;
+    // El puntero se mueve sobre la pantalla, pero la imagen puede estar
+    // acercada/desplazada (zoomEstado) — hay que "deshacer" ese zoom/pan
+    // para saber a qué % de la imagen ORIGINAL corresponde el punto.
+    const screenX = e.clientX - box.left, screenY = e.clientY - box.top;
+    const ix = (screenX - zoomEstado.panX) / zoomEstado.escala;
+    const iy = (screenY - zoomEstado.panY) / zoomEstado.escala;
+    let px = (ix / box.width) * 100;
+    let py = (iy / box.height) * 100;
     px = Math.max(0, Math.min(100, px));
     py = Math.max(0, Math.min(100, py));
 
