@@ -742,6 +742,15 @@
                     class="hidden shrink-0 bg-slate-900 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl h-[38px] w-[38px] items-center justify-center cursor-pointer transition">
                 <i class="fa-solid fa-camera-retro"></i>
             </button>
+            <!-- NUEVO: usuarios/admins conectados en tiempo real, versión móvil —
+                 SOLO super admin (almacén = TODAS). Se muestra/oculta según
+                 el rol en _continuarDespuesDeAnimacionCarga(). -->
+            <button id="btn-usuarios-conectados-movil" onclick="abrirModalUsuariosConectados()" title="Usuarios conectados"
+                    class="hidden shrink-0 relative bg-slate-900 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl h-[38px] w-[38px] items-center justify-center cursor-pointer transition">
+                <i class="fa-solid fa-signal"></i>
+                <span id="badge-usuarios-conectados-movil"
+                      class="hidden absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[9px] font-black rounded-full min-w-[16px] h-4 px-1 items-center justify-center leading-none">0</span>
+            </button>
             <!-- Botón Filtros — a la DERECHA del buscador (punto 1) -->
             <button onclick="abrirDrawerFiltros()" id="btn-abrir-filtros"
                     class="flex items-center gap-1.5 bg-slate-700 hover:bg-emerald-700 text-white text-xs font-bold px-3 rounded-xl transition cursor-pointer shrink-0 h-[38px]">
@@ -2038,10 +2047,14 @@ function _continuarDespuesDeAnimacionCarga() {
         if (btnFotoMovil)   { btnFotoMovil.classList.toggle("hidden", !esAdmin);   btnFotoMovil.classList.toggle("flex", esAdmin); }
 
         // NUEVO: usuarios conectados en tiempo real — SOLO super admin
-        // (almacén = TODAS).
+        // (almacén = TODAS). Se controla tanto la versión de escritorio
+        // (dentro del buscador "hidden lg:flex", solo visible en pantallas
+        // grandes) como la versión móvil (dentro de "barra-movil").
         const btnUsuariosConectados = document.getElementById("btn-usuarios-conectados");
+        const btnUsuariosConectadosMovil = document.getElementById("btn-usuarios-conectados-movil");
         const esSuperAdmin = esAdmin && esZonaValladolid();
         if (btnUsuariosConectados) { btnUsuariosConectados.classList.toggle("hidden", !esSuperAdmin); btnUsuariosConectados.classList.toggle("flex", esSuperAdmin); }
+        if (btnUsuariosConectadosMovil) { btnUsuariosConectadosMovil.classList.toggle("hidden", !esSuperAdmin); btnUsuariosConectadosMovil.classList.toggle("flex", esSuperAdmin); }
 
         // NUEVO: filtro "Por llegar a mi sucursal" — solo admin.
         const wrapperTransito = document.getElementById("filtro-transito-wrapper");
@@ -4481,8 +4494,9 @@ async function cargarUsuariosConectados() {
         document.getElementById("uc-total-admins").textContent   = rs.totalAdmins;
         document.getElementById("uc-total-clientes").textContent = rs.totalClientes;
 
-        const badge = document.getElementById("badge-usuarios-conectados");
-        if (badge) { badge.textContent = rs.total; badge.classList.toggle("hidden", rs.total === 0); badge.classList.toggle("flex", rs.total > 0); }
+        [document.getElementById("badge-usuarios-conectados"), document.getElementById("badge-usuarios-conectados-movil")].forEach(badge => {
+            if (badge) { badge.textContent = rs.total; badge.classList.toggle("hidden", rs.total === 0); badge.classList.toggle("flex", rs.total > 0); }
+        });
 
         if (!rs.usuarios || rs.usuarios.length === 0) {
             contenedor.innerHTML = `<p class="text-xs text-slate-500 text-center py-8">Nadie conectado en este momento.</p>`;
