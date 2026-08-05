@@ -692,6 +692,15 @@
                         class="hidden shrink-0 bg-slate-900 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl h-[38px] w-[38px] items-center justify-center cursor-pointer transition">
                     <i class="fa-solid fa-camera-retro"></i>
                 </button>
+                <!-- NUEVO: usuarios/admins conectados en tiempo real — SOLO
+                     super admin (almacén = TODAS). Se muestra/oculta según
+                     el rol en _continuarDespuesDeAnimacionCarga(). -->
+                <button id="btn-usuarios-conectados" onclick="abrirModalUsuariosConectados()" title="Usuarios conectados"
+                        class="hidden shrink-0 relative bg-slate-900 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl h-[38px] w-[38px] items-center justify-center cursor-pointer transition">
+                    <i class="fa-solid fa-signal"></i>
+                    <span id="badge-usuarios-conectados"
+                          class="hidden absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[9px] font-black rounded-full min-w-[16px] h-4 px-1 items-center justify-center leading-none">0</span>
+                </button>
             </div>
 
             <!-- Cerrar sesión — punto 3: más grande y siempre visible -->
@@ -1237,6 +1246,46 @@
 </div>
 
 <!-- ════════════════════════════════════════════════
+     MODAL: USUARIOS/ADMINS CONECTADOS EN TIEMPO REAL
+     Solo visible para super admin (almacén = TODAS). Se auto-refresca
+     cada 15s mientras está abierto; se detiene al cerrarlo.
+═════════════════════════════════════════════════ -->
+<div id="modal-usuarios-conectados"
+     class="fixed inset-0 bg-black/85 z-[75] flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300"
+     onclick="cerrarModalUsuariosConectados(event)">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md relative overflow-hidden flex flex-col shadow-2xl max-h-[85vh]" onclick="event.stopPropagation()">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-700 bg-slate-800 shrink-0">
+            <h3 class="text-sm font-black uppercase tracking-wide text-white flex items-center gap-2">
+                <i class="fa-solid fa-signal text-emerald-400"></i> Conectados ahora
+            </h3>
+            <button onclick="cerrarModalUsuariosConectados()" class="text-slate-400 hover:text-white text-xl cursor-pointer">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="px-4 py-3 border-b border-slate-700 grid grid-cols-3 gap-2 shrink-0">
+            <div class="bg-slate-900 rounded-xl p-2 text-center">
+                <p id="uc-total" class="text-lg font-black text-emerald-400">0</p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase">Total</p>
+            </div>
+            <div class="bg-slate-900 rounded-xl p-2 text-center">
+                <p id="uc-total-admins" class="text-lg font-black text-blue-400">0</p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase">Admins</p>
+            </div>
+            <div class="bg-slate-900 rounded-xl p-2 text-center">
+                <p id="uc-total-clientes" class="text-lg font-black text-amber-400">0</p>
+                <p class="text-[9px] font-bold text-slate-400 uppercase">Clientes</p>
+            </div>
+        </div>
+        <div id="uc-lista" class="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
+            <div class="flex flex-col items-center justify-center h-full gap-3 text-slate-500 py-12">
+                <i class="fa-solid fa-spinner fa-spin text-3xl opacity-40"></i>
+                <p class="text-xs font-semibold text-center">Cargando...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════
      PANEL ADMIN — COTIZACIONES PENDIENTES POR USUARIO
 ═════════════════════════════════════════════════ -->
 <div id="panel-cotizaciones-admin">
@@ -1347,9 +1396,10 @@ function _normalizarAlmacenJS(texto) {
     return (texto || "").toString().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }
 
-/** true si el admin actual tiene asignada la "Zona Valladolid" (acceso total) */
+/** true si el admin actual tiene asignado "TODAS" en la Columna H
+ *  (Usuarios_Autorizados) — acceso total a todas las sucursales. */
 function esZonaValladolid() {
-    return _normalizarAlmacenJS(almacenAdminActual).includes("ZONA VALLADOLID");
+    return _normalizarAlmacenJS(almacenAdminActual).includes("TODAS");
 }
 
 /** NUEVO — true si una sucursal dada pertenece al almacén asignado al
@@ -1986,6 +2036,12 @@ function _continuarDespuesDeAnimacionCarga() {
         const btnFotoMovil   = document.getElementById("btn-buscar-foto-movil");
         if (btnFotoDesktop) { btnFotoDesktop.classList.toggle("hidden", !esAdmin); btnFotoDesktop.classList.toggle("flex", esAdmin); }
         if (btnFotoMovil)   { btnFotoMovil.classList.toggle("hidden", !esAdmin);   btnFotoMovil.classList.toggle("flex", esAdmin); }
+
+        // NUEVO: usuarios conectados en tiempo real — SOLO super admin
+        // (almacén = TODAS).
+        const btnUsuariosConectados = document.getElementById("btn-usuarios-conectados");
+        const esSuperAdmin = esAdmin && esZonaValladolid();
+        if (btnUsuariosConectados) { btnUsuariosConectados.classList.toggle("hidden", !esSuperAdmin); btnUsuariosConectados.classList.toggle("flex", esSuperAdmin); }
 
         // NUEVO: filtro "Por llegar a mi sucursal" — solo admin.
         const wrapperTransito = document.getElementById("filtro-transito-wrapper");
@@ -3205,7 +3261,7 @@ async function cargarCotizacionesAdmin(silencioso) {
         }
         totalBloquesPendientesPrevio = totalBloquesPendientes;
 
-        const esZonaValladolidPanel = _normalizarAlmacenJS(rs.almacenAdmin).includes("ZONA VALLADOLID");
+        const esZonaValladolidPanel = _normalizarAlmacenJS(rs.almacenAdmin).includes("TODAS");
         const etAlmacen = rs.almacenAdmin
             ? (esZonaValladolidPanel
                 ? `<i class="fa-solid fa-globe mr-1"></i> Todos los almacenes (Zona Valladolid)`
@@ -4389,6 +4445,66 @@ function editarBusquedaFotoActual() {
 function cerrarModalBuscarFoto(e) {
     if (e && e.target && e.target.id !== "modal-buscar-foto") return;
     document.getElementById("modal-buscar-foto").classList.add("opacity-0", "pointer-events-none");
+}
+
+// ════════════════════════════════════════════════════════════
+//  USUARIOS/ADMINS CONECTADOS EN TIEMPO REAL — solo super admin
+//  (almacén = TODAS). Se apoya en Sesiones_Activas, ya existente.
+// ════════════════════════════════════════════════════════════
+let intervaloUsuariosConectados = null;
+
+function abrirModalUsuariosConectados() {
+    document.getElementById("modal-usuarios-conectados").classList.remove("opacity-0", "pointer-events-none");
+    cargarUsuariosConectados();
+    clearInterval(intervaloUsuariosConectados);
+    intervaloUsuariosConectados = setInterval(cargarUsuariosConectados, 15000);
+}
+function cerrarModalUsuariosConectados(e) {
+    if (e && e.target && e.target.id !== "modal-usuarios-conectados") return;
+    document.getElementById("modal-usuarios-conectados").classList.add("opacity-0", "pointer-events-none");
+    clearInterval(intervaloUsuariosConectados);
+    intervaloUsuariosConectados = null;
+}
+async function cargarUsuariosConectados() {
+    const contenedor = document.getElementById("uc-lista");
+    try {
+        const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+            body: JSON.stringify({ action:"obtenerUsuariosConectados", token:tokenActual, correo:usuarioActual }) });
+        const rs = await r.json();
+
+        if (!rs.success) {
+            contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">${rs.message||"No autorizado."}</p>`;
+            return;
+        }
+
+        document.getElementById("uc-total").textContent          = rs.total;
+        document.getElementById("uc-total-admins").textContent   = rs.totalAdmins;
+        document.getElementById("uc-total-clientes").textContent = rs.totalClientes;
+
+        const badge = document.getElementById("badge-usuarios-conectados");
+        if (badge) { badge.textContent = rs.total; badge.classList.toggle("hidden", rs.total === 0); badge.classList.toggle("flex", rs.total > 0); }
+
+        if (!rs.usuarios || rs.usuarios.length === 0) {
+            contenedor.innerHTML = `<p class="text-xs text-slate-500 text-center py-8">Nadie conectado en este momento.</p>`;
+            return;
+        }
+
+        contenedor.innerHTML = rs.usuarios.map(u => `
+            <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 flex items-center justify-between gap-2">
+                <div class="min-w-0">
+                    <p class="text-sm font-bold text-white truncate">${escaparHTML(u.nombre)}</p>
+                    <p class="text-[10px] text-slate-400 truncate">${escaparHTML(u.correo)}</p>
+                    ${u.almacen ? `<p class="text-[9px] text-slate-500 truncate mt-0.5"><i class="fa-solid fa-warehouse mr-1"></i>${escaparHTML(u.almacen)}</p>` : ""}
+                </div>
+                <div class="flex flex-col items-end gap-1 shrink-0">
+                    <span class="text-[9px] font-black px-2 py-0.5 rounded-md uppercase ${u.esAdmin ? "bg-blue-900/60 text-blue-300" : "bg-slate-700 text-slate-300"}">${u.esAdmin ? "Admin" : "Cliente"}</span>
+                    ${u.dispositivos > 1 ? `<span class="text-[9px] text-amber-400"><i class="fa-solid fa-mobile-screen mr-1"></i>${u.dispositivos} dispositivos</span>` : ""}
+                </div>
+            </div>
+        `).join("");
+    } catch (err) {
+        contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">Error de conexión.</p>`;
+    }
 }
 function reiniciarBusquedaFoto() {
     clearTimeout(debounceRecorteTimer);
