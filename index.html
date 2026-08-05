@@ -1316,18 +1316,13 @@ const GRUPOS_AGENCIA = {
     CARABELA: { nombre: "Carabela", exclusivo: false, emoji: "🟠", almacen: "VENTO_CARABELA" },
 };
 
-/** Detecta a qué grupo pertenece una sucursal.
- *  NOTA: "TICUL" no trae ninguna palabra clave de marca en su nombre,
- *  pero pertenece al almacén VENTO_CARABELA — se detecta por nombre
- *  exacto de sucursal, no por substring (para no atrapar por accidente
- *  otras sucursales que contengan "TICUL" en el futuro). */
+/** Detecta a qué grupo pertenece una sucursal */
 function detectarGrupoSucursal(nombreSucursal) {
-    const n = (nombreSucursal || "").toUpperCase().trim();
+    const n = (nombreSucursal || "").toUpperCase();
     if (n.includes("BAJAJ"))    return "BAJAJ";
     if (n.includes("SUZUKI"))   return "SUZUKI";
     if (n.includes("VENTO"))    return "VENTO";
     if (n.includes("CARABELA")) return "CARABELA";
-    if (n === "TICUL")          return "VENTO";
     return "GENERAL";
 }
 
@@ -1357,47 +1352,23 @@ function esZonaValladolid() {
     return _normalizarAlmacenJS(almacenAdminActual).includes("ZONA VALLADOLID");
 }
 
-/** Sucursales de la zona Valladolid — espejo en el frontend de
- *  MAPA_ZONAS.VALLADOLID en Código.gs. Usada solo para decidir qué
- *  cuenta como "tránsito propio" del superadmin (Zona Valladolid), no
- *  para nada de permisos de inventario (eso ya lo resuelve el backend). */
-const SUCURSALES_ZONA_VALLADOLID = [
-    "BAJAJ CANCUN", "BAJAJ TIZIMIN", "BAJAJ VALLADOLID",
-    "SUZUKI TIZIMIN", "SUZUKI VALLADOLID",
-    "TIZIMIN VENTO", "CARABELA V1", "VENTO PISTE"
-];
-
-/** NUEVO — true si una sucursal dada es la sucursal EXACTA asignada al
- *  admin logueado en la Columna H de Usuarios_Autorizados (por ejemplo,
- *  un admin con H="CARABELA V1" solo ve tránsito de "CARABELA V1", no
- *  de "TIZIMIN VENTO" aunque compartan almacén para otros efectos como
- *  cotizaciones — esa agrupación de MAPA_VISIBILIDAD_ALMACEN se queda
- *  intacta y no se toca aquí). "Zona Valladolid" (superadmin) ve las
- *  sucursales de su zona, no las de Mérida. Se usa para el filtro
- *  "Por llegar a mi sucursal" y para los badges/etiquetas de tránsito. */
+/** NUEVO — true si una sucursal dada pertenece al almacén asignado al
+ *  admin logueado (mismo criterio que ya usa el catálogo para agrupar
+ *  Vento/Carabela, Bajaj y Suzuki). "Zona Valladolid" ve todo. Se usa
+ *  para el filtro "Por llegar a mi sucursal". */
 function _adminVeAlmacenSucursal(nombreSucursal) {
-    if (esZonaValladolid()) {
-        const sucNorm = _normalizarAlmacenJS(nombreSucursal);
-        return SUCURSALES_ZONA_VALLADOLID.some(s => sucNorm === _normalizarAlmacenJS(s));
-    }
+    if (esZonaValladolid()) return true;
     if (!almacenAdminActual) return false;
-    return _normalizarAlmacenJS(nombreSucursal) === _normalizarAlmacenJS(almacenAdminActual);
-}
-
-/** NUEVO — Igual que _adminVeAlmacenSucursal, pero además respeta el
- *  filtro "Sucursal / Agencia" del sidebar cuando el admin ya eligió
- *  una sucursal específica ahí. Esto importa sobre todo para admins de
- *  "ZONA VALLADOLID": por defecto ven TODOS los almacenes como propios
- *  (correcto, administran todo), pero eso hacía que el badge/etiqueta
- *  "En tránsito" se disparara para envíos rumbo a CUALQUIER sucursal,
- *  aunque no tuviera nada que ver con lo que están revisando en ese
- *  momento. Si ya filtraron por una sucursal puntual, solo cuenta el
- *  tránsito que va hacia ESA sucursal. */
-function _sucursalRelevanteTransito(nombreSucursal) {
-    const selAgencia = document.getElementById("filtro-agencia");
-    const agenciaElegida = selAgencia ? selAgencia.value : "";
-    if (agenciaElegida) return nombreSucursal === agenciaElegida;
-    return _adminVeAlmacenSucursal(nombreSucursal);
+    const almacenAdminNorm = _normalizarAlmacenJS(almacenAdminActual);
+    const grupo         = detectarGrupoSucursal(nombreSucursal);
+    const almacenLogico = almacenLogicoDeGrupo(grupo); // BAJAJ / SUZUKI / VENTO_CARABELA / GENERAL
+    if (almacenLogico === "VENTO_CARABELA") {
+        return almacenAdminNorm.includes("CARABELA") || almacenAdminNorm.includes("VENTO");
+    }
+    if (almacenLogico === "GENERAL") {
+        return _normalizarAlmacenJS(nombreSucursal).includes(almacenAdminNorm);
+    }
+    return almacenAdminNorm.includes(almacenLogico);
 }
 let familiaSeleccionadaActual = [];
 let filtroLiquidacionActivo = false;    
@@ -2251,7 +2222,7 @@ let filtrados = inventarioMaestro.filter(item => {
         // pertenezca al almacén asignado al admin logueado.
         if (filtroTransitoActivo) {
             const exsTransito = item.Existencias || [];
-            const tieneTransitoPropio = exsTransito.some(e => e.enTransito && _sucursalRelevanteTransito(e.sucursal));
+            const tieneTransitoPropio = exsTransito.some(e => e.enTransito && _adminVeAlmacenSucursal(e.sucursal));
             if (!tieneTransitoPropio) return false;
         }
         if (marcaSeleccionadaActual.length > 0 && !marcaSeleccionadaActual.includes((item.Marca||"").trim())) return false;
@@ -2303,23 +2274,12 @@ function renderizarTarjetasProductos(lista) {
         // sucursal ya lo tiene cuando en realidad todavía viene en camino.
         const existenciasItem = item.Existencias||[];
         const totalStock    = existenciasItem.filter(e=>!e.enTransito).reduce((s,e)=>s+Number(e.cantidad||0),0);
-        // OJO: el badge "en camino" solo debe contar lo que viene EN
-        // TRÁNSITO hacia el almacén del admin que está viendo el
-        // catálogo — no todo lo que esté en tránsito en cualquier
-        // sucursal de la zona. Antes sumaba TODO, lo que hacía parecer
-        // que había piezas por llegar cuando en realidad iban para
-        // otra sucursal que nada tiene que ver con la del admin.
-        const totalTransito  = existenciasItem
-            .filter(e => e.enTransito && (!esAdmin || _sucursalRelevanteTransito(e.sucursal)))
-            .reduce((s,e)=>s+Number(e.cantidad||0),0);
+        const totalTransito  = existenciasItem.filter(e=>e.enTransito).reduce((s,e)=>s+Number(e.cantidad||0),0);
         const stockBadge = totalStock > 0
             ? `<span class="absolute top-3 left-3 bg-emerald-900/80 text-emerald-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10">${totalStock} pzas</span>`
             : `<span class="absolute top-3 left-3 bg-red-900/80 text-red-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10">Sin stock</span>`;
-        // CORREGIDO: antes compartía la misma esquina (top-3 right-3) que
-        // la etiqueta de marca y quedaban encimados. Ahora se posiciona
-        // en la esquina inferior derecha de la imagen, casi al borde.
         const transitoBadge = totalTransito > 0
-            ? `<span class="absolute bottom-2 right-2 bg-amber-900/90 text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10 shadow-lg"><i class="fa-solid fa-truck-fast mr-1"></i>${totalTransito} en camino</span>`
+            ? `<span class="absolute top-3 right-3 bg-amber-900/80 text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10"><i class="fa-solid fa-truck-fast mr-1"></i>${totalTransito} en camino</span>`
             : "";
         const liquidacionBadge = item.Liquidacion
             ? `<span class="absolute bottom-2 left-2 right-2 bg-red-600 text-white text-[9px] font-black px-2 py-1 rounded-md z-10 text-center uppercase tracking-wide flex items-center justify-center gap-1"><i class="fa-solid fa-flag"></i> Liquidación</span>`
