@@ -2347,8 +2347,11 @@ function renderizarTarjetasProductos(lista) {
         const stockBadge = totalStock > 0
             ? `<span class="absolute top-3 left-3 bg-emerald-900/80 text-emerald-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10">${totalStock} pzas</span>`
             : `<span class="absolute top-3 left-3 bg-red-900/80 text-red-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10">Sin stock</span>`;
+        // Si también hay badge de Liquidación (franja inferior de ancho
+        // completo), el badge de tránsito se recorre un poco hacia arriba
+        // para no encimarse con ella.
         const transitoBadge = totalTransito > 0
-            ? `<span class="absolute top-3 right-3 bg-amber-900/80 text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10"><i class="fa-solid fa-truck-fast mr-1"></i>${totalTransito} en camino</span>`
+            ? `<span class="absolute ${item.Liquidacion ? "bottom-9" : "bottom-2"} right-2 bg-amber-900/80 text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10 whitespace-nowrap"><i class="fa-solid fa-truck-fast mr-1"></i>${totalTransito} en camino</span>`
             : "";
         const liquidacionBadge = item.Liquidacion
             ? `<span class="absolute bottom-2 left-2 right-2 bg-red-600 text-white text-[9px] font-black px-2 py-1 rounded-md z-10 text-center uppercase tracking-wide flex items-center justify-center gap-1"><i class="fa-solid fa-flag"></i> Liquidación</span>`
@@ -3841,20 +3844,20 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
                     // etiqueta clara de "En tránsito" y en color ámbar,
                     // para no confundirla con existencia ya disponible.
                     const tagTransito = enTransito
-                        ? `<span class="ml-2 bg-amber-900/60 text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide"><i class="fa-solid fa-truck-fast mr-1"></i>En tránsito</span>`
+                        ? `<span class="whitespace-nowrap bg-amber-900/60 text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide"><i class="fa-solid fa-truck-fast mr-1"></i>En tránsito</span>`
                         : "";
                     const cantidadClass = enTransito
                         ? "font-mono bg-amber-950 text-amber-400 px-2 py-0.5 rounded-md font-bold"
                         : "font-mono bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded-md font-bold";
                     return `
                     <div class="flex flex-col gap-2 bg-slate-900 p-3 rounded-lg border ${enTransito ? "border-amber-700/40" : "border-slate-700/40"}">
-                        <div class="flex justify-between items-center text-xs">
-                            <div>
-                                <span class="text-slate-300 font-bold"><i class="fa-solid fa-location-dot text-emerald-500 mr-1"></i>${inv.sucursal}</span>
-                                <span class="${tagClass} ml-2">${(GRUPOS_AGENCIA[grupo]||{}).nombre||grupo}</span>
+                        <div class="flex flex-wrap justify-between items-center gap-x-2 gap-y-1.5 text-xs">
+                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1.5 min-w-0">
+                                <span class="text-slate-300 font-bold whitespace-nowrap"><i class="fa-solid fa-location-dot text-emerald-500 mr-1"></i>${inv.sucursal}</span>
+                                <span class="${tagClass} whitespace-nowrap">${(GRUPOS_AGENCIA[grupo]||{}).nombre||grupo}</span>
                                 ${tagTransito}
                             </div>
-                            <span class="${cantidadClass}">${inv.cantidad} pzas</span>
+                            <span class="${cantidadClass} whitespace-nowrap shrink-0">${inv.cantidad} pzas</span>
                         </div>
                         ${!esAdmin ? `
                         <button onclick='agregarAlCarritoDesdeModal("${sku}", ${tituloSeguro}, "${marca}", "${urlImg}", ${JSON.stringify(inventarios)}, ${!!item.Liquidacion})'
