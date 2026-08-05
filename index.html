@@ -891,6 +891,18 @@
                         </label>
                     </div>
 
+                <!-- NUEVO: Por llegar a mi sucursal (EN TRÁNSITO) — SOLO ADMIN.
+                     Oculto por default; se muestra vía JS en
+                     _continuarDespuesDeAnimacionCarga() solo si esAdmin. -->
+                <div id="filtro-transito-wrapper" class="hidden">
+                    <label class="flex items-center gap-2 p-2 bg-amber-950/30 border border-amber-900/50 rounded-xl cursor-pointer hover:bg-amber-950/50 transition">
+                        <input type="checkbox" id="filtro-transito" onchange="toggleFiltroTransito(this)">
+                        <span class="text-xs font-bold text-amber-400 uppercase tracking-wide flex items-center gap-1.5">
+                            <i class="fa-solid fa-truck-fast"></i> Por llegar a mi sucursal
+                        </span>
+                    </label>
+                </div>
+
             </div><!-- /zona scrolleable -->
 
             <!-- ── Botón "Ver resultados" fijo abajo — solo móvil ── -->
@@ -1339,8 +1351,28 @@ function _normalizarAlmacenJS(texto) {
 function esZonaValladolid() {
     return _normalizarAlmacenJS(almacenAdminActual).includes("ZONA VALLADOLID");
 }
+
+/** NUEVO — true si una sucursal dada pertenece al almacén asignado al
+ *  admin logueado (mismo criterio que ya usa el catálogo para agrupar
+ *  Vento/Carabela, Bajaj y Suzuki). "Zona Valladolid" ve todo. Se usa
+ *  para el filtro "Por llegar a mi sucursal". */
+function _adminVeAlmacenSucursal(nombreSucursal) {
+    if (esZonaValladolid()) return true;
+    if (!almacenAdminActual) return false;
+    const almacenAdminNorm = _normalizarAlmacenJS(almacenAdminActual);
+    const grupo         = detectarGrupoSucursal(nombreSucursal);
+    const almacenLogico = almacenLogicoDeGrupo(grupo); // BAJAJ / SUZUKI / VENTO_CARABELA / GENERAL
+    if (almacenLogico === "VENTO_CARABELA") {
+        return almacenAdminNorm.includes("CARABELA") || almacenAdminNorm.includes("VENTO");
+    }
+    if (almacenLogico === "GENERAL") {
+        return _normalizarAlmacenJS(nombreSucursal).includes(almacenAdminNorm);
+    }
+    return almacenAdminNorm.includes(almacenLogico);
+}
 let familiaSeleccionadaActual = [];
 let filtroLiquidacionActivo = false;    
+let filtroTransitoActivo    = false; // NUEVO: "Por llegar a mi sucursal" (solo admin)
 let marcaSeleccionadaActual   = [];
 let paginaActual              = 1;
 const tarjetasPorPagina       = 9;
@@ -1955,6 +1987,10 @@ function _continuarDespuesDeAnimacionCarga() {
         if (btnFotoDesktop) { btnFotoDesktop.classList.toggle("hidden", !esAdmin); btnFotoDesktop.classList.toggle("flex", esAdmin); }
         if (btnFotoMovil)   { btnFotoMovil.classList.toggle("hidden", !esAdmin);   btnFotoMovil.classList.toggle("flex", esAdmin); }
 
+        // NUEVO: filtro "Por llegar a mi sucursal" — solo admin.
+        const wrapperTransito = document.getElementById("filtro-transito-wrapper");
+        if (wrapperTransito) wrapperTransito.classList.toggle("hidden", !esAdmin);
+
         if (esAdmin) { cargarCotizacionesAdmin(); iniciarPollingAdminCotizaciones(); }
         else iniciarReconciliacionCarrito();
     }
@@ -2067,6 +2103,11 @@ function toggleFiltroLiquidacion(cb) {
     filtrarProductos();
     actualizarChipsFiltros();
 }    
+function toggleFiltroTransito(cb) {
+    filtroTransitoActivo = cb.checked;
+    filtrarProductos();
+    actualizarChipsFiltros();
+}
 
 function limpiarSeleccionFamilias() { familiaSeleccionadaActual=[]; limpiarBuscadorFamilia(); renderizarFiltrosFamilia(); filtrarProductos(); }
 function limpiarSeleccionMarcas()   { marcaSeleccionadaActual=[]; limpiarBuscadorMarca(); renderizarFiltrosMarcas(); filtrarProductos(); }
@@ -2117,6 +2158,10 @@ function limpiarPanelFiltros() {
     filtroLiquidacionActivo = false;
     const cbLiquidacion = document.getElementById("filtro-liquidacion");
     if (cbLiquidacion) cbLiquidacion.checked = false;
+
+    filtroTransitoActivo = false;
+    const cbTransito = document.getElementById("filtro-transito");
+    if (cbTransito) cbTransito.checked = false;
 
     paginaActual = 1;
     filtrarProductos();
@@ -2172,6 +2217,14 @@ function filtrarProductos() {
 
 let filtrados = inventarioMaestro.filter(item => {
         if (filtroLiquidacionActivo && !item.Liquidacion) return false;
+        // NUEVO: "Por llegar a mi sucursal" — solo admin. Deja pasar el
+        // producto solo si tiene AL MENOS una existencia en tránsito que
+        // pertenezca al almacén asignado al admin logueado.
+        if (filtroTransitoActivo) {
+            const exsTransito = item.Existencias || [];
+            const tieneTransitoPropio = exsTransito.some(e => e.enTransito && _adminVeAlmacenSucursal(e.sucursal));
+            if (!tieneTransitoPropio) return false;
+        }
         if (marcaSeleccionadaActual.length > 0 && !marcaSeleccionadaActual.includes((item.Marca||"").trim())) return false;
         if (familiaSeleccionadaActual.length > 0 && !familiaSeleccionadaActual.includes((item.Familia||"Sin Familia").trim())) return false;
         if (agencia) { const exs = item.Existencias||[]; if (!exs.some(e => e.sucursal === agencia)) return false; }
@@ -3006,6 +3059,7 @@ function actualizarChipsFiltros() {
         chips.push({ label: "Orden: " + (etiquetasOrden[orden]||orden), tipo: "orden", valor: orden });
     }
     if (filtroLiquidacionActivo) chips.push({ label: "Solo liquidación", tipo: "liquidacion", valor: "1" });
+    if (filtroTransitoActivo) chips.push({ label: "Por llegar a mi sucursal", tipo: "transito", valor: "1" });
 
     // Chips cortos, en la barra móvil (solo familia/marca/agencia, como antes)
     if (contenedor) {
@@ -3051,6 +3105,7 @@ function eliminarChip(tipo, valor) {
     if (tipo === "agencia")     { const sel = document.getElementById("filtro-agencia"); if(sel) sel.value=""; }
     if (tipo === "orden")       { const sel = document.getElementById("orden-alfabetico"); if(sel) sel.value="AZ"; }
     if (tipo === "liquidacion") { filtroLiquidacionActivo = false; const cb = document.getElementById("filtro-liquidacion"); if (cb) cb.checked = false; }
+    if (tipo === "transito")    { filtroTransitoActivo = false; const cb = document.getElementById("filtro-transito"); if (cb) cb.checked = false; }
     paginaActual = 1;
     filtrarProductos();
 }
