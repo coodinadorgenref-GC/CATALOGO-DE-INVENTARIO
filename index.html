@@ -1316,13 +1316,18 @@ const GRUPOS_AGENCIA = {
     CARABELA: { nombre: "Carabela", exclusivo: false, emoji: "🟠", almacen: "VENTO_CARABELA" },
 };
 
-/** Detecta a qué grupo pertenece una sucursal */
+/** Detecta a qué grupo pertenece una sucursal.
+ *  NOTA: "TICUL" no trae ninguna palabra clave de marca en su nombre,
+ *  pero pertenece al almacén VENTO_CARABELA — se detecta por nombre
+ *  exacto de sucursal, no por substring (para no atrapar por accidente
+ *  otras sucursales que contengan "TICUL" en el futuro). */
 function detectarGrupoSucursal(nombreSucursal) {
-    const n = (nombreSucursal || "").toUpperCase();
+    const n = (nombreSucursal || "").toUpperCase().trim();
     if (n.includes("BAJAJ"))    return "BAJAJ";
     if (n.includes("SUZUKI"))   return "SUZUKI";
     if (n.includes("VENTO"))    return "VENTO";
     if (n.includes("CARABELA")) return "CARABELA";
+    if (n === "TICUL")          return "VENTO";
     return "GENERAL";
 }
 
@@ -1369,6 +1374,22 @@ function _adminVeAlmacenSucursal(nombreSucursal) {
         return _normalizarAlmacenJS(nombreSucursal).includes(almacenAdminNorm);
     }
     return almacenAdminNorm.includes(almacenLogico);
+}
+
+/** NUEVO — Igual que _adminVeAlmacenSucursal, pero además respeta el
+ *  filtro "Sucursal / Agencia" del sidebar cuando el admin ya eligió
+ *  una sucursal específica ahí. Esto importa sobre todo para admins de
+ *  "ZONA VALLADOLID": por defecto ven TODOS los almacenes como propios
+ *  (correcto, administran todo), pero eso hacía que el badge/etiqueta
+ *  "En tránsito" se disparara para envíos rumbo a CUALQUIER sucursal,
+ *  aunque no tuviera nada que ver con lo que están revisando en ese
+ *  momento. Si ya filtraron por una sucursal puntual, solo cuenta el
+ *  tránsito que va hacia ESA sucursal. */
+function _sucursalRelevanteTransito(nombreSucursal) {
+    const selAgencia = document.getElementById("filtro-agencia");
+    const agenciaElegida = selAgencia ? selAgencia.value : "";
+    if (agenciaElegida) return nombreSucursal === agenciaElegida;
+    return _adminVeAlmacenSucursal(nombreSucursal);
 }
 let familiaSeleccionadaActual = [];
 let filtroLiquidacionActivo = false;    
@@ -2222,7 +2243,7 @@ let filtrados = inventarioMaestro.filter(item => {
         // pertenezca al almacén asignado al admin logueado.
         if (filtroTransitoActivo) {
             const exsTransito = item.Existencias || [];
-            const tieneTransitoPropio = exsTransito.some(e => e.enTransito && _adminVeAlmacenSucursal(e.sucursal));
+            const tieneTransitoPropio = exsTransito.some(e => e.enTransito && _sucursalRelevanteTransito(e.sucursal));
             if (!tieneTransitoPropio) return false;
         }
         if (marcaSeleccionadaActual.length > 0 && !marcaSeleccionadaActual.includes((item.Marca||"").trim())) return false;
@@ -2274,7 +2295,15 @@ function renderizarTarjetasProductos(lista) {
         // sucursal ya lo tiene cuando en realidad todavía viene en camino.
         const existenciasItem = item.Existencias||[];
         const totalStock    = existenciasItem.filter(e=>!e.enTransito).reduce((s,e)=>s+Number(e.cantidad||0),0);
-        const totalTransito  = existenciasItem.filter(e=>e.enTransito).reduce((s,e)=>s+Number(e.cantidad||0),0);
+        // OJO: el badge "en camino" solo debe contar lo que viene EN
+        // TRÁNSITO hacia el almacén del admin que está viendo el
+        // catálogo — no todo lo que esté en tránsito en cualquier
+        // sucursal de la zona. Antes sumaba TODO, lo que hacía parecer
+        // que había piezas por llegar cuando en realidad iban para
+        // otra sucursal que nada tiene que ver con la del admin.
+        const totalTransito  = existenciasItem
+            .filter(e => e.enTransito && (!esAdmin || _sucursalRelevanteTransito(e.sucursal)))
+            .reduce((s,e)=>s+Number(e.cantidad||0),0);
         const stockBadge = totalStock > 0
             ? `<span class="absolute top-3 left-3 bg-emerald-900/80 text-emerald-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10">${totalStock} pzas</span>`
             : `<span class="absolute top-3 left-3 bg-red-900/80 text-red-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10">Sin stock</span>`;
