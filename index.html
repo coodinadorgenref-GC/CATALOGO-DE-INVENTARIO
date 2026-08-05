@@ -2315,8 +2315,11 @@ function renderizarTarjetasProductos(lista) {
         const stockBadge = totalStock > 0
             ? `<span class="absolute top-3 left-3 bg-emerald-900/80 text-emerald-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10">${totalStock} pzas</span>`
             : `<span class="absolute top-3 left-3 bg-red-900/80 text-red-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10">Sin stock</span>`;
+        // CORREGIDO: antes compartía la misma esquina (top-3 right-3) que
+        // la etiqueta de marca y quedaban encimados. Ahora se posiciona
+        // en la esquina inferior derecha de la imagen, casi al borde.
         const transitoBadge = totalTransito > 0
-            ? `<span class="absolute top-3 right-3 bg-amber-900/80 text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10"><i class="fa-solid fa-truck-fast mr-1"></i>${totalTransito} en camino</span>`
+            ? `<span class="absolute bottom-2 right-2 bg-amber-900/90 text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10 shadow-lg"><i class="fa-solid fa-truck-fast mr-1"></i>${totalTransito} en camino</span>`
             : "";
         const liquidacionBadge = item.Liquidacion
             ? `<span class="absolute bottom-2 left-2 right-2 bg-red-600 text-white text-[9px] font-black px-2 py-1 rounded-md z-10 text-center uppercase tracking-wide flex items-center justify-center gap-1"><i class="fa-solid fa-flag"></i> Liquidación</span>`
