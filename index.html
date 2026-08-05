@@ -1357,23 +1357,31 @@ function esZonaValladolid() {
     return _normalizarAlmacenJS(almacenAdminActual).includes("ZONA VALLADOLID");
 }
 
-/** NUEVO — true si una sucursal dada pertenece al almacén asignado al
- *  admin logueado (mismo criterio que ya usa el catálogo para agrupar
- *  Vento/Carabela, Bajaj y Suzuki). "Zona Valladolid" ve todo. Se usa
- *  para el filtro "Por llegar a mi sucursal". */
+/** Sucursales de la zona Valladolid — espejo en el frontend de
+ *  MAPA_ZONAS.VALLADOLID en Código.gs. Usada solo para decidir qué
+ *  cuenta como "tránsito propio" del superadmin (Zona Valladolid), no
+ *  para nada de permisos de inventario (eso ya lo resuelve el backend). */
+const SUCURSALES_ZONA_VALLADOLID = [
+    "BAJAJ CANCUN", "BAJAJ TIZIMIN", "BAJAJ VALLADOLID",
+    "SUZUKI TIZIMIN", "SUZUKI VALLADOLID",
+    "TIZIMIN VENTO", "CARABELA V1", "VENTO PISTE"
+];
+
+/** NUEVO — true si una sucursal dada es la sucursal EXACTA asignada al
+ *  admin logueado en la Columna H de Usuarios_Autorizados (por ejemplo,
+ *  un admin con H="CARABELA V1" solo ve tránsito de "CARABELA V1", no
+ *  de "TIZIMIN VENTO" aunque compartan almacén para otros efectos como
+ *  cotizaciones — esa agrupación de MAPA_VISIBILIDAD_ALMACEN se queda
+ *  intacta y no se toca aquí). "Zona Valladolid" (superadmin) ve las
+ *  sucursales de su zona, no las de Mérida. Se usa para el filtro
+ *  "Por llegar a mi sucursal" y para los badges/etiquetas de tránsito. */
 function _adminVeAlmacenSucursal(nombreSucursal) {
-    if (esZonaValladolid()) return true;
+    if (esZonaValladolid()) {
+        const sucNorm = _normalizarAlmacenJS(nombreSucursal);
+        return SUCURSALES_ZONA_VALLADOLID.some(s => sucNorm === _normalizarAlmacenJS(s));
+    }
     if (!almacenAdminActual) return false;
-    const almacenAdminNorm = _normalizarAlmacenJS(almacenAdminActual);
-    const grupo         = detectarGrupoSucursal(nombreSucursal);
-    const almacenLogico = almacenLogicoDeGrupo(grupo); // BAJAJ / SUZUKI / VENTO_CARABELA / GENERAL
-    if (almacenLogico === "VENTO_CARABELA") {
-        return almacenAdminNorm.includes("CARABELA") || almacenAdminNorm.includes("VENTO");
-    }
-    if (almacenLogico === "GENERAL") {
-        return _normalizarAlmacenJS(nombreSucursal).includes(almacenAdminNorm);
-    }
-    return almacenAdminNorm.includes(almacenLogico);
+    return _normalizarAlmacenJS(nombreSucursal) === _normalizarAlmacenJS(almacenAdminActual);
 }
 
 /** NUEVO — Igual que _adminVeAlmacenSucursal, pero además respeta el
