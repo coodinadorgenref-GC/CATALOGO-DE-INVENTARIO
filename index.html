@@ -124,6 +124,14 @@
                 box-shadow: 6px 0 40px rgba(0,0,0,.6);
             }
             #sidebar-filtros.drawer-abierto { left: 0; }
+            /* NUEVO: la cabecera ("Filtros", Borrar todos, X) es lo primero
+               que toca el borde físico superior de la pantalla (position:fixed,
+               top:0) — en iPhones con notch/Dynamic Island se montaba debajo
+               de la barra de estado y quedaba fuera del alcance del usuario.
+               Se le suma el inset seguro de iOS encima del padding normal. */
+            #sidebar-filtros > .cabecera-filtros-movil {
+                padding-top: calc(env(safe-area-inset-top, 0px) + 1rem);
+            }
             /* La zona scrolleable dentro del aside */
             #sidebar-filtros .filtros-scroll-zona {
                 overflow-y: scroll;
@@ -132,6 +140,12 @@
                 flex: 1;
                 min-height: 0; /* crítico para que flex + overflow funcionen en iOS */
                 padding-bottom: env(safe-area-inset-bottom, 8px);
+            }
+            /* NUEVO: el botón "Ver resultados" toca el borde físico inferior
+               (bottom:0) — se le suma el inset seguro para no quedar detrás
+               del home indicator de iOS. */
+            #sidebar-filtros > .pie-filtros-movil {
+                padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
             }
         }
 
@@ -817,7 +831,7 @@
                       flex flex-col">
 
             <!-- ── Cabecera fija (no hace scroll) ── -->
-            <div class="flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-700 shrink-0">
+            <div class="cabecera-filtros-movil flex items-center justify-between px-4 pt-4 pb-3 border-b border-slate-700 shrink-0">
                 <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400">
                     <i class="fa-solid fa-sliders mr-2 text-emerald-500"></i> Filtros
                 </h3>
@@ -924,7 +938,7 @@
             </div><!-- /zona scrolleable -->
 
             <!-- ── Botón "Ver resultados" fijo abajo — solo móvil ── -->
-            <div class="lg:hidden px-4 py-3 border-t border-slate-700 shrink-0">
+            <div class="pie-filtros-movil lg:hidden px-4 py-3 border-t border-slate-700 shrink-0">
                 <button onclick="cerrarDrawerFiltros()"
                         class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm cursor-pointer transition flex items-center justify-center gap-2">
                     <i class="fa-solid fa-check"></i> Ver resultados
@@ -936,7 +950,7 @@
         <!-- CONTENIDO CATÁLOGO — aparece primero en móvil gracias a order -->
         <main id="contenido-catalogo" class="flex-1 flex flex-col gap-4 min-w-0">
             <div id="paginacion-superior" class="flex justify-center items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 overflow-x-auto gap-2"></div>
-            <div id="grid-productos" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-3 lg:gap-6"></div>
+            <div id="grid-productos" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-x-3 gap-y-5 lg:gap-6"></div>
             <div id="sin-resultados" class="hidden text-center py-16">
                 <div class="text-4xl text-slate-600 mb-3"><i class="fa-solid fa-box-open"></i></div>
                 <p class="text-base font-semibold text-slate-400">No encontramos refacciones con ese criterio.</p>
@@ -2345,8 +2359,8 @@ function renderizarTarjetasProductos(lista) {
         const totalStock    = existenciasItem.filter(e=>!e.enTransito).reduce((s,e)=>s+Number(e.cantidad||0),0);
         const totalTransito  = existenciasItem.filter(e=>e.enTransito).reduce((s,e)=>s+Number(e.cantidad||0),0);
         const stockBadge = totalStock > 0
-            ? `<span class="absolute top-3 left-3 bg-emerald-900/80 text-emerald-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10">${totalStock} pzas</span>`
-            : `<span class="absolute top-3 left-3 bg-red-900/80 text-red-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10">Sin stock</span>`;
+            ? `<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-emerald-900/80 text-emerald-300 text-[9px] font-black px-1.5 lg:px-2 py-0.5 rounded-md z-10">${totalStock} pzas</span>`
+            : `<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-red-900/80 text-red-300 text-[9px] font-black px-1.5 lg:px-2 py-0.5 rounded-md z-10">Sin stock</span>`;
         // Si también hay badge de Liquidación (franja inferior de ancho
         // completo), el badge de tránsito se recorre un poco hacia arriba
         // para no encimarse con ella.
@@ -2365,17 +2379,17 @@ function renderizarTarjetasProductos(lista) {
                         ${stockBadge}
                         ${transitoBadge}
                         ${liquidacionBadge}
-                        <span class="absolute top-3 right-3 bg-slate-950/80 text-emerald-400 text-[10px] font-black px-2 py-1 rounded-md tracking-wider uppercase z-10">${escaparHTML(item.Marca)||"GENÉRICO"}</span>
+                        <span class="absolute top-2 right-2 lg:top-3 lg:right-3 bg-slate-950/80 text-emerald-400 text-[9px] lg:text-[10px] font-black px-1.5 lg:px-2 py-0.5 lg:py-1 rounded-md tracking-wider uppercase z-10">${escaparHTML(item.Marca)||"GENÉRICO"}</span>
                     </div>
-                    <div class="p-4 flex flex-col gap-1">
-                        <span class="text-[11px] font-mono font-bold text-slate-400 tracking-wide">SKU: ${escaparHTML(item.SKU)||"---"}</span>
-                        <h3 class="text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition">${escaparHTML(item.Producto)||"Sin Nombre"}</h3>
+                    <div class="p-3 lg:p-4 flex flex-col gap-1">
+                        <span class="text-[10px] lg:text-[11px] font-mono font-bold text-slate-400 tracking-wide">SKU: ${escaparHTML(item.SKU)||"---"}</span>
+                        <h3 class="text-xs lg:text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition">${escaparHTML(item.Producto)||"Sin Nombre"}</h3>
                     </div>
                 </div>
                 ${!esAdmin && totalStock > 0 ? `
-                <div class="px-4 pb-4">
+                <div class="px-3 pb-3 lg:px-4 lg:pb-4">
                     <button onclick="event.stopPropagation(); agregarAlCarrito(${JSON.stringify(item).replace(/"/g,"&quot;")})"
-                            class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-2 transition cursor-pointer">
+                            class="w-full bg-emerald-700 hover:bg-emerald-600 text-white font-bold py-1.5 lg:py-2 rounded-xl text-[11px] lg:text-xs flex items-center justify-center gap-2 transition cursor-pointer">
                         <i class="fa-solid fa-cart-plus"></i> Agregar al carrito
                     </button>
                 </div>` : ""}
