@@ -949,6 +949,11 @@
 
         <!-- CONTENIDO CATÁLOGO — aparece primero en móvil gracias a order -->
         <main id="contenido-catalogo" class="flex-1 flex flex-col gap-4 min-w-0">
+            <!-- NUEVO: panel de compatibilidad cruzada con el índice de NP
+                 (coodinadorgenref-gc.github.io/NP). Se llena/oculta desde
+                 renderPanelCompatibilidadNP(), llamado dentro de filtrarProductos()
+                 cada vez que el texto buscado coincide con un código NP. -->
+            <div id="panel-compatibilidad-np" class="hidden bg-slate-800 border border-emerald-800/50 rounded-2xl p-4"></div>
             <div id="paginacion-superior" class="flex justify-center items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 overflow-x-auto gap-2"></div>
             <div id="grid-productos" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-x-3 gap-y-5 lg:gap-6"></div>
             <div id="sin-resultados" class="hidden text-center py-16">
@@ -1973,6 +1978,11 @@ function alternarVisibilidadPin() {
    INVENTARIO
 ══════════════════════════════════════════ */
 async function obtenerInventarioDesdeServidor() {
+    // NUEVO: precarga del índice de compatibilidad NP en segundo plano.
+    // No se espera (no bloquea el catálogo); para cuando el usuario
+    // teclee algo en el buscador, ya suele estar listo.
+    cargarIndiceNP();
+
     const cache = localStorage.getItem("inventario_cache");
     if (cache) {
         // Render from cache immediately — no setTimeout so iOS paints right away
@@ -2288,6 +2298,139 @@ function _compararSKU(a, b) {
     return String(a ?? "").localeCompare(String(b ?? ""), undefined, { numeric: true, sensitivity: "base" });
 }
 
+/* ══════════════════════════════════════════
+   COMPATIBILIDAD CRUZADA CON EL ÍNDICE NP
+   (coodinadorgenref-gc.github.io/NP) — mismo origen, sin CORS.
+   Se carga UNA vez en segundo plano (no bloquea el catálogo) y se
+   consulta en cada búsqueda: si el texto tecleado coincide con un
+   código NP, se muestra su compatibilidad (modelo/año) y se cruzan
+   los códigos contra Pr_Numero_Parte/NumerosParte de cada producto
+   para asomar los SKU que sí tenemos en existencia.
+══════════════════════════════════════════ */
+const NP_INDEX_URL = "https://coodinadorgenref-gc.github.io/NP/data/refacciones_index.json";
+let NP_INDEX = null;
+let npIndiceCargando = false;
+
+async function cargarIndiceNP() {
+    if (!esAdmin || NP_INDEX || npIndiceCargando) return;
+    npIndiceCargando = true;
+    try {
+        // force-cache: GitHub Pages sirve este archivo con cache de CDN;
+        // no hace falta re-descargar 28MB en cada visita de la sesión.
+        const resp = await fetch(NP_INDEX_URL, { cache: "force-cache" });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        NP_INDEX = await resp.json();
+    } catch (err) {
+        console.warn("No se pudo cargar el índice de compatibilidad NP:", err);
+        NP_INDEX = null;
+    } finally {
+        npIndiceCargando = false;
+    }
+}
+
+function normalizarCodigoNP(s) {
+    return (s || "").toString().toUpperCase().replace(/[\s\-]/g, "");
+}
+
+/** Divide un valor de Pr_Numero_Parte que puede traer uno o más códigos
+ *  separados por caracteres mixtos (":",";",",",".", espacio, etc.).
+ *  Espejo en JS del normalizador del backend — se usa como respaldo
+ *  mientras el backend no mande ya el arreglo NumerosParte. */
+function _dividirNumerosDeParteJS(valorCrudo) {
+    const texto = (valorCrudo || "").toString().trim();
+    if (!texto) return [];
+    return [...new Set(
+        texto.split(/[\s,;:.\/\\]+/).map(p => p.trim().toUpperCase()).filter(Boolean)
+    )];
+}
+
+/** Códigos NP asociados a un producto del inventario: usa el arreglo
+ *  NumerosParte si el backend ya lo manda; si no, cae en dividir
+ *  Pr_Numero_Parte al vuelo (solo cubre lo que el usuario tenga
+ *  permiso de ver, hasta que se actualice Código.gs). */
+function _codigosNPDeItem(item) {
+    if (Array.isArray(item.NumerosParte)) return item.NumerosParte;
+    return _dividirNumerosDeParteJS(item.Pr_Numero_Parte);
+}
+
+/** Busca el texto tecleado contra el índice NP. Exacta primero, si no
+ *  hay, parcial (acotada para no generar ruido con búsquedas de texto
+ *  normales que no son códigos). */
+function buscarCompatibilidadNP(textoLibre) {
+    if (!NP_INDEX) return null;
+    const q = normalizarCodigoNP(textoLibre);
+    if (!q || q.length < 4) return null; // evita falsos positivos con texto corto
+
+    let codigos = Object.keys(NP_INDEX).filter(c => normalizarCodigoNP(c) === q);
+    let modo = "exacta";
+    if (codigos.length === 0) {
+        codigos = Object.keys(NP_INDEX).filter(c => normalizarCodigoNP(c).includes(q));
+        modo = "parcial";
+        if (codigos.length === 0 || codigos.length > 12) return null;
+    }
+    return { modo, codigos };
+}
+
+/** SKU del inventario que tengan alguno de estos códigos NP asociados. */
+function _skusConCodigosNP(codigos) {
+    const set = new Set(codigos.map(normalizarCodigoNP));
+    return inventarioMaestro.filter(item =>
+        _codigosNPDeItem(item).some(c => set.has(normalizarCodigoNP(c)))
+    );
+}
+
+function ocultarPanelCompatibilidadNP() {
+    const panel = document.getElementById("panel-compatibilidad-np");
+    if (panel) { panel.classList.add("hidden"); panel.innerHTML = ""; }
+}
+
+/** Pinta el panel de compatibilidad arriba de la grilla y regresa la
+ *  lista de SKU en existencia que hacen match (para que filtrarProductos
+ *  los pueda anteponer a los resultados normales de texto). */
+function renderPanelCompatibilidadNP(resultadoNP) {
+    const panel = document.getElementById("panel-compatibilidad-np");
+    if (!panel || !resultadoNP) { ocultarPanelCompatibilidadNP(); return []; }
+
+    const { codigos } = resultadoNP;
+    const skusMatch = _skusConCodigosNP(codigos);
+
+    const bloques = codigos.map(codigo => {
+        const entry = NP_INDEX[codigo];
+        if (!entry) return "";
+        const aplicacionesActivas = (entry.aplicaciones || []).filter(a => a.activo !== false);
+        const modelos = [...new Map(aplicacionesActivas.map(a => [a.modelo + "|" + a.anio, a])).values()]
+            .sort((a, b) => a.modelo.localeCompare(b.modelo) || a.anio.localeCompare(b.anio));
+
+        const chipsModelos = modelos.map(m =>
+            `<span class="inline-block bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-slate-300 mr-1 mb-1">${escaparHTML(m.modelo)} ${escaparHTML(m.anio)}</span>`
+        ).join("");
+
+        return `
+        <div class="mb-3 last:mb-0">
+            <div class="flex items-center gap-2 flex-wrap mb-1.5">
+                <span class="font-mono font-bold text-emerald-400 text-sm">${escaparHTML(codigo)}</span>
+                <span class="text-slate-300 text-xs">${escaparHTML(entry.descripcion || "")}</span>
+            </div>
+            <div class="flex flex-wrap">${chipsModelos || '<span class="text-[11px] text-slate-500 italic">Sin modelos vigentes</span>'}</div>
+        </div>`;
+    }).join("");
+
+    panel.innerHTML = `
+        <div class="flex items-center gap-2 mb-2">
+            <i class="fa-solid fa-shuffle text-emerald-400"></i>
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wide">Compatibilidad (índice NP)</span>
+        </div>
+        ${bloques}
+        <div class="mt-2 pt-2 border-t border-slate-700/50 text-[11px] ${skusMatch.length ? "text-emerald-400" : "text-slate-500"}">
+            ${skusMatch.length
+                ? `<i class="fa-solid fa-circle-check mr-1"></i>${skusMatch.length} producto${skusMatch.length!==1?"s":""} en catálogo con este número de parte`
+                : `<i class="fa-solid fa-circle-info mr-1"></i>Compatibilidad encontrada, pero sin SKU asociado en el inventario todavía`}
+        </div>`;
+    panel.classList.remove("hidden");
+
+    return skusMatch;
+}
+
 function filtrarProductos() {
     actualizarTimestampSesion();
     if (modoBusquedaFotoActivo || chipFotoBuscadorActivo) {
@@ -2295,8 +2438,20 @@ function filtrarProductos() {
     }
     const orden    = document.getElementById("orden-alfabetico").value;
     const agencia  = (document.getElementById("filtro-agencia")||{}).value || "";
-    const query    = normalizarTexto(document.getElementById("buscador").value);
+    const textoBuscado = document.getElementById("buscador").value;
+    const query    = normalizarTexto(textoBuscado);
     const palabras = query.split(" ").filter(p => p.length > 0);
+
+    // NUEVO: cruce con el índice de compatibilidad NP — SOLO ADMIN.
+    // Si el texto tecleado coincide con un código NP, se muestra el
+    // panel y se guardan los SKU coincidentes para anteponerlos.
+    let skusPorCompatibilidadNP = [];
+    if (esAdmin && !modoBusquedaFotoActivo && !chipFotoBuscadorActivo && textoBuscado.trim()) {
+        const resultadoNP = buscarCompatibilidadNP(textoBuscado);
+        skusPorCompatibilidadNP = renderPanelCompatibilidadNP(resultadoNP);
+    } else {
+        ocultarPanelCompatibilidadNP();
+    }
 
 let filtrados = inventarioMaestro.filter(item => {
         if (filtroLiquidacionActivo && !item.Liquidacion) return false;
@@ -2326,6 +2481,14 @@ let filtrados = inventarioMaestro.filter(item => {
             ? (a.Producto||"").localeCompare(b.Producto||"")
             : (b.Producto||"").localeCompare(a.Producto||"");
     });
+
+    // NUEVO: los SKU que matchean por compatibilidad NP se anteponen,
+    // aunque el texto buscado no coincida con su SKU/Producto/Compatibilidad.
+    if (skusPorCompatibilidadNP.length) {
+        const skusYaEnLista = new Set(filtrados.map(i => i.SKU));
+        const extra = skusPorCompatibilidadNP.filter(i => !skusYaEnLista.has(i.SKU));
+        filtrados = [...extra, ...filtrados];
+    }
 
     setTimeout(() => renderizarTarjetasProductos(filtrados), 0);
 }
