@@ -4295,7 +4295,100 @@ async function guardarDatosEstator(sku) {
         btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Estator';
     }
 }
+btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Estator';
+    }
+}
 
+/* ══════════════════════════════════════════
+   POSICIÓN DE BALATAS/ZAPATAS (SUB_FAMILIA contiene "BALATA" o "ZAPATA")
+   Visible para todos, editable solo por admin — mismo patrón que
+   Estator, pero con un solo campo (Delanteras / Traseras / Del/Tras).
+══════════════════════════════════════════ */
+
+/** Cuadro de solo-lectura. Acepta tanto el objeto del servidor
+ *  (PosicionBalata) como el objeto plano recién guardado (posicion). */
+function _generarHtmlPosicionBalata(d) {
+    d = d || {};
+    const valor = d.posicion ?? d.PosicionBalata;
+    return `
+        <div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
+            <div class="flex justify-between items-center py-1.5">
+                <span class="text-emerald-400 font-bold text-[11px] uppercase tracking-wide">• Posición</span>
+                <span class="text-slate-200 font-mono text-xs">${valor ? escaparHTML(String(valor)) : "Sin capturar"}</span>
+            </div>
+        </div>`;
+}
+
+/** Cambia el cuadro de solo-lectura por un select editable — solo se
+ *  llama desde el botón "Editar Posición" (admin). */
+function habilitarEdicionPosicionBalata(sku) {
+    const item = (inventarioMaestro || []).find(p => String(p.SKU) === String(sku)) || {};
+
+    document.getElementById("contenedor-balata").innerHTML = `
+        <div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Posición</label>
+            <select id="edit-balata-posicion" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
+                <option value="">— Selecciona —</option>
+                <option value="Delanteras">Delanteras</option>
+                <option value="Traseras">Traseras</option>
+                <option value="Del/Tras">Del/Tras</option>
+            </select>
+        </div>`;
+
+    document.getElementById("edit-balata-posicion").value = item.PosicionBalata || "";
+
+    const btn = document.getElementById("btn-edicion-balata");
+    btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Posición';
+    btn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer mt-3";
+    btn.onclick = () => guardarPosicionBalata(sku);
+}
+
+/** Guarda el campo. Un solo valor corto, así que se espera la
+ *  respuesta del servidor antes de volver a modo lectura (igual que
+ *  Estator). */
+async function guardarPosicionBalata(sku) {
+    const posicion = document.getElementById("edit-balata-posicion").value;
+    const btn = document.getElementById("btn-edicion-balata");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Guardando...';
+
+    try {
+        const r = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({ action: "actualizarPosicionBalata", token: tokenActual, correo: usuarioActual, sku, posicion }) });
+        const rs = await r.json();
+
+        if (!rs.success) {
+            mostrarToastInfo(rs.message || "No se pudo guardar.");
+            btn.disabled = false;
+            btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Posición';
+            return;
+        }
+
+        const itemCache = (inventarioMaestro || []).find(p => String(p.SKU) === String(sku));
+        if (itemCache) {
+            itemCache.PosicionBalata = posicion;
+            try { localStorage.setItem("inventario_cache", JSON.stringify(inventarioMaestro)); } catch {}
+        }
+
+        mostrarToastInfo("Posición guardada.");
+
+        if (String(galeriaSkuActual) === String(sku)) {
+            document.getElementById("contenedor-balata").innerHTML = _generarHtmlPosicionBalata({ posicion });
+        }
+        const btnFinal = document.getElementById("btn-edicion-balata");
+        if (btnFinal) {
+            btnFinal.innerHTML = '<i class="fa-solid fa-arrows-up-down mr-2"></i> Editar Posición';
+            btnFinal.className = "w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer mt-3";
+            btnFinal.disabled = false;
+            btnFinal.onclick = () => habilitarEdicionPosicionBalata(sku);
+        }
+        filtrarProductos();
+    } catch (err) {
+        mostrarToastInfo("Error de conexión al guardar.");
+        btn.disabled = false;
+        btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Posición';
+    }
+}
 // ══════════════════════════════════════════
 //  Cola en segundo plano para guardar compatibilidad — mismo modelo
 //  que la cola de fotos: al dar "Guardar Cambios" se ENCOLA y el modal
