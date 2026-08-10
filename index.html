@@ -2468,7 +2468,7 @@ let filtrados = inventarioMaestro.filter(item => {
         if (agencia) { const exs = item.Existencias||[]; if (!exs.some(e => e.sucursal === agencia)) return false; }
         const marcaEsBajaj = (item.Marca || "").toUpperCase().trim() === "BAJAJ";
         const puedeVerNumParte = esAdmin || (accesoNumeroParteBajaj && marcaEsBajaj);
-        const texto = normalizarTexto(`${item.SKU} ${item.Producto} ${item.Marca} ${item.Compatibilidad} ${puedeVerNumParte ? item.Pr_Numero_Parte : ""} ${item.EstatorFase||""} ${item.EstatorBobinas||""} ${item.EstatorConductores||""} ${item.EstatorLongitudCable||""}`);
+        const texto = normalizarTexto(`${item.SKU} ${item.Producto} ${item.Marca} ${item.Compatibilidad} ${puedeVerNumParte ? item.Pr_Numero_Parte : ""} ${item.EstatorFase||""} ${item.EstatorBobinas||""} ${item.EstatorConductores||""} ${item.EstatorLongitudCable||""} ${item.PosicionBalata||""}`);
         return palabras.every(p => texto.includes(p));
     });
 
@@ -4069,6 +4069,23 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
         </div>`;
     }
 
+    // NUEVO — Posición de BALATAS/ZAPATAS: solo se muestra si la
+    // SUB_FAMILIA del producto contiene "BALATA" o "ZAPATA". Mismo
+    // criterio de edición que Estator (visible para todos, editable
+    // solo por admin).
+    const familiaUpper = (item.Familia || "").toUpperCase();
+    const esBalata = familiaUpper.indexOf("BALATA") !== -1 || familiaUpper.indexOf("ZAPATA") !== -1;
+    let htmlBalata = "";
+    if (esBalata) {
+        htmlBalata = `
+        <div class="mb-4">
+            <p class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">
+                <i class="fa-solid fa-arrows-up-down mr-1.5"></i> Posición:
+            </p>
+            <div id="contenedor-balata">${_generarHtmlPosicionBalata(item)}</div>
+        </div>`;
+    }
+
     // Botón admin
     let htmlBtnAdmin = "";
     if (esAdmin) {
@@ -4087,6 +4104,11 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
         <button id="btn-edicion-estator" onclick='habilitarEdicionEstator("${sku}")'
                 class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer mt-3">
             <i class="fa-solid fa-bolt mr-2"></i> Editar Estator
+        </button>` : ""}
+        ${esBalata ? `
+        <button id="btn-edicion-balata" onclick='habilitarEdicionPosicionBalata("${sku}")'
+                class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer mt-3">
+            <i class="fa-solid fa-arrows-up-down mr-2"></i> Editar Posición
         </button>` : ""}`;
     }
 
@@ -4108,6 +4130,7 @@ const bannerLiquidacion = item.Liquidacion
             ${htmlAdmin}
         </div>
         ${htmlEstator}
+        ${htmlBalata}
         ${htmlExistencias}
         <div class="space-y-3">
             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
