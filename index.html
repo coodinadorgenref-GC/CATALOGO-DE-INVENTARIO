@@ -1594,6 +1594,7 @@ function obtenerListaImagenes(item) {
 let galeriaActual       = [];   // URLs crudas de la foto actual del producto abierto
 let galeriaIndiceActual = 0;
 let galeriaSkuActual    = "";
+let galeriaModoEdicion  = false; // NUEVO: los controles de editar (Portada/eliminar/reordenar) solo se muestran en este modo, nunca durante la navegación normal
 
 function renderizarGaleria() {
   const cont = document.getElementById("galeria-contenedor");
@@ -1625,14 +1626,19 @@ function renderizarGaleria() {
       ${flechas}`;
 
   if (!minis) return;
+  // Filtra entradas vacías/placeholder ("Imagen no disponible" cuando el
+  // producto no tiene ninguna foto real todavía) -- esas NO son fotos
+  // subidas, así que nunca deben mostrar el botón de eliminar ni ninguna
+  // opción de edición sobre ellas.
+  const galeriaReal = galeriaActual.filter(u => !!u);
   // ANTES: esta tira (con el botón de eliminar y las flechas de
   // reordenar) solo se dibujaba si había MÁS DE 1 foto -- así que un
   // producto con exactamente 1 foto no tenía forma de eliminarla ni de
   // ver ninguna opción de edición sobre ella. Ahora se dibuja con 1 sola
-  // foto también (las flechas de mover simplemente quedan deshabilitadas,
-  // ya que no hay a dónde moverla).
-  if (esAdmin ? galeriaActual.length >= 1 : galeriaActual.length > 1) {
-    minis.innerHTML = galeriaActual.map((urlCruda, i) => `
+  // foto REAL también (las flechas de mover simplemente quedan
+  // deshabilitadas, ya que no hay a dónde moverla).
+  if (esAdmin ? galeriaReal.length >= 1 : galeriaReal.length > 1) {
+    minis.innerHTML = galeriaReal.map((urlCruda, i) => `
         <div class="relative shrink-0 flex flex-col items-center gap-1">
             <div class="relative">
                 <img src="${optimizarEnlaceImagen(urlCruda)}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
@@ -1652,7 +1658,7 @@ function renderizarGaleria() {
                         class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[9px] flex items-center justify-center cursor-pointer">
                     <i class="fa-solid fa-chevron-left"></i>
                 </button>
-                <button onclick="event.stopPropagation(); moverFotoGaleria(${i}, 1)" ${i===galeriaActual.length-1?"disabled":""}
+                <button onclick="event.stopPropagation(); moverFotoGaleria(${i}, 1)" ${i===galeriaReal.length-1?"disabled":""}
                         class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[9px] flex items-center justify-center cursor-pointer">
                     <i class="fa-solid fa-chevron-right"></i>
                 </button>
