@@ -935,6 +935,18 @@
                     </label>
                 </div>
 
+                <!-- NUEVO: Sin imagen — SOLO ADMIN, para curar el catálogo.
+                     Oculto por default; se muestra vía JS en
+                     _continuarDespuesDeAnimacionCarga() solo si esAdmin. -->
+                <div id="filtro-sin-imagen-wrapper" class="hidden">
+                    <label class="flex items-center gap-2 p-2 bg-sky-950/30 border border-sky-900/50 rounded-xl cursor-pointer hover:bg-sky-950/50 transition">
+                        <input type="checkbox" id="filtro-sin-imagen" onchange="toggleFiltroSinImagen(this)">
+                        <span class="text-xs font-bold text-sky-400 uppercase tracking-wide flex items-center gap-1.5">
+                            <i class="fa-solid fa-image-slash"></i> Sin imagen
+                        </span>
+                    </label>
+                </div>
+
             </div><!-- /zona scrolleable -->
 
             <!-- ── Botón "Ver resultados" fijo abajo — solo móvil ── -->
@@ -1451,6 +1463,7 @@ function _adminVeAlmacenSucursal(nombreSucursal) {
 let familiaSeleccionadaActual = [];
 let filtroLiquidacionActivo = false;    
 let filtroTransitoActivo    = false; // NUEVO: "Por llegar a mi sucursal" (solo admin)
+let filtroSinImagenActivo   = false; // NUEVO: "Sin imagen" (solo admin)
 let marcaSeleccionadaActual   = [];
 let paginaActual              = 1;
 const tarjetasPorPagina       = 9;
@@ -1557,16 +1570,28 @@ function gestionarFalloImagenDrive(img) {
 /** NUEVO — arma la lista de fotos de un producto para la galería.
  *  Compatible con: productos con varias fotos (item.Imagenes), con solo
  *  una foto vieja (item.Imagen), o sin ninguna. */
+/** Devuelve las URLs CRUDAS (sin pasar por optimizarEnlaceImagen) de las
+ *  fotos de un producto -- ver nota en la declaración de galeriaActual
+ *  sobre por qué esto es importante para eliminar/reordenar fotos. */
 function obtenerListaImagenes(item) {
     let lista = Array.isArray(item.Imagenes) ? item.Imagenes.filter(u => !!u) : [];
     if (lista.length === 0 && item.Imagen) lista = [item.Imagen];
-    return lista.map(optimizarEnlaceImagen);
+    return lista;
 }
 
 /* ══════════════════════════════════════════
    GALERÍA DE FOTOS (modal de detalle)
    ══════════════════════════════════════════ */
-let galeriaActual       = [];   // URLs ya optimizadas de la foto actual del producto abierto
+// IMPORTANTE: galeriaActual guarda las URLs CRUDAS (tal cual las
+// devuelve el backend / están guardadas en la hoja "Inventario"), NUNCA
+// pasadas por optimizarEnlaceImagen(). Esa función normaliza URLs viejas
+// a un formato distinto, y si el arreglo guardado aquí quedaba ya
+// "optimizado", al mandarlo de vuelta al backend (reordenar/eliminar)
+// dejaba de coincidir con lo que hay en la hoja -> "El orden enviado no
+// coincide con las fotos actuales del producto". optimizarEnlaceImagen()
+// se aplica SOLO al armar el <img src="..."> en el momento de dibujar,
+// nunca se guarda su resultado en esta variable.
+let galeriaActual       = [];   // URLs crudas de la foto actual del producto abierto
 let galeriaIndiceActual = 0;
 let galeriaSkuActual    = "";
 
@@ -1575,7 +1600,7 @@ function renderizarGaleria() {
   const minis = document.getElementById("galeria-miniaturas");
   if (!cont) return;
   if (galeriaIndiceActual >= galeriaActual.length) galeriaIndiceActual = 0;
-  const urlActual = galeriaActual[galeriaIndiceActual] || optimizarEnlaceImagen("");
+  const urlActual = optimizarEnlaceImagen(galeriaActual[galeriaIndiceActual] || "");
 
   const flechas = galeriaActual.length > 1 ? `
       <button onclick="event.stopPropagation(); moverGaleria(-1)"
@@ -1600,15 +1625,21 @@ function renderizarGaleria() {
       ${flechas}`;
 
   if (!minis) return;
-  if (galeriaActual.length > 1) {
-    minis.innerHTML = galeriaActual.map((url, i) => `
+  // ANTES: esta tira (con el botón de eliminar y las flechas de
+  // reordenar) solo se dibujaba si había MÁS DE 1 foto -- así que un
+  // producto con exactamente 1 foto no tenía forma de eliminarla ni de
+  // ver ninguna opción de edición sobre ella. Ahora se dibuja con 1 sola
+  // foto también (las flechas de mover simplemente quedan deshabilitadas,
+  // ya que no hay a dónde moverla).
+  if (esAdmin ? galeriaActual.length >= 1 : galeriaActual.length > 1) {
+    minis.innerHTML = galeriaActual.map((urlCruda, i) => `
         <div class="relative shrink-0 flex flex-col items-center gap-1">
             <div class="relative">
-                <img src="${url}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
+                <img src="${optimizarEnlaceImagen(urlCruda)}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
                      onclick="irAGaleria(${i})"
                      class="w-14 h-14 object-cover rounded-lg cursor-pointer border-2 ${i===galeriaIndiceActual?'border-emerald-500':'border-slate-700'}">
                 ${esAdmin ? `
-                <button onclick="event.stopPropagation(); eliminarFotoGaleria('${url}')"
+                <button onclick="event.stopPropagation(); eliminarFotoGaleria('${urlCruda}')"
                         title="Eliminar esta foto"
                         class="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] cursor-pointer">
                     <i class="fa-solid fa-xmark"></i>
@@ -1652,16 +1683,20 @@ function eliminarFotoGaleria(url) {
     .then(r => r.json())
     .then(rs => {
         if (!rs.success) { alert("No se pudo eliminar la foto: " + (rs.message||"Error.")); return; }
-        galeriaActual = (rs.imagenes || []).map(optimizarEnlaceImagen);
-        if (galeriaActual.length === 0) galeriaActual = [optimizarEnlaceImagen("")];
+        galeriaActual = rs.fotos || [];
+        if (galeriaActual.length === 0) galeriaActual = [""];
         if (galeriaIndiceActual >= galeriaActual.length) galeriaIndiceActual = 0;
         renderizarGaleria();
         // Refleja el cambio también en la copia en memoria del catálogo,
         // para que la tarjeta de la cuadrícula no muestre la foto borrada.
         const itemCache = (inventarioMaestro||[]).find(p => p.SKU === galeriaSkuActual);
         if (itemCache) {
-            itemCache.Imagenes = rs.imagenes || [];
-            itemCache.Imagen = (rs.imagenes && rs.imagenes[0]) || "";
+            // OJO: el backend regresa el arreglo en "fotos", no "imagenes"
+            // -- con el nombre viejo esto siempre quedaba vacío y la
+            // galería se veía "vacía" tras cualquier borrado exitoso,
+            // hasta que se recargaba el producto desde cero.
+            itemCache.Imagenes = rs.fotos || [];
+            itemCache.Imagen = (rs.fotos && rs.fotos[0]) || "";
         }
         forzarSincronizacionDatos();
     })
@@ -2084,6 +2119,10 @@ function _continuarDespuesDeAnimacionCarga() {
         const wrapperTransito = document.getElementById("filtro-transito-wrapper");
         if (wrapperTransito) wrapperTransito.classList.toggle("hidden", !esAdmin);
 
+        // NUEVO: filtro "Sin imagen" — solo admin.
+        const wrapperSinImagen = document.getElementById("filtro-sin-imagen-wrapper");
+        if (wrapperSinImagen) wrapperSinImagen.classList.toggle("hidden", !esAdmin);
+
         if (esAdmin) { cargarCotizacionesAdmin(); iniciarPollingAdminCotizaciones(); }
         else iniciarReconciliacionCarrito();
     }
@@ -2201,6 +2240,17 @@ function toggleFiltroTransito(cb) {
     filtrarProductos();
     actualizarChipsFiltros();
 }
+function toggleFiltroSinImagen(cb) {
+    filtroSinImagenActivo = cb.checked;
+    filtrarProductos();
+    actualizarChipsFiltros();
+}
+/** Un producto se considera "sin imagen" si no tiene ninguna foto real
+ *  (arreglo Imagenes vacío / solo vacíos, y tampoco un Imagen suelto). */
+function _productoSinImagen(item) {
+    const tieneEnArreglo = Array.isArray(item.Imagenes) && item.Imagenes.some(u => !!u);
+    return !tieneEnArreglo && !item.Imagen;
+}
 
 function limpiarSeleccionFamilias() { familiaSeleccionadaActual=[]; limpiarBuscadorFamilia(); renderizarFiltrosFamilia(); filtrarProductos(); }
 function limpiarSeleccionMarcas()   { marcaSeleccionadaActual=[]; limpiarBuscadorMarca(); renderizarFiltrosMarcas(); filtrarProductos(); }
@@ -2255,6 +2305,10 @@ function limpiarPanelFiltros() {
     filtroTransitoActivo = false;
     const cbTransito = document.getElementById("filtro-transito");
     if (cbTransito) cbTransito.checked = false;
+
+    filtroSinImagenActivo = false;
+    const cbSinImagen = document.getElementById("filtro-sin-imagen");
+    if (cbSinImagen) cbSinImagen.checked = false;
 
     paginaActual = 1;
     filtrarProductos();
@@ -2463,6 +2517,7 @@ let filtrados = inventarioMaestro.filter(item => {
             const tieneTransitoPropio = exsTransito.some(e => e.enTransito && _adminVeAlmacenSucursal(e.sucursal));
             if (!tieneTransitoPropio) return false;
         }
+        if (filtroSinImagenActivo && !_productoSinImagen(item)) return false;
         if (marcaSeleccionadaActual.length > 0 && !marcaSeleccionadaActual.includes((item.Marca||"").trim())) return false;
         if (familiaSeleccionadaActual.length > 0 && !familiaSeleccionadaActual.includes((item.Familia||"Sin Familia").trim())) return false;
         if (agencia) { const exs = item.Existencias||[]; if (!exs.some(e => e.sucursal === agencia)) return false; }
@@ -3309,6 +3364,7 @@ function actualizarChipsFiltros() {
     }
     if (filtroLiquidacionActivo) chips.push({ label: "Solo liquidación", tipo: "liquidacion", valor: "1" });
     if (filtroTransitoActivo) chips.push({ label: "Por llegar a mi sucursal", tipo: "transito", valor: "1" });
+    if (filtroSinImagenActivo) chips.push({ label: "Sin imagen", tipo: "sinImagen", valor: "1" });
 
     // Chips cortos, en la barra móvil (solo familia/marca/agencia, como antes)
     if (contenedor) {
@@ -3355,6 +3411,7 @@ function eliminarChip(tipo, valor) {
     if (tipo === "orden")       { const sel = document.getElementById("orden-alfabetico"); if(sel) sel.value="AZ"; }
     if (tipo === "liquidacion") { filtroLiquidacionActivo = false; const cb = document.getElementById("filtro-liquidacion"); if (cb) cb.checked = false; }
     if (tipo === "transito")    { filtroTransitoActivo = false; const cb = document.getElementById("filtro-transito"); if (cb) cb.checked = false; }
+    if (tipo === "sinImagen")   { filtroSinImagenActivo = false; const cb = document.getElementById("filtro-sin-imagen"); if (cb) cb.checked = false; }
     paginaActual = 1;
     filtrarProductos();
 }
@@ -3983,10 +4040,10 @@ function abrirDetalleProducto(item) {
     const sku             = item.SKU || "---";
     const titulo          = item.Producto || "Sin Nombre";
     const marca           = item.Marca || "GENÉRICO";
-    const urlImg          = optimizarEnlaceImagen(item.Imagen||"");
+    const urlImg          = optimizarEnlaceImagen(item.Imagen||""); // usado abajo para el carrito, no para la galería
     galeriaSkuActual      = sku;
     galeriaActual         = obtenerListaImagenes(item);
-    if (galeriaActual.length === 0) galeriaActual = [urlImg];
+    if (galeriaActual.length === 0) galeriaActual = [item.Imagen || ""];
     galeriaIndiceActual   = 0;
     const tituloSeguro    = JSON.stringify(titulo);
     const compatSegura    = JSON.stringify(item.Compatibilidad||"");
@@ -5311,8 +5368,13 @@ async function procesarColaSubidaFotos() {
     let exitosas = 0, fallidas = 0;
 
     while (colaSubidaFotos.length > 0) {
-        actualizarBadgeSubiendoFotos();
+        // OJO: el shift() va ANTES de actualizar el badge. Si se
+        // actualizaba antes, la foto a punto de subirse se contaba dos
+        // veces: una por seguir en colaSubidaFotos.length y otra por la
+        // bandera subidaFotosEnCurso (que ya indicaba "1 en curso") —
+        // por eso 1 sola foto en cola mostraba "(2 restantes)".
         const item = colaSubidaFotos.shift();
+        actualizarBadgeSubiendoFotos();
         const resultado = await _subirUnaFoto(item.dataUrl, item.sku);
         if (resultado.ok) exitosas++;
         else {
@@ -5370,12 +5432,20 @@ function _subirUnaFoto(dataUrl, sku) {
         if (rs && rs.success) {
             const itemCache = (inventarioMaestro||[]).find(p => String(p.SKU) === String(sku));
             if (itemCache) {
-                itemCache.Imagenes = rs.imagenes || (itemCache.Imagenes||[]).concat([rs.url]);
+                // El backend regresa el arreglo completo en "fotos" (igual
+                // que eliminarFotoProducto/reordenarFotosProducto) -- antes
+                // se buscaba "imagenes" (que no existe) y caía siempre al
+                // respaldo manual, que por casualidad daba el mismo
+                // resultado, pero es más frágil. Se deja explícito.
+                itemCache.Imagenes = rs.fotos || (itemCache.Imagenes||[]).concat([rs.url]);
                 itemCache.Imagen   = itemCache.Imagenes[0] || "";
                 try { localStorage.setItem("inventario_cache", JSON.stringify(inventarioMaestro)); } catch {}
             }
             if (String(galeriaSkuActual) === String(sku)) {
-                galeriaActual = (itemCache ? itemCache.Imagenes : (rs.imagenes||[])).map(optimizarEnlaceImagen);
+                // galeriaActual guarda URLs CRUDAS (ver nota junto a su
+                // declaración) -- optimizarEnlaceImagen() se aplica solo al
+                // dibujar, nunca aquí.
+                galeriaActual = itemCache ? itemCache.Imagenes : (rs.fotos||[]);
                 galeriaIndiceActual = galeriaActual.length - 1;
                 renderizarGaleria();
             }
