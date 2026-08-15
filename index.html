@@ -1464,6 +1464,45 @@ let familiaSeleccionadaActual = [];
 let filtroLiquidacionActivo = false;    
 let filtroTransitoActivo    = false; // NUEVO: "Por llegar a mi sucursal" (solo admin)
 let filtroSinImagenActivo   = false; // NUEVO: "Sin imagen" (solo admin)
+
+// ════════════════════════════════════════════════════════════
+//  NUEVO — LIQUIDACIÓN POR SUCURSAL
+//  La columna F de "Inventario" (item.Liquidacion) ahora puede traer,
+//  además de vacío, el NOMBRE de una de las 11 sucursales -- en ese
+//  caso la liquidación aplica SOLO ahí. Cualquier otro valor no vacío
+//  (p. ej. "TODOS", o el valor tipo casilla que ya se usaba antes:
+//  "SI", "X", etc.) sigue aplicando a TODAS las sucursales donde haya
+//  existencia, para no romper lo que ya estaba capturado.
+// ════════════════════════════════════════════════════════════
+const SUCURSALES_CONOCIDAS_LIQUIDACION = [
+    "CAUCEL VENTO","UMAN VENTO","TICUL",
+    "BAJAJ CANCUN","BAJAJ TIZIMIN","BAJAJ VALLADOLID",
+    "SUZUKI TIZIMIN","SUZUKI VALLADOLID",
+    "TIZIMIN VENTO","CARABELA V1","VENTO PISTE"
+];
+function _normalizarTextoLiquidacion(v) {
+    return String(v || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+}
+function _liquidacionEsSucursalEspecifica(valorNormalizado) {
+    return SUCURSALES_CONOCIDAS_LIQUIDACION.some(s => valorNormalizado === s);
+}
+/** ¿La liquidación de este producto aplica a ESTA sucursal puntual? */
+function _liquidacionAplicaSucursal(item, sucursal) {
+    const raw = _normalizarTextoLiquidacion(item.Liquidacion);
+    if (!raw) return false;
+    if (!_liquidacionEsSucursalEspecifica(raw)) return true; // TODOS / valor viejo tipo checkbox
+    return _normalizarTextoLiquidacion(sucursal) === raw;
+}
+/** ¿Este producto está en liquidación de forma visible para el cliente
+ *  actual? Si la columna F trae una sucursal específica, solo cuenta si
+ *  esa sucursal aparece entre las existencias visibles del producto
+ *  (que ya vienen filtradas por zona desde el backend). Si trae
+ *  cualquier otro valor no vacío, aplica a todas. */
+function _itemTieneLiquidacionVisible(item) {
+    const exs = item.Existencias || [];
+    return exs.some(e => _liquidacionAplicaSucursal(item, e.sucursal));
+}
+
 let marcaSeleccionadaActual   = [];
 let paginaActual              = 1;
 const tarjetasPorPagina       = 9;
@@ -1654,8 +1693,12 @@ function renderizarGaleria() {
 
   // Fuera de modo edición: tira de navegación simple, sin Portada, sin
   // eliminar, sin flechas de reordenar -- solo para saltar entre fotos.
+  // Las miniaturas pequeñas solo se generan para admin: los clientes ya
+  // tienen las flechas y los puntos sobre la imagen grande para navegar,
+  // así se evita generarles miniaturas de más (menos peticiones de
+  // imagen, especialmente en catálogos con varias fotos por producto).
   if (!modoEdicion) {
-    minis.innerHTML = galeriaReal.length > 1 ? galeriaReal.map((urlCruda, i) => `
+    minis.innerHTML = (esAdmin && galeriaReal.length > 1) ? galeriaReal.map((urlCruda, i) => `
         <img src="${optimizarEnlaceImagen(urlCruda)}" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
              onclick="irAGaleria(${i})"
              class="w-14 h-14 shrink-0 object-cover rounded-lg cursor-pointer border-2 ${i===galeriaIndiceActual?'border-emerald-500':'border-slate-700'}">
@@ -2552,7 +2595,7 @@ function filtrarProductos() {
     }
 
 let filtrados = inventarioMaestro.filter(item => {
-        if (filtroLiquidacionActivo && !item.Liquidacion) return false;
+        if (filtroLiquidacionActivo && !_itemTieneLiquidacionVisible(item)) return false;
         // NUEVO: "Por llegar a mi sucursal" — solo admin. Deja pasar el
         // producto solo si tiene AL MENOS una existencia en tránsito que
         // pertenezca al almacén asignado al admin logueado.
@@ -2626,10 +2669,11 @@ function renderizarTarjetasProductos(lista) {
         // Si también hay badge de Liquidación (franja inferior de ancho
         // completo), el badge de tránsito se recorre un poco hacia arriba
         // para no encimarse con ella.
+        const enLiquidacionVisible = _itemTieneLiquidacionVisible(item);
         const transitoBadge = totalTransito > 0
-            ? `<span class="absolute ${item.Liquidacion ? "bottom-9" : "bottom-2"} right-2 bg-amber-900/80 text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10 whitespace-nowrap"><i class="fa-solid fa-truck-fast mr-1"></i>${totalTransito} en camino</span>`
+            ? `<span class="absolute ${enLiquidacionVisible ? "bottom-9" : "bottom-2"} right-2 bg-amber-900/80 text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-md z-10 whitespace-nowrap"><i class="fa-solid fa-truck-fast mr-1"></i>${totalTransito} en camino</span>`
             : "";
-        const liquidacionBadge = item.Liquidacion
+        const liquidacionBadge = enLiquidacionVisible
             ? `<span class="absolute bottom-2 left-2 right-2 bg-red-600 text-white text-[9px] font-black px-2 py-1 rounded-md z-10 text-center uppercase tracking-wide flex items-center justify-center gap-1"><i class="fa-solid fa-flag"></i> Liquidación</span>`
             : "";
 
@@ -2920,7 +2964,13 @@ function agregarAlCarrito(item) {
             imagen: optimizarEnlaceImagen(item.Imagen||""),
             cantidad: 1,
             stockMax,
-            enLiquidacion: !!item.Liquidacion,
+            // item.Liquidacion normalmente es el texto crudo de la
+            // columna F (branch o "TODOS"), pero cuando se llega aquí
+            // desde agregarAlCarritoDesdeModal ya viene como booleano
+            // resuelto -- en ese caso se usa tal cual (convertirlo de
+            // nuevo a texto y re-evaluarlo daría "FALSE"/"TRUE", que
+            // _itemTieneLiquidacionVisible leería como no-vacío = true).
+            enLiquidacion: typeof item.Liquidacion === "boolean" ? item.Liquidacion : _itemTieneLiquidacionVisible(item),
             agenciasDisponibles: exs.map(e=>({
                 sucursal: e.sucursal,
                 cantidad: e.cantidad,
@@ -4055,17 +4105,24 @@ function cerrarModalCotizacionExterno(e) { if (e.target.id==="modal-cotizacion")
  *  un guardado en segundo plano, sin duplicar la lógica de parseo. */
 function _generarHtmlCompatibilidad(rawComp) {
     let bloques = ""; let contador = 0;
+    // NUEVO: a partir de cuántos modelos una lista se considera "larga"
+    // -- las largas usan scroll interno (no crecen sin límite) y se
+    // comportan como acordeón exclusivo entre ellas (abrir una cierra
+    // otra larga que ya estuviera abierta). Las listas cortas nunca se
+    // tocan entre sí: pueden quedar varias abiertas a la vez.
+    const UMBRAL_LISTA_LARGA = 8;
     if ((rawComp||"").trim()) {
         const lineas = rawComp.split(/[\n,]+/).map(l=>l.trim()).filter(l=>l.length>0);
         let marcaAct="", modelos=[];
         function cerrarBloque() {
             if (!modelos.length) return;
             contador++;
-            bloques += `<div class="compatibilidad-container mb-4 last:mb-0">
+            const esLarga = modelos.length > UMBRAL_LISTA_LARGA;
+            bloques += `<div class="compatibilidad-container mb-4 last:mb-0" data-larga="${esLarga ? "1" : "0"}">
                 <div class="compatibilidad-marca" onclick="alternarCompatibilidad(${contador})">
                     ${escaparHTML(marcaAct)||"MODELOS"} <i id="icono-compat-${contador}" class="fa-solid fa-chevron-down text-[10px]"></i>
                 </div>
-                <ul id="lista-compat-${contador}" class="lista-compatibilidad-modal hidden-element">
+                <ul id="lista-compat-${contador}" class="lista-compatibilidad-modal hidden-element${esLarga ? " max-h-64 overflow-y-auto pr-1" : ""}">
                     ${modelos.map(m=>`<li>${escaparHTML(m)}</li>`).join("")}
                 </ul></div>`;
             modelos = [];
@@ -4139,7 +4196,7 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
                             <span class="${cantidadClass} whitespace-nowrap shrink-0">${inv.cantidad} pzas</span>
                         </div>
                         ${!esAdmin ? `
-                        <button onclick='agregarAlCarritoDesdeModal("${sku}", ${tituloSeguro}, "${marca}", "${urlImg}", ${JSON.stringify(inventarios)}, ${!!item.Liquidacion})'
+                        <button onclick='agregarAlCarritoDesdeModal("${sku}", ${tituloSeguro}, "${marca}", "${urlImg}", ${JSON.stringify(inventarios)}, ${_itemTieneLiquidacionVisible(item)})'
                                 class="w-full mt-1 ${enTransito ? "bg-amber-700 hover:bg-amber-600" : "bg-emerald-700 hover:bg-emerald-600"} text-white font-bold py-1 px-3 rounded-lg transition text-[11px] flex items-center justify-center gap-1 cursor-pointer">
                             <i class="fa-solid fa-cart-plus"></i> ${enTransito ? "Reservar (en camino)" : "Agregar al carrito"}
                         </button>` : ""}
@@ -4214,7 +4271,7 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
         </button>` : ""}`;
     }
 
-const bannerLiquidacion = item.Liquidacion
+const bannerLiquidacion = _itemTieneLiquidacionVisible(item)
         ? `<div class="bg-red-600 text-white text-xs font-black uppercase tracking-wide text-center py-2 rounded-xl mb-3 flex items-center justify-center gap-2">
                <i class="fa-solid fa-flag"></i> Producto en Liquidación
            </div>`
@@ -4255,6 +4312,25 @@ function agregarAlCarritoDesdeModal(sku, nombre, marca, imagen, existencias, enL
 function alternarCompatibilidad(id) {
     const lista = document.getElementById("lista-compat-"+id);
     const icono = document.getElementById("icono-compat-"+id);
+    const contenedor = lista.closest(".compatibilidad-container");
+    const seVaAAbrir = lista.classList.contains("hidden-element");
+
+    // Si la lista que se va a ABRIR es "larga", cierra cualquier otra
+    // lista larga que ya estuviera abierta -- así no se apilan varias
+    // listas largas y se puede llegar a la siguiente marca sin
+    // scrollear de más. Las listas cortas nunca se ven afectadas.
+    if (seVaAAbrir && contenedor && contenedor.dataset.larga === "1") {
+        document.querySelectorAll('.compatibilidad-container[data-larga="1"]').forEach(otro => {
+            if (otro === contenedor) return;
+            const otraLista = otro.querySelector(".lista-compatibilidad-modal");
+            const otroIcono = otro.querySelector('[id^="icono-compat-"]');
+            if (otraLista && !otraLista.classList.contains("hidden-element")) {
+                otraLista.classList.add("hidden-element");
+                if (otroIcono) { otroIcono.classList.add("fa-chevron-down"); otroIcono.classList.remove("fa-chevron-up"); }
+            }
+        });
+    }
+
     lista.classList.toggle("hidden-element");
     icono.classList.toggle("fa-chevron-down");
     icono.classList.toggle("fa-chevron-up");
@@ -4618,7 +4694,12 @@ function cerrarModalExterno(e) { if (e.target.id==="modal-detalles") alternarMod
 
 function actualizarImagenZoom() {
   const img = document.getElementById("img-ampliada");
-  if (img) img.src = galeriaActual[galeriaIndiceActual] || "";
+  // OJO: galeriaActual guarda URLs CRUDAS desde el fix de
+  // eliminar/reordenar fotos -- hay que pasarlas por
+  // optimizarEnlaceImagen() igual que en renderizarGaleria(), o las
+  // fotos con formato de URL viejo se ven rotas aquí aunque en la
+  // galería normal sí carguen bien.
+  if (img) img.src = optimizarEnlaceImagen(galeriaActual[galeriaIndiceActual] || "");
 
   const hayVarias = galeriaActual.length > 1;
   const btnPrev = document.getElementById("btn-zoom-anterior");
