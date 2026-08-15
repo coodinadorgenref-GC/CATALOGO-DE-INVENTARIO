@@ -947,6 +947,18 @@
                     </label>
                 </div>
 
+                <!-- NUEVO: Sin stock — SOLO ADMIN, para curar el catálogo.
+                     Oculto por default; se muestra vía JS en
+                     _continuarDespuesDeAnimacionCarga() solo si esAdmin. -->
+                <div id="filtro-sin-stock-wrapper" class="hidden">
+                    <label class="flex items-center gap-2 p-2 bg-red-950/30 border border-red-900/50 rounded-xl cursor-pointer hover:bg-red-950/50 transition">
+                        <input type="checkbox" id="filtro-sin-stock" onchange="toggleFiltroSinStock(this)">
+                        <span class="text-xs font-bold text-red-400 uppercase tracking-wide flex items-center gap-1.5">
+                            <i class="fa-solid fa-box-open"></i> Sin stock
+                        </span>
+                    </label>
+                </div>
+
             </div><!-- /zona scrolleable -->
 
             <!-- ── Botón "Ver resultados" fijo abajo — solo móvil ── -->
@@ -1464,6 +1476,7 @@ let familiaSeleccionadaActual = [];
 let filtroLiquidacionActivo = false;    
 let filtroTransitoActivo    = false; // NUEVO: "Por llegar a mi sucursal" (solo admin)
 let filtroSinImagenActivo   = false; // NUEVO: "Sin imagen" (solo admin)
+let filtroSinStockActivo    = false; // NUEVO: "Sin stock" (solo admin)
 
 // ════════════════════════════════════════════════════════════
 //  NUEVO — LIQUIDACIÓN POR SUCURSAL
@@ -2234,6 +2247,10 @@ function _continuarDespuesDeAnimacionCarga() {
         const wrapperSinImagen = document.getElementById("filtro-sin-imagen-wrapper");
         if (wrapperSinImagen) wrapperSinImagen.classList.toggle("hidden", !esAdmin);
 
+        // NUEVO: filtro "Sin stock" — solo admin.
+        const wrapperSinStock = document.getElementById("filtro-sin-stock-wrapper");
+        if (wrapperSinStock) wrapperSinStock.classList.toggle("hidden", !esAdmin);
+
         if (esAdmin) { cargarCotizacionesAdmin(); iniciarPollingAdminCotizaciones(); }
         else iniciarReconciliacionCarrito();
     }
@@ -2362,6 +2379,19 @@ function _productoSinImagen(item) {
     const tieneEnArreglo = Array.isArray(item.Imagenes) && item.Imagenes.some(u => !!u);
     return !tieneEnArreglo && !item.Imagen;
 }
+function toggleFiltroSinStock(cb) {
+    filtroSinStockActivo = cb.checked;
+    filtrarProductos();
+    actualizarChipsFiltros();
+}
+/** Un producto se considera "sin stock" si no tiene NADA físicamente
+ *  disponible (mismo criterio que el badge "Sin stock" de la tarjeta:
+ *  lo que viene "en tránsito" no cuenta como disponible). */
+function _productoSinStock(item) {
+    const exs = item.Existencias || [];
+    const totalDisponible = exs.filter(e => !e.enTransito).reduce((s,e) => s + Number(e.cantidad||0), 0);
+    return totalDisponible === 0;
+}
 
 function limpiarSeleccionFamilias() { familiaSeleccionadaActual=[]; limpiarBuscadorFamilia(); renderizarFiltrosFamilia(); filtrarProductos(); }
 function limpiarSeleccionMarcas()   { marcaSeleccionadaActual=[]; limpiarBuscadorMarca(); renderizarFiltrosMarcas(); filtrarProductos(); }
@@ -2420,6 +2450,10 @@ function limpiarPanelFiltros() {
     filtroSinImagenActivo = false;
     const cbSinImagen = document.getElementById("filtro-sin-imagen");
     if (cbSinImagen) cbSinImagen.checked = false;
+
+    filtroSinStockActivo = false;
+    const cbSinStock = document.getElementById("filtro-sin-stock");
+    if (cbSinStock) cbSinStock.checked = false;
 
     paginaActual = 1;
     filtrarProductos();
@@ -2629,6 +2663,7 @@ let filtrados = inventarioMaestro.filter(item => {
             if (!tieneTransitoPropio) return false;
         }
         if (filtroSinImagenActivo && !_productoSinImagen(item)) return false;
+        if (filtroSinStockActivo && !_productoSinStock(item)) return false;
         if (marcaSeleccionadaActual.length > 0 && !marcaSeleccionadaActual.includes((item.Marca||"").trim())) return false;
         if (familiaSeleccionadaActual.length > 0 && !familiaSeleccionadaActual.includes((item.Familia||"Sin Familia").trim())) return false;
         if (agencia) { const exs = item.Existencias||[]; if (!exs.some(e => e.sucursal === agencia)) return false; }
@@ -3483,6 +3518,7 @@ function actualizarChipsFiltros() {
     if (filtroLiquidacionActivo) chips.push({ label: "Solo liquidación", tipo: "liquidacion", valor: "1" });
     if (filtroTransitoActivo) chips.push({ label: "Por llegar a mi sucursal", tipo: "transito", valor: "1" });
     if (filtroSinImagenActivo) chips.push({ label: "Sin imagen", tipo: "sinImagen", valor: "1" });
+    if (filtroSinStockActivo) chips.push({ label: "Sin stock", tipo: "sinStock", valor: "1" });
 
     // Chips cortos, en la barra móvil (solo familia/marca/agencia, como antes)
     if (contenedor) {
@@ -3530,6 +3566,7 @@ function eliminarChip(tipo, valor) {
     if (tipo === "liquidacion") { filtroLiquidacionActivo = false; const cb = document.getElementById("filtro-liquidacion"); if (cb) cb.checked = false; }
     if (tipo === "transito")    { filtroTransitoActivo = false; const cb = document.getElementById("filtro-transito"); if (cb) cb.checked = false; }
     if (tipo === "sinImagen")   { filtroSinImagenActivo = false; const cb = document.getElementById("filtro-sin-imagen"); if (cb) cb.checked = false; }
+    if (tipo === "sinStock")    { filtroSinStockActivo = false; const cb = document.getElementById("filtro-sin-stock"); if (cb) cb.checked = false; }
     paginaActual = 1;
     filtrarProductos();
 }
