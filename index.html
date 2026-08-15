@@ -1484,22 +1484,29 @@ let filtroSinImagenActivo   = false; // NUEVO: "Sin imagen" (solo admin)
 function _normalizarTextoLiquidacion(v) {
     return String(v || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
 }
-/** ¿La liquidación de este producto aplica a ESTA sucursal puntual? */
+/** ¿La liquidación de este producto aplica a ESTA sucursal puntual?
+ *  La columna F admite más de una sucursal si el producto está en
+ *  liquidación en varias a la vez -- sepáralas con coma, punto y coma
+ *  o salto de línea, ej: "CAUCEL VENTO, TICUL". */
 function _liquidacionAplicaSucursal(item, sucursal) {
     const raw = _normalizarTextoLiquidacion(item.Liquidacion);
     if (!raw) return false;
     if (raw === "TODOS" || raw === "TODAS") return true;
 
+    const partesCapturadas = raw.split(/[,;\n]+/).map(p => p.trim()).filter(Boolean);
+
     const exs = item.Existencias || [];
-    const coincideConSucursalReal = exs.some(e => _normalizarTextoLiquidacion(e.sucursal) === raw);
-    if (coincideConSucursalReal) {
-        // El valor capturado es el nombre de una sucursal real donde
-        // este producto SÍ tiene existencia -- se restringe solo ahí.
-        return _normalizarTextoLiquidacion(sucursal) === raw;
+    const algunaParteEsSucursalReal = partesCapturadas.some(
+        p => exs.some(e => _normalizarTextoLiquidacion(e.sucursal) === p)
+    );
+    if (algunaParteEsSucursalReal) {
+        // Al menos una de las sucursales capturadas es real para este
+        // producto -- se restringe SOLO a las sucursales listadas.
+        return partesCapturadas.includes(_normalizarTextoLiquidacion(sucursal));
     }
-    // No es "TODOS" ni coincide con ninguna sucursal real de este
-    // producto -- se trata como marca vieja tipo casilla y aplica a
-    // todas, igual que antes de este cambio.
+    // Ninguna parte coincide con ninguna sucursal real de este producto
+    // -- se trata como marca vieja tipo casilla (SI, X, etc.) y aplica
+    // a todas, para no romper lo ya capturado.
     return true;
 }
 /** ¿Este producto está en liquidación de forma visible para el cliente
@@ -1507,6 +1514,17 @@ function _liquidacionAplicaSucursal(item, sucursal) {
 function _itemTieneLiquidacionVisible(item) {
     const exs = item.Existencias || [];
     return exs.some(e => _liquidacionAplicaSucursal(item, e.sucursal));
+}
+/** ¿La liquidación de este item está genuinamente restringida a una o
+ *  más sucursales puntuales (a diferencia de "TODOS" o una marca vieja
+ *  tipo casilla sin sucursal real reconocida)? Sirve para decidir si
+ *  vale la pena mostrar el nombre de la sucursal en el banner. */
+function _liquidacionEsRestringidaASucursal(item) {
+    const raw = _normalizarTextoLiquidacion(item.Liquidacion);
+    if (!raw || raw === "TODOS" || raw === "TODAS") return false;
+    const partes = raw.split(/[,;\n]+/).map(p => p.trim()).filter(Boolean);
+    const exs = item.Existencias || [];
+    return partes.some(p => exs.some(e => _normalizarTextoLiquidacion(e.sucursal) === p));
 }
 
 let marcaSeleccionadaActual   = [];
@@ -4188,6 +4206,13 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
                     const tagTransito = enTransito
                         ? `<span class="whitespace-nowrap bg-amber-900/60 text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide"><i class="fa-solid fa-truck-fast mr-1"></i>En tránsito</span>`
                         : "";
+                    // NUEVO: etiqueta puntual por sucursal -- para que se
+                    // vea claramente EN CUÁL sucursal aplica la
+                    // liquidación cuando el producto está en varias, en
+                    // vez de solo el banner genérico de arriba.
+                    const tagLiquidacionSucursal = _liquidacionAplicaSucursal(item, inv.sucursal)
+                        ? `<span class="whitespace-nowrap bg-red-900/60 text-red-300 text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide"><i class="fa-solid fa-flag mr-1"></i>En liquidación</span>`
+                        : "";
                     const cantidadClass = enTransito
                         ? "font-mono bg-amber-950 text-amber-400 px-2 py-0.5 rounded-md font-bold"
                         : "font-mono bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded-md font-bold";
@@ -4198,6 +4223,7 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
                                 <span class="text-slate-300 font-bold whitespace-nowrap"><i class="fa-solid fa-location-dot text-emerald-500 mr-1"></i>${inv.sucursal}</span>
                                 <span class="${tagClass} whitespace-nowrap">${(GRUPOS_AGENCIA[grupo]||{}).nombre||grupo}</span>
                                 ${tagTransito}
+                                ${tagLiquidacionSucursal}
                             </div>
                             <span class="${cantidadClass} whitespace-nowrap shrink-0">${inv.cantidad} pzas</span>
                         </div>
@@ -4279,7 +4305,9 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
 
 const bannerLiquidacion = _itemTieneLiquidacionVisible(item)
         ? `<div class="bg-red-600 text-white text-xs font-black uppercase tracking-wide text-center py-2 rounded-xl mb-3 flex items-center justify-center gap-2">
-               <i class="fa-solid fa-flag"></i> Producto en Liquidación
+               <i class="fa-solid fa-flag"></i> Producto en Liquidación${
+                   _liquidacionEsRestringidaASucursal(item) ? ` (${escaparHTML(item.Liquidacion)})` : ""
+               }
            </div>`
         : "";
 
