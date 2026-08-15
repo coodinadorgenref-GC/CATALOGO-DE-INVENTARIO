@@ -1468,36 +1468,42 @@ let filtroSinImagenActivo   = false; // NUEVO: "Sin imagen" (solo admin)
 // ════════════════════════════════════════════════════════════
 //  NUEVO — LIQUIDACIÓN POR SUCURSAL
 //  La columna F de "Inventario" (item.Liquidacion) ahora puede traer,
-//  además de vacío, el NOMBRE de una de las 11 sucursales -- en ese
-//  caso la liquidación aplica SOLO ahí. Cualquier otro valor no vacío
-//  (p. ej. "TODOS", o el valor tipo casilla que ya se usaba antes:
-//  "SI", "X", etc.) sigue aplicando a TODAS las sucursales donde haya
-//  existencia, para no romper lo que ya estaba capturado.
+//  además de vacío, el NOMBRE de una sucursal -- en ese caso la
+//  liquidación aplica SOLO ahí. "TODOS"/"TODAS" aplica a todas
+//  explícitamente. Cualquier otro valor no vacío (p. ej. el valor tipo
+//  casilla que ya se usaba antes: "SI", "X", etc.) también aplica a
+//  todas, para no romper lo ya capturado.
+//
+//  IMPORTANTE: NO se usa una lista fija de sucursales -- se compara
+//  contra las sucursales REALES donde ese producto tiene existencia
+//  (item.Existencias), que siempre están al día. Una lista fija se
+//  queda corta en cuanto aparece una sucursal nueva (p. ej. "BODEGA",
+//  que no es una de las 11 de zonas Mérida/Valladolid) y el producto
+//  terminaba mostrándose en liquidación en sucursales de más.
 // ════════════════════════════════════════════════════════════
-const SUCURSALES_CONOCIDAS_LIQUIDACION = [
-    "CAUCEL VENTO","UMAN VENTO","TICUL",
-    "BAJAJ CANCUN","BAJAJ TIZIMIN","BAJAJ VALLADOLID",
-    "SUZUKI TIZIMIN","SUZUKI VALLADOLID",
-    "TIZIMIN VENTO","CARABELA V1","VENTO PISTE"
-];
 function _normalizarTextoLiquidacion(v) {
     return String(v || "").toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
-}
-function _liquidacionEsSucursalEspecifica(valorNormalizado) {
-    return SUCURSALES_CONOCIDAS_LIQUIDACION.some(s => valorNormalizado === s);
 }
 /** ¿La liquidación de este producto aplica a ESTA sucursal puntual? */
 function _liquidacionAplicaSucursal(item, sucursal) {
     const raw = _normalizarTextoLiquidacion(item.Liquidacion);
     if (!raw) return false;
-    if (!_liquidacionEsSucursalEspecifica(raw)) return true; // TODOS / valor viejo tipo checkbox
-    return _normalizarTextoLiquidacion(sucursal) === raw;
+    if (raw === "TODOS" || raw === "TODAS") return true;
+
+    const exs = item.Existencias || [];
+    const coincideConSucursalReal = exs.some(e => _normalizarTextoLiquidacion(e.sucursal) === raw);
+    if (coincideConSucursalReal) {
+        // El valor capturado es el nombre de una sucursal real donde
+        // este producto SÍ tiene existencia -- se restringe solo ahí.
+        return _normalizarTextoLiquidacion(sucursal) === raw;
+    }
+    // No es "TODOS" ni coincide con ninguna sucursal real de este
+    // producto -- se trata como marca vieja tipo casilla y aplica a
+    // todas, igual que antes de este cambio.
+    return true;
 }
 /** ¿Este producto está en liquidación de forma visible para el cliente
- *  actual? Si la columna F trae una sucursal específica, solo cuenta si
- *  esa sucursal aparece entre las existencias visibles del producto
- *  (que ya vienen filtradas por zona desde el backend). Si trae
- *  cualquier otro valor no vacío, aplica a todas. */
+ *  actual? (en al menos una de sus existencias visibles). */
 function _itemTieneLiquidacionVisible(item) {
     const exs = item.Existencias || [];
     return exs.some(e => _liquidacionAplicaSucursal(item, e.sucursal));
