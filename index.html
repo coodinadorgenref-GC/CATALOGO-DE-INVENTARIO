@@ -2664,18 +2664,25 @@ async function cargarIndiceKitsProveedor() {
     }
 }
 
-/** Busca el texto tecleado (código Vento) contra los kits de proveedor.
- *  Exacta primero, si no hay, parcial (acotada). */
+/** Busca el texto tecleado contra los kits de proveedor — por código
+ *  Vento (codigos_vento) O por el número de artículo/SKU del propio
+ *  proveedor (articulo), para que funcione buscando de cualquiera de
+ *  los dos lados. Exacta primero, si no hay, parcial (acotada). */
 function buscarKitsProveedor(textoLibre) {
     if (!KITS_PROVEEDOR_INDEX || !KITS_PROVEEDOR_INDEX.length) return [];
     const q = normalizarCodigoNP(textoLibre);
     if (!q || q.length < 4) return [];
 
-    let match = KITS_PROVEEDOR_INDEX.filter(kit =>
-        (kit.codigos_vento || []).some(c => normalizarCodigoNP(c) === q));
+    const coincideExacto = kit =>
+        (kit.codigos_vento || []).some(c => normalizarCodigoNP(c) === q) ||
+        normalizarCodigoNP(kit.articulo) === q;
+    const coincideParcial = kit =>
+        (kit.codigos_vento || []).some(c => normalizarCodigoNP(c).includes(q)) ||
+        normalizarCodigoNP(kit.articulo).includes(q);
+
+    let match = KITS_PROVEEDOR_INDEX.filter(coincideExacto);
     if (match.length === 0) {
-        match = KITS_PROVEEDOR_INDEX.filter(kit =>
-            (kit.codigos_vento || []).some(c => normalizarCodigoNP(c).includes(q)));
+        match = KITS_PROVEEDOR_INDEX.filter(coincideParcial);
     }
     return match;
 }
