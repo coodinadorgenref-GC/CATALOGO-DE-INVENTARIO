@@ -978,6 +978,12 @@
                  renderPanelCompatibilidadNP(), llamado dentro de filtrarProductos()
                  cada vez que el texto buscado coincide con un código NP. -->
             <div id="panel-compatibilidad-np" class="hidden bg-slate-800 border border-emerald-800/50 rounded-2xl p-4"></div>
+            <!-- NUEVO: panel de kits de proveedor (juegos que agrupan varios
+                 códigos Vento en un solo artículo externo). Se llena/oculta
+                 desde renderPanelKitsProveedor(), llamado dentro de
+                 filtrarProductos() junto al panel de compatibilidad NP.
+                 Solo visible para admin. -->
+            <div id="panel-kits-proveedor" class="hidden bg-slate-800 border border-amber-700/50 rounded-2xl p-4"></div>
             <div id="paginacion-superior" class="flex justify-center items-center bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 overflow-x-auto gap-2"></div>
             <div id="grid-productos" class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-x-3 gap-y-5 lg:gap-6"></div>
             <div id="sin-resultados" class="hidden text-center py-16">
@@ -2141,6 +2147,7 @@ async function obtenerInventarioDesdeServidor() {
     // No se espera (no bloquea el catálogo); para cuando el usuario
     // teclee algo en el buscador, ya suele estar listo.
     cargarIndiceNP();
+    cargarIndiceKitsProveedor();
 
     const cache = localStorage.getItem("inventario_cache");
     if (cache) {
@@ -2630,6 +2637,82 @@ function renderPanelCompatibilidadNP(resultadoNP) {
     return skusMatch;
 }
 
+/* ══════════════════════════════════════════
+   KITS DE PROVEEDOR
+   (coodinadorgenref-gc.github.io/NP/data/kits_proveedor.json)
+   Productos externos que agrupan varios códigos Vento en un solo
+   artículo (ej. juegos de empaques). SOLO ADMIN. Se carga una vez en
+   segundo plano y se consulta en cada búsqueda igual que el índice NP.
+══════════════════════════════════════════ */
+const KITS_PROVEEDOR_URL = "https://coodinadorgenref-gc.github.io/NP/data/kits_proveedor.json";
+let KITS_PROVEEDOR_INDEX = null;
+let kitsProveedorCargando = false;
+
+async function cargarIndiceKitsProveedor() {
+    if (!esAdmin || KITS_PROVEEDOR_INDEX || kitsProveedorCargando) return;
+    kitsProveedorCargando = true;
+    try {
+        const resp = await fetch(KITS_PROVEEDOR_URL, { cache: "force-cache" });
+        if (!resp.ok) throw new Error("HTTP " + resp.status);
+        const data = await resp.json();
+        KITS_PROVEEDOR_INDEX = Array.isArray(data.kits) ? data.kits : [];
+    } catch (err) {
+        console.warn("No se pudo cargar el índice de kits de proveedor:", err);
+        KITS_PROVEEDOR_INDEX = [];
+    } finally {
+        kitsProveedorCargando = false;
+    }
+}
+
+/** Busca el texto tecleado (código Vento) contra los kits de proveedor.
+ *  Exacta primero, si no hay, parcial (acotada). */
+function buscarKitsProveedor(textoLibre) {
+    if (!KITS_PROVEEDOR_INDEX || !KITS_PROVEEDOR_INDEX.length) return [];
+    const q = normalizarCodigoNP(textoLibre);
+    if (!q || q.length < 4) return [];
+
+    let match = KITS_PROVEEDOR_INDEX.filter(kit =>
+        (kit.codigos_vento || []).some(c => normalizarCodigoNP(c) === q));
+    if (match.length === 0) {
+        match = KITS_PROVEEDOR_INDEX.filter(kit =>
+            (kit.codigos_vento || []).some(c => normalizarCodigoNP(c).includes(q)));
+    }
+    return match;
+}
+
+function ocultarPanelKitsProveedor() {
+    const panel = document.getElementById("panel-kits-proveedor");
+    if (panel) { panel.classList.add("hidden"); panel.innerHTML = ""; }
+}
+
+function renderPanelKitsProveedor(kits) {
+    const panel = document.getElementById("panel-kits-proveedor");
+    if (!panel || !kits || !kits.length) { ocultarPanelKitsProveedor(); return; }
+
+    const bloques = kits.map(kit => {
+        const chipsCodigos = (kit.codigos_vento || []).map(c =>
+            `<span class="inline-block bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] font-mono text-slate-300 mr-1 mb-1">${escaparHTML(c)}</span>`
+        ).join("");
+        return `
+        <div class="mb-3 last:mb-0">
+            <div class="flex items-center gap-2 flex-wrap mb-1">
+                <span class="font-bold text-amber-300 text-sm">${escaparHTML(kit.nombre || "")}</span>
+                ${kit.articulo ? `<span class="text-[11px] text-slate-400">Art. ${escaparHTML(kit.articulo)}</span>` : ""}
+            </div>
+            ${kit.proveedor ? `<div class="text-[11px] text-slate-500 mb-1">${escaparHTML(kit.proveedor)}</div>` : ""}
+            <div class="flex flex-wrap">${chipsCodigos}</div>
+        </div>`;
+    }).join("");
+
+    panel.innerHTML = `
+        <div class="flex items-center gap-2 mb-2">
+            <i class="fa-solid fa-boxes-stacked text-amber-400"></i>
+            <span class="text-xs font-bold text-amber-400 uppercase tracking-wide">Disponible en kit de proveedor</span>
+        </div>
+        ${bloques}`;
+    panel.classList.remove("hidden");
+}
+
 function filtrarProductos() {
     actualizarTimestampSesion();
     if (modoBusquedaFotoActivo || chipFotoBuscadorActivo) {
@@ -2648,8 +2731,10 @@ function filtrarProductos() {
     if (esAdmin && !modoBusquedaFotoActivo && !chipFotoBuscadorActivo && textoBuscado.trim()) {
         const resultadoNP = buscarCompatibilidadNP(textoBuscado);
         skusPorCompatibilidadNP = renderPanelCompatibilidadNP(resultadoNP);
+        renderPanelKitsProveedor(buscarKitsProveedor(textoBuscado));
     } else {
         ocultarPanelCompatibilidadNP();
+        ocultarPanelKitsProveedor();
     }
 
 let filtrados = inventarioMaestro.filter(item => {
