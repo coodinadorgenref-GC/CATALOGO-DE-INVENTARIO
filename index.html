@@ -4432,25 +4432,16 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
                     class="w-full bg-blue-600 hover:bg-blue-700 text-white text-center font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider cursor-pointer flex items-center justify-center">
                 <i class="fa-solid fa-camera mr-2"></i> <span class="underline decoration-2 underline-offset-2">A</span>gregar Foto
             </button>
-            <button id="btn-edicion" onclick='habilitarEdicion("${sku}", ${compatSegura})'
+            <button id="btn-edicion-ficha" onclick='habilitarEdicionFichaCompleta("${sku}")'
                     class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer">
-                <i class="fa-solid fa-pen-to-square mr-2"></i> Editar <span class="underline decoration-2 underline-offset-2">C</span>omp.
+                <i class="fa-solid fa-pen-to-square mr-2"></i> <span class="underline decoration-2 underline-offset-2">E</span>ditar Ficha
             </button>
         </div>
         ${esEstator ? `
         <button id="btn-edicion-estator" onclick='habilitarEdicionEstator("${sku}")'
                 class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer mt-3">
             <i class="fa-solid fa-bolt mr-2"></i> Editar Estator
-        </button>` : ""}
-        ${esBalata ? `
-        <button id="btn-edicion-balata" onclick='habilitarEdicionPosicionBalata("${sku}")'
-                class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer mt-3">
-            <i class="fa-solid fa-arrows-up-down mr-2"></i> Editar Posición
-        </button>` : ""}
-        <button id="btn-edicion-numparte" onclick='habilitarEdicionNumerosParteRelacionados("${sku}")'
-                class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer mt-3">
-            <i class="fa-solid fa-shuffle mr-2"></i> Editar Relacionados
-        </button>`;
+        </button>` : ""}`;
     }
 
 const bannerLiquidacion = _itemTieneLiquidacionVisible(item)
@@ -4524,6 +4515,133 @@ function alternarCompatibilidad(id) {
 /* ══════════════════════════════════════════
    EDICIÓN COMPATIBILIDAD (ADMIN)
 ══════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   NUEVO — EDICIÓN UNIFICADA: Compatibilidad + Números de Parte
+   Relacionados + Posición de Balata (si aplica), en UN solo botón y
+   UN solo guardado. Antes cada campo tenía su propio botón/guardado
+   por separado; al guardar uno se cerraba el modal (Compatibilidad
+   usaba una cola en segundo plano) mientras los otros seguían en
+   modo edición, así que fácilmente se perdía lo capturado en los
+   demás campos y había que volver a escribirlo. Ahora todo se activa
+   junto y se manda en UNA sola petición al servidor.
+══════════════════════════════════════════ */
+function habilitarEdicionFichaCompleta(sku) {
+    const item = (inventarioMaestro || []).find(p => String(p.SKU) === String(sku)) || {};
+    const familiaUpper = (item.Familia || "").toUpperCase();
+    const esBalata = familiaUpper.indexOf("BALATA") !== -1 || familiaUpper.indexOf("ZAPATA") !== -1;
+
+    // Compatibilidad -> textarea
+    const contCompat = document.getElementById("contenedor-compatibilidad");
+    if (contCompat) {
+        contCompat.innerHTML = `<textarea id="edit-compat" class="w-full h-40 bg-slate-900 border border-slate-700 p-3 text-xs text-white rounded-xl">${escaparHTML(item.Compatibilidad || "")}</textarea>`;
+    }
+
+    // Números de parte relacionados -> textarea (solo existe si esAdmin, ya lo es si ve este botón)
+    const contNumParte = document.getElementById("contenedor-numparte-relacionados");
+    if (contNumParte) {
+        const numerosActuales = (item.NumerosParteRelacionados || []).join(", ");
+        contNumParte.innerHTML = `
+            <div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
+                <label class="text-[10px] text-slate-400 uppercase font-bold">Números de parte equivalentes (separados por coma)</label>
+                <textarea id="edit-numparte" placeholder="ej. VC12010395, VC12010396"
+                          class="w-full h-20 bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono text-white mt-1">${escaparHTML(numerosActuales)}</textarea>
+            </div>`;
+    }
+
+    // Posición de balata -> select (solo si el producto es balata/zapata)
+    const contBalata = document.getElementById("contenedor-balata");
+    if (esBalata && contBalata) {
+        contBalata.innerHTML = `
+            <div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
+                <label class="text-[10px] text-slate-400 uppercase font-bold">Posición</label>
+                <select id="edit-balata-posicion" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
+                    <option value="">— Selecciona —</option>
+                    <option value="Delanteras">Delanteras</option>
+                    <option value="Traseras">Traseras</option>
+                    <option value="Del/Tras">Del/Tras</option>
+                </select>
+            </div>`;
+        document.getElementById("edit-balata-posicion").value = item.PosicionBalata || "";
+    }
+
+    const btn = document.getElementById("btn-edicion-ficha");
+    btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Todo';
+    btn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer";
+    btn.onclick = () => guardarFichaCompleta(sku, esBalata);
+}
+
+/** Guarda Compatibilidad + Números de Parte Relacionados + Posición de
+ *  Balata (si aplica) en UNA sola petición al servidor. Espera la
+ *  respuesta antes de volver a modo lectura y NUNCA cierra el modal
+ *  solo — así el admin ve confirmado que se guardó todo junto. */
+async function guardarFichaCompleta(sku, esBalata) {
+    const compatibilidad = document.getElementById("edit-compat")?.value ?? "";
+    const numerosCrudo   = document.getElementById("edit-numparte")?.value ?? "";
+    const numeros = [...new Set(
+        numerosCrudo.split(/[\s,;]+/).map(n => n.trim().toUpperCase()).filter(n => n.length > 0)
+    )];
+    const posicionBalata = esBalata ? (document.getElementById("edit-balata-posicion")?.value ?? "") : undefined;
+
+    const btn = document.getElementById("btn-edicion-ficha");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Guardando...';
+
+    try {
+        const r = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({
+                action: "actualizarFichaProducto", token: tokenActual, correo: usuarioActual, sku,
+                compatibilidad, numeros, posicionBalata
+            }) });
+        const rs = await r.json();
+
+        if (!rs.success) {
+            mostrarToastInfo(rs.message || "No se pudo guardar.");
+            btn.disabled = false;
+            btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Todo';
+            return;
+        }
+
+        // Refleja todo localmente, sin re-descargar el inventario completo.
+        const itemCache = (inventarioMaestro || []).find(p => String(p.SKU) === String(sku));
+        if (itemCache) {
+            itemCache.Compatibilidad = compatibilidad;
+            itemCache.NumerosParteRelacionados = rs.numeros || numeros;
+            if (esBalata) itemCache.PosicionBalata = rs.posicionBalata ?? posicionBalata;
+            try { localStorage.setItem("inventario_cache", JSON.stringify(inventarioMaestro)); } catch {}
+        }
+
+        mostrarToastInfo("Ficha del producto guardada.");
+
+        if (String(galeriaSkuActual) === String(sku)) {
+            const contCompat = document.getElementById("contenedor-compatibilidad");
+            if (contCompat) contCompat.innerHTML = _generarHtmlCompatibilidad(compatibilidad);
+
+            const contNumParte = document.getElementById("contenedor-numparte-relacionados");
+            if (contNumParte) contNumParte.innerHTML = _generarHtmlNumerosParteRelacionados({ numeros: rs.numeros || numeros });
+
+            const contBalata = document.getElementById("contenedor-balata");
+            if (esBalata && contBalata) contBalata.innerHTML = _generarHtmlPosicionBalata({ posicion: rs.posicionBalata ?? posicionBalata });
+        }
+
+        const btnFinal = document.getElementById("btn-edicion-ficha");
+        if (btnFinal) {
+            btnFinal.innerHTML = '<i class="fa-solid fa-pen-to-square mr-2"></i> <span class="underline decoration-2 underline-offset-2">E</span>ditar Ficha';
+            btnFinal.className = "w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer";
+            btnFinal.disabled = false;
+            btnFinal.onclick = () => habilitarEdicionFichaCompleta(sku);
+        }
+        filtrarProductos();
+    } catch (err) {
+        mostrarToastInfo("Error de conexión al guardar.");
+        btn.disabled = false;
+        btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Todo';
+    }
+}
+
+// ── A partir de aquí, funciones viejas de edición por-campo (Comp.
+// suelta, Posición suelta, Relacionados suelto). Ya no las usa ningún
+// botón de la interfaz — se dejan sin borrar por si algo más las
+// referencia — pero el flujo nuevo es habilitarEdicionFichaCompleta().
 function habilitarEdicion(sku, contenido) {
     document.getElementById("contenedor-compatibilidad").innerHTML =
         `<textarea id="edit-compat" class="w-full h-40 bg-slate-900 border border-slate-700 p-3 text-xs text-white rounded-xl">${contenido}</textarea>`;
