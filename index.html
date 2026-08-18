@@ -2761,7 +2761,7 @@ let filtrados = inventarioMaestro.filter(item => {
         if (agencia) { const exs = item.Existencias||[]; if (!exs.some(e => e.sucursal === agencia)) return false; }
         const marcaEsBajaj = (item.Marca || "").toUpperCase().trim() === "BAJAJ";
         const puedeVerNumParte = esAdmin || (accesoNumeroParteBajaj && marcaEsBajaj);
-        const texto = normalizarTexto(`${item.SKU} ${item.Producto} ${item.Marca} ${item.Compatibilidad} ${puedeVerNumParte ? item.Pr_Numero_Parte : ""} ${item.EstatorFase||""} ${item.EstatorBobinas||""} ${item.EstatorConductores||""} ${item.EstatorLongitudCable||""} ${item.PosicionBalata||""}`);
+        const texto = normalizarTexto(`${item.SKU} ${item.Producto} ${item.Marca} ${item.Compatibilidad} ${puedeVerNumParte ? item.Pr_Numero_Parte : ""} ${item.EstatorFase||""} ${item.EstatorBobinas||""} ${item.EstatorConductores||""} ${item.EstatorLongitudCable||""} ${item.PosicionBalata||""} ${esAdmin ? (item.NumerosParteRelacionados||[]).join(" ") : ""}`);
         return palabras.every(p => texto.includes(p));
     });
 
@@ -4406,6 +4406,23 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
         </div>`;
     }
 
+    // NUEVO — Números de parte relacionados / equivalencias (ej. VC de
+    // Vento que reemplaza esta pieza). A diferencia de Compatibilidad
+    // (que SÍ ve el cliente, son modelos de moto), esto es SOLO ADMIN:
+    // nunca llega al cliente ni siquiera en el JSON del servidor
+    // (descargarInventario ya lo filtra), y aquí tampoco se renderiza
+    // si no es admin.
+    let htmlNumerosParte = "";
+    if (esAdmin) {
+        htmlNumerosParte = `
+        <div class="mb-4">
+            <p class="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">
+                <i class="fa-solid fa-shuffle mr-1.5"></i> Números de Parte Relacionados:
+            </p>
+            <div id="contenedor-numparte-relacionados">${_generarHtmlNumerosParteRelacionados(item)}</div>
+        </div>`;
+    }
+
     // Botón admin
     let htmlBtnAdmin = "";
     if (esAdmin) {
@@ -4429,7 +4446,11 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
         <button id="btn-edicion-balata" onclick='habilitarEdicionPosicionBalata("${sku}")'
                 class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer mt-3">
             <i class="fa-solid fa-arrows-up-down mr-2"></i> Editar Posición
-        </button>` : ""}`;
+        </button>` : ""}
+        <button id="btn-edicion-numparte" onclick='habilitarEdicionNumerosParteRelacionados("${sku}")'
+                class="w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer mt-3">
+            <i class="fa-solid fa-shuffle mr-2"></i> Editar Relacionados
+        </button>`;
     }
 
 const bannerLiquidacion = _itemTieneLiquidacionVisible(item)
@@ -4454,6 +4475,7 @@ const bannerLiquidacion = _itemTieneLiquidacionVisible(item)
         </div>
         ${htmlEstator}
         ${htmlBalata}
+        ${htmlNumerosParte}
         ${htmlExistencias}
         <div class="space-y-3">
             <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
@@ -4726,6 +4748,108 @@ async function guardarPosicionBalata(sku) {
         mostrarToastInfo("Error de conexión al guardar.");
         btn.disabled = false;
         btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Posición';
+    }
+}
+
+/* ══════════════════════════════════════════
+   NÚMEROS DE PARTE RELACIONADOS (equivalencias) — SOLO ADMIN.
+   A diferencia de Compatibilidad (modelos de moto, visible al
+   cliente), esto son códigos de refacción equivalentes (ej. VC de
+   Vento) que un cliente jamás debe ver. El servidor ya filtra este
+   campo para no-admins; aquí además nunca se renderiza esta sección
+   si !esAdmin (ver abrirDetalleProducto). Mismo patrón que Balata:
+   guardado directo, sin cola, porque es una lista corta.
+══════════════════════════════════════════ */
+
+/** Cuadro de solo-lectura: chips con cada número, y si hay más de uno
+ *  se marca como "Viene por juego" (varias piezas comparten el mismo
+ *  número de parte relacionado, ej. un kit). */
+function _generarHtmlNumerosParteRelacionados(d) {
+    d = d || {};
+    const lista = d.numeros ?? d.NumerosParteRelacionados ?? [];
+    if (!lista.length) {
+        return `<div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
+            <p class="text-xs text-slate-500 italic text-center">Sin capturar.</p>
+        </div>`;
+    }
+    const chips = lista.map(n =>
+        `<span class="inline-block bg-slate-900 border border-amber-800/50 rounded-lg px-2 py-1 text-[11px] font-mono text-amber-300 mr-1 mb-1">${escaparHTML(n)}</span>`
+    ).join("");
+    return `
+        <div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
+            ${lista.length > 1 ? `<div class="mb-2"><span class="bg-amber-900/60 text-amber-300 text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide"><i class="fa-solid fa-boxes-stacked mr-1"></i>Viene por juego</span></div>` : ""}
+            <div class="flex flex-wrap">${chips}</div>
+        </div>`;
+}
+
+/** Cambia el cuadro de solo-lectura por un textarea editable — solo se
+ *  llama desde el botón "Editar Relacionados" (admin). Acepta números
+ *  separados por coma, espacio o salto de línea. */
+function habilitarEdicionNumerosParteRelacionados(sku) {
+    const item = (inventarioMaestro || []).find(p => String(p.SKU) === String(sku)) || {};
+    const actuales = (item.NumerosParteRelacionados || []).join(", ");
+
+    document.getElementById("contenedor-numparte-relacionados").innerHTML = `
+        <div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
+            <label class="text-[10px] text-slate-400 uppercase font-bold">Números de parte equivalentes (separados por coma)</label>
+            <textarea id="edit-numparte" placeholder="ej. VC12010395, VC12010396"
+                      class="w-full h-20 bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono text-white mt-1">${escaparHTML(actuales)}</textarea>
+        </div>`;
+
+    const btn = document.getElementById("btn-edicion-numparte");
+    btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Relacionados';
+    btn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer mt-3";
+    btn.onclick = () => guardarNumerosParteRelacionados(sku);
+}
+
+/** Guarda la lista. Igual que Balata/Estator: se espera la respuesta
+ *  del servidor antes de volver a modo lectura. */
+async function guardarNumerosParteRelacionados(sku) {
+    const crudo = document.getElementById("edit-numparte").value;
+    const numeros = [...new Set(
+        crudo.split(/[\s,;]+/).map(n => n.trim().toUpperCase()).filter(n => n.length > 0)
+    )];
+
+    const btn = document.getElementById("btn-edicion-numparte");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Guardando...';
+
+    try {
+        const r = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({ action: "actualizarNumerosParteRelacionados", token: tokenActual, correo: usuarioActual, sku, numeros }) });
+        const rs = await r.json();
+
+        if (!rs.success) {
+            mostrarToastInfo(rs.message || "No se pudo guardar.");
+            btn.disabled = false;
+            btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Relacionados';
+            return;
+        }
+
+        const numerosGuardados = rs.numeros || numeros;
+        const itemCache = (inventarioMaestro || []).find(p => String(p.SKU) === String(sku));
+        if (itemCache) {
+            itemCache.NumerosParteRelacionados = numerosGuardados;
+            try { localStorage.setItem("inventario_cache", JSON.stringify(inventarioMaestro)); } catch {}
+        }
+
+        mostrarToastInfo("Números relacionados guardados.");
+
+        if (String(galeriaSkuActual) === String(sku)) {
+            document.getElementById("contenedor-numparte-relacionados").innerHTML = _generarHtmlNumerosParteRelacionados({ numeros: numerosGuardados });
+        }
+        const btnFinal = document.getElementById("btn-edicion-numparte");
+        if (btnFinal) {
+            btnFinal.innerHTML = '<i class="fa-solid fa-shuffle mr-2"></i> Editar Relacionados';
+            btnFinal.className = "w-full bg-slate-600 hover:bg-slate-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer mt-3";
+            btnFinal.disabled = false;
+            btnFinal.onclick = () => habilitarEdicionNumerosParteRelacionados(sku);
+        }
+        filtrarProductos();
+    } catch (err) {
+        mostrarToastInfo("Error de conexión al guardar.");
+        btn.disabled = false;
+        btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Relacionados';
     }
 }
 
@@ -5591,7 +5715,7 @@ function ejecutarBusquedaPorPalabrasClave(palabras) {
         // coincida de pura casualidad con piezas totalmente distintas
         // (por eso antes salían cadenas o balatas al buscar un foco).
         const textoImportante  = normalizarTexto(`${item.Producto} ${item.Familia || ""}`);
-        const textoSecundario  = normalizarTexto(`${item.SKU} ${item.Marca} ${item.Compatibilidad} ${puedeVerNumParte ? item.Pr_Numero_Parte : ""}`);
+        const textoSecundario  = normalizarTexto(`${item.SKU} ${item.Marca} ${item.Compatibilidad} ${puedeVerNumParte ? item.Pr_Numero_Parte : ""} ${esAdmin ? (item.NumerosParteRelacionados||[]).join(" ") : ""}`);
 
         const puntaje = palabras.reduce((acc, p) => {
             if (textoImportante.includes(p)) return acc + 3;
