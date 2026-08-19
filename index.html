@@ -4290,6 +4290,39 @@ function _generarHtmlCompatibilidad(rawComp) {
     return `<div class="compatibilidad-container"><p class="text-xs text-slate-500 italic py-1 text-center">Sin información capturada.</p></div>`;
 }
 
+/** NUEVO: normaliza el texto de compatibilidad al formato consistente
+ *  "MARCA: modelo1, modelo2, modelo3" (una marca por línea, modelos
+ *  separados por coma) sin importar cómo lo haya tecleado el admin
+ *  (lista con saltos de línea, todo en una línea, mezcla de ambos).
+ *  Usa el MISMO criterio de parseo que _generarHtmlCompatibilidad
+ *  (separa por coma o salto de línea, detecta marca por ":"), así que
+ *  el resultado siempre se re-renderiza igual. Se llama justo antes de
+ *  guardar, igual que ya se hace con Números de Parte Relacionados. */
+function _normalizarCompatibilidad(rawComp) {
+    const texto = (rawComp || "").trim();
+    if (!texto) return "";
+
+    const lineas = texto.split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 0);
+    const grupos = []; // [{ marca, modelos: [] }]
+    let grupoAct = null;
+
+    lineas.forEach(l => {
+        if (l.includes(":")) {
+            const p = l.split(":");
+            grupoAct = { marca: p[0].trim(), modelos: p[1] ? [p[1].trim()] : [] };
+            grupos.push(grupoAct);
+        } else {
+            if (!grupoAct) { grupoAct = { marca: "", modelos: [] }; grupos.push(grupoAct); }
+            grupoAct.modelos.push(l);
+        }
+    });
+
+    return grupos
+        .filter(g => g.modelos.length > 0)
+        .map(g => (g.marca ? `${g.marca}: ` : "") + g.modelos.join(", "))
+        .join("\n");
+}
+
 function abrirDetalleProducto(item) {
     const sku             = item.SKU || "---";
     const titulo          = item.Producto || "Sin Nombre";
@@ -4530,10 +4563,19 @@ function habilitarEdicionFichaCompleta(sku) {
     const familiaUpper = (item.Familia || "").toUpperCase();
     const esBalata = familiaUpper.indexOf("BALATA") !== -1 || familiaUpper.indexOf("ZAPATA") !== -1;
 
-    // Compatibilidad -> textarea
+    // Compatibilidad -> textarea (mismo estilo que Números de Parte
+    // Relacionados: etiqueta + placeholder explicando el formato. El
+    // parseo en _generarHtmlCompatibilidad ya soporta comas o saltos
+    // de línea indistintamente, así que esto es solo una guía visual
+    // para que se capture igual de fácil que los números equivalentes.
     const contCompat = document.getElementById("contenedor-compatibilidad");
     if (contCompat) {
-        contCompat.innerHTML = `<textarea id="edit-compat" class="w-full h-40 bg-slate-900 border border-slate-700 p-3 text-xs text-white rounded-xl">${escaparHTML(item.Compatibilidad || "")}</textarea>`;
+        contCompat.innerHTML = `
+            <div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
+                <label class="text-[10px] text-slate-400 uppercase font-bold">Modelos compatibles (separados por coma, agrupa por marca con "Marca: ")</label>
+                <textarea id="edit-compat" placeholder="ej. VENTO: GT 250 2020, GT 250 2021, Nitrox 250 2022, ITALIKA: FT 150 2019"
+                          class="w-full h-40 bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">${escaparHTML(item.Compatibilidad || "")}</textarea>
+            </div>`;
     }
 
     // Números de parte relacionados -> textarea (solo existe si esAdmin, ya lo es si ve este botón)
@@ -4575,7 +4617,7 @@ function habilitarEdicionFichaCompleta(sku) {
  *  respuesta antes de volver a modo lectura y NUNCA cierra el modal
  *  solo — así el admin ve confirmado que se guardó todo junto. */
 async function guardarFichaCompleta(sku, esBalata) {
-    const compatibilidad = document.getElementById("edit-compat")?.value ?? "";
+    const compatibilidad = _normalizarCompatibilidad(document.getElementById("edit-compat")?.value ?? "");
     const numerosCrudo   = document.getElementById("edit-numparte")?.value ?? "";
     const numeros = [...new Set(
         numerosCrudo.split(/[\s,;]+/).map(n => n.trim().toUpperCase()).filter(n => n.length > 0)
