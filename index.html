@@ -2803,7 +2803,12 @@ function renderizarTarjetasProductos(lista) {
 
     pagina.forEach(item => {
         const div = document.createElement("div");
-        div.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col justify-between transition duration-200 group border-camejo cursor-pointer";
+        // NUEVO: select-none — evita que un tap/long-press en la tarjeta
+        // de vista previa seleccione texto en vez de abrir el detalle
+        // (molesto sobre todo en móvil). El modal de detalle del
+        // producto (abrirDetalleProducto) no lleva esta clase, así que
+        // ahí el texto sigue siendo seleccionable normalmente.
+        div.className = "bg-slate-800 rounded-2xl overflow-hidden border border-slate-700 shadow-xl flex flex-col justify-between transition duration-200 group border-camejo cursor-pointer select-none";
         div.onclick = () => { actualizarTimestampSesion(); abrirDetalleProducto(item); };
 
         const imgUrl = optimizarEnlaceImagen(item.Imagen||"");
@@ -2814,9 +2819,15 @@ function renderizarTarjetasProductos(lista) {
         const existenciasItem = item.Existencias||[];
         const totalStock    = existenciasItem.filter(e=>!e.enTransito).reduce((s,e)=>s+Number(e.cantidad||0),0);
         const totalTransito  = existenciasItem.filter(e=>e.enTransito).reduce((s,e)=>s+Number(e.cantidad||0),0);
+        // NUEVO: el badge rojo "Sin stock" ahora es SOLO para admin (les
+        // sirve para curar el catálogo). Un cliente normal, si no hay
+        // existencia, simplemente no ve ningún badge de cantidad — así
+        // no se le anuncia explícitamente que está agotado.
         const stockBadge = totalStock > 0
             ? `<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-emerald-900/80 text-emerald-300 text-[9px] font-black px-1.5 lg:px-2 py-0.5 rounded-md z-10">${totalStock} pzas</span>`
-            : `<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-red-900/80 text-red-300 text-[9px] font-black px-1.5 lg:px-2 py-0.5 rounded-md z-10">Sin stock</span>`;
+            : (esAdmin
+                ? `<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-red-900/80 text-red-300 text-[9px] font-black px-1.5 lg:px-2 py-0.5 rounded-md z-10">Sin stock</span>`
+                : "");
         // Si también hay badge de Liquidación (franja inferior de ancho
         // completo), el badge de tránsito se recorre un poco hacia arriba
         // para no encimarse con ella.
