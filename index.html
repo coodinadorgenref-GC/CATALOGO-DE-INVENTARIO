@@ -1401,7 +1401,10 @@
 ══════════════════════════════════════════ */
 const API_URL = "https://catalogo-labarata-proxy.catalogo-labarata.workers.dev";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
-const DURACION_RECORDARME_MS = 30 * 60 * 1000;
+// ═══ CORRECCIÓN: eran solo 30 min — prácticamente lo mismo que sin
+// marcar la casilla (15 min), así que "Recuérdame" casi no cambiaba
+// nada en la práctica. 8 horas cubre una jornada laboral completa. ═══
+const DURACION_RECORDARME_MS = 8 * 60 * 60 * 1000;
 let duracionSesionActualMs = TIEMPO_EXPIRACION_MS; // se ajusta según "Recuérdame" al iniciar sesión
 // NOTA: ya no se usa un formulario de Google para las fotos (ver
 // abrirFormularioFoto), así que URL_FORM_ADMIN fue retirado. El
@@ -2037,6 +2040,27 @@ async function heartbeatSesion() {
     } catch { /* sin conexión: se reintenta en el siguiente ciclo */ }
 }
 
+// ═══ CORRECCIÓN: cuando la pestaña vuelve a primer plano (el navegador
+// pausa/atrasa setInterval en segundo plano, sobre todo en celular al
+// bloquear pantalla o cambiar de app), el heartbeat pudo haberse
+// saltado varios ciclos. Antes esto se descubría hasta el SIGUIENTE
+// heartbeat de 3 min — si el servidor ya había expirado la sesión (a
+// los 15 min fijos) mientras tanto, el usuario era expulsado justo al
+// "seguir usándola". Ahora, al recuperar el foco, se revalida DE
+// INMEDIATO y se trata como actividad real. ═══
+document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && usuarioActual && tokenActual) {
+        reiniciarTemporizadorInactividad();
+        heartbeatSesion();
+    }
+});
+window.addEventListener("focus", function () {
+    if (usuarioActual && tokenActual) {
+        reiniciarTemporizadorInactividad();
+        heartbeatSesion();
+    }
+});
+
 /** Cualquier respuesta del servidor puede traer sesionInvalida:true (la
  *  barrera de seguridad en doPost la agrega si el token ya no es una
  *  sesión activa y vigente) — desde donde se detecte, se reacciona igual:
@@ -2052,14 +2076,27 @@ function manejarSesionInvalidaDelServidor(motivo) {
 function iniciarControlDeSesion() {
     detenerControlDeSesion();
     reiniciarTemporizadorInactividad();
-    EVENTOS_ACTIVIDAD_SESION.forEach(ev => document.addEventListener(ev, reiniciarTemporizadorInactividad, { passive: true }));
+    // ═══ CORRECCIÓN: "scroll" NO burbujea hasta document cuando ocurre
+    // dentro de un panel/lista interna con su propio overflow (a
+    // diferencia de mousedown/keydown/touchstart, que sí burbujean).
+    // Alguien scrolleando el catálogo dentro de un contenedor interno
+    // durante varios minutos no generaba NINGÚN evento de actividad, y
+    // el temporizador local lo cerraba por "inactividad" aunque
+    // estuviera justo ahí, viendo productos. Con capture:true sí se
+    // detecta, porque intercepta el evento en su camino hacia abajo,
+    // antes de que "no burbujee" hacia arriba. ═══
+    document.addEventListener("scroll", reiniciarTemporizadorInactividad, { passive: true, capture: true });
+    EVENTOS_ACTIVIDAD_SESION.filter(ev => ev !== "scroll")
+        .forEach(ev => document.addEventListener(ev, reiniciarTemporizadorInactividad, { passive: true }));
     intervaloHeartbeatSesion = setInterval(heartbeatSesion, HEARTBEAT_SESION_MS);
 }
 
 function detenerControlDeSesion() {
     clearTimeout(temporizadorInactividad);
     clearInterval(intervaloHeartbeatSesion);
-    EVENTOS_ACTIVIDAD_SESION.forEach(ev => document.removeEventListener(ev, reiniciarTemporizadorInactividad));
+    document.removeEventListener("scroll", reiniciarTemporizadorInactividad, { capture: true });
+    EVENTOS_ACTIVIDAD_SESION.filter(ev => ev !== "scroll")
+        .forEach(ev => document.removeEventListener(ev, reiniciarTemporizadorInactividad));
 }
 
 function cerrarSesion() {
@@ -2083,7 +2120,12 @@ async function manejarInicioDeSesion() {
     ocultarErrorLogin(errorEl); btnEl.disabled = true; btnEl.innerText = "Verificando...";
     try {
         const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-            body: JSON.stringify({ action:"login", correo: valorIngresado, codigoAcceso: pinIngresado, dispositivo: (navigator.userAgent||"").slice(0,180) }) });
+            body: JSON.stringify({ action:"login", correo: valorIngresado, codigoAcceso: pinIngresado, dispositivo: (navigator.userAgent||"").slice(0,180),
+                // NUEVO: el servidor necesita saber esto para expirar la
+                // sesión con el mismo criterio que el cliente — antes
+                // "Recuérdame" solo vivía en el navegador y el servidor
+                // igual mataba la sesión a los 15 min fijos.
+                recordarme: document.getElementById("input-recordarme")?.checked || false }) });
         const rs = await r.json();
         if (rs.success) {
             // Usamos el identificador REAL que regresa el backend (correo dado de alta),
@@ -6083,14 +6125,19 @@ document.addEventListener("keydown", function (e) {
     return;
   }
 
+  // ═══ CORRECCIÓN: apuntaban a "btn-edicion", id que ya no existe desde
+  // que la edición se unificó en un solo botón "Editar Ficha"
+  // (id="btn-edicion-ficha"). Por eso el atajo dejaba de responder por
+  // completo tras esa refactorización — el elemento nunca se encontraba
+  // y el "if (btn)" simplemente no hacía nada, en silencio. ═══
   if (tecla === "c" && modalDetalleAbierto && !enModoEdicionCompat) {
-    const btn = document.getElementById("btn-edicion");
+    const btn = document.getElementById("btn-edicion-ficha");
     if (btn) { e.preventDefault(); btn.click(); }
     return;
   }
 
   if (tecla === "g" && modalDetalleAbierto && enModoEdicionCompat) {
-    const btn = document.getElementById("btn-edicion");
+    const btn = document.getElementById("btn-edicion-ficha");
     if (btn) { e.preventDefault(); btn.click(); }
     return;
   }
