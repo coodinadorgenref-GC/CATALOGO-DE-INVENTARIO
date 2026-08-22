@@ -1401,10 +1401,9 @@
 ══════════════════════════════════════════ */
 const API_URL = "https://catalogo-labarata-proxy.catalogo-labarata.workers.dev";
 const TIEMPO_EXPIRACION_MS = 15 * 60 * 1000;
-// ═══ CORRECCIÓN: eran solo 30 min — prácticamente lo mismo que sin
-// marcar la casilla (15 min), así que "Recuérdame" casi no cambiaba
-// nada en la práctica. 8 horas cubre una jornada laboral completa. ═══
-const DURACION_RECORDARME_MS = 8 * 60 * 60 * 1000;
+// Duración con "Recuérdame" marcado: 1 hora. Sin marcarla, se usa
+// TIEMPO_EXPIRACION_MS (15 min), definido más arriba.
+const DURACION_RECORDARME_MS = 60 * 60 * 1000;
 let duracionSesionActualMs = TIEMPO_EXPIRACION_MS; // se ajusta según "Recuérdame" al iniciar sesión
 // NOTA: ya no se usa un formulario de Google para las fotos (ver
 // abrirFormularioFoto), así que URL_FORM_ADMIN fue retirado. El
@@ -4564,6 +4563,12 @@ const bannerLiquidacion = _itemTieneLiquidacionVisible(item)
     `;
     renderizarGaleria();
     alternarModal();
+    // NUEVO: si el admin/cliente ya había scrolleado hacia abajo en una
+    // tarjeta anterior (ej. hasta Compatibilidad), al abrir OTRA
+    // tarjeta el contenedor conservaba esa misma posición de scroll en
+    // vez de abrir siempre desde arriba. Se resetea explícitamente acá.
+    const modalContenido = document.getElementById("modal-contenido");
+    if (modalContenido) modalContenido.scrollTop = 0;
 }
 
 function agregarAlCarritoDesdeModal(sku, nombre, marca, imagen, existencias, enLiquidacion) {
@@ -6130,7 +6135,13 @@ document.addEventListener("keydown", function (e) {
   // (id="btn-edicion-ficha"). Por eso el atajo dejaba de responder por
   // completo tras esa refactorización — el elemento nunca se encontraba
   // y el "if (btn)" simplemente no hacía nada, en silencio. ═══
-  if (tecla === "c" && modalDetalleAbierto && !enModoEdicionCompat) {
+  // ═══ CORRECCIÓN: el botón muestra "Editar Ficha" (con la E
+  // subrayada como pista visual), pero este atajo seguía escuchando la
+  // tecla "c" — un shortcut que ya no se le indica al usuario en
+  // ningún lado. Ahora escucha "e", que es justo lo que el botón
+  // muestra. "g" (Guardar) sí coincidía con "Guardar Todo", se deja
+  // igual. ═══
+  if (tecla === "e" && modalDetalleAbierto && !enModoEdicionCompat) {
     const btn = document.getElementById("btn-edicion-ficha");
     if (btn) { e.preventDefault(); btn.click(); }
     return;
