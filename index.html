@@ -816,6 +816,18 @@
             </div>
         </div>
         <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mt-7">Preparando tu camino...</p>
+
+        <!-- NUEVO: si no hay caché local Y falla la carga (sin señal / muy
+             lenta), en vez de dejar la moto girando para siempre, se
+             muestra este aviso con botón para reintentar. -->
+        <div id="aviso-sin-conexion" class="hidden flex-col items-center gap-3 mt-6 text-center max-w-xs">
+            <i class="fa-solid fa-wifi-slash text-3xl text-slate-500"></i>
+            <p class="text-sm text-slate-400">No se pudo cargar el catálogo. Revisa tu conexión a internet.</p>
+            <button onclick="reintentarCargaInventario()"
+                    class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-wide px-4 py-2 rounded-xl">
+                <i class="fa-solid fa-rotate-right mr-1"></i> Reintentar
+            </button>
+        </div>
     </div>
 
     <!-- ── OVERLAY del drawer de filtros ── -->
@@ -2201,11 +2213,20 @@ async function obtenerInventarioDesdeServidor() {
         }
     }
     try {
+        // NUEVO: con señal muy débil (no offline total) fetch() puede
+        // tardar muchísimo en fallar — eso se siente igual que "pantalla
+        // congelada". Con AbortController lo cortamos a los 10s.
+        const controlador = new AbortController();
+        const temporizadorAbortar = setTimeout(() => controlador.abort(), 10000);
+
         const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-                                          body: JSON.stringify({ action:"obtenerInventario", token: tokenActual, correo: usuarioActual }) });
+                                          body: JSON.stringify({ action:"obtenerInventario", token: tokenActual, correo: usuarioActual }),
+                                          signal: controlador.signal });
+        clearTimeout(temporizadorAbortar);
         const rs = await r.json();
         if (rs.sesionInvalida) { manejarSesionInvalidaDelServidor(rs.message); return; }
         if (rs.success) {
+            ocultarAvisoSinConexion();
             renderizarCarruselMarcas(rs.marcasDestacadas || []);
             const dataStr = JSON.stringify(rs.data);
             // Solo re-renderizar si los datos cambiaron (evita doble render en iOS)
@@ -2229,7 +2250,29 @@ async function obtenerInventarioDesdeServidor() {
                 }
             }
         }
-    } catch (e) { console.error("Error red:", e); }
+    } catch (e) {
+        console.error("Error red:", e);
+        // NUEVO: si no había caché para mostrar, la pantalla de carga se
+        // quedaba girando para siempre sin avisar nada. Ahora, solo en
+        // ese caso, se muestra el aviso de "sin conexión" con reintentar.
+        if (!cache) mostrarAvisoSinConexion();
+    }
+}
+
+/** Muestra el aviso de "sin conexión" debajo de la animación de carga
+ *  (sin ocultar la animación — solo se agrega el mensaje y el botón). */
+function mostrarAvisoSinConexion() {
+    const aviso = document.getElementById("aviso-sin-conexion");
+    if (aviso) { aviso.classList.remove("hidden"); aviso.classList.add("flex"); }
+}
+function ocultarAvisoSinConexion() {
+    const aviso = document.getElementById("aviso-sin-conexion");
+    if (aviso) { aviso.classList.add("hidden"); aviso.classList.remove("flex"); }
+}
+/** Botón "Reintentar" del aviso de sin conexión. */
+function reintentarCargaInventario() {
+    ocultarAvisoSinConexion();
+    obtenerInventarioDesdeServidor();
 }
 
 function procesarDespuesDeCarga() {
@@ -2439,6 +2482,24 @@ function _productoSinStock(item) {
     const exs = item.Existencias || [];
     const totalDisponible = exs.filter(e => !e.enTransito).reduce((s,e) => s + Number(e.cantidad||0), 0);
     return totalDisponible === 0;
+}
+
+/** ¿Este producto tiene AL MENOS una existencia "en camino" (tránsito)
+ *  con cantidad > 0? Se usa para decidir si un producto sin stock real
+ *  igual se le muestra al cliente (porque viene en camino) o se le
+ *  oculta por completo. */
+function _productoTieneTransito(item) {
+    const exs = item.Existencias || [];
+    return exs.some(e => e.enTransito && Number(e.cantidad||0) > 0);
+}
+
+/** NUEVO — Un producto sin NADA de existencia real (ni disponible ni en
+ *  camino) se oculta por completo del catálogo del cliente: no aparece
+ *  en la lista ni en resultados de búsqueda. El admin siempre lo sigue
+ *  viendo (le sirve para curar el catálogo, con el filtro "Sin stock"). */
+function _productoOcultoParaCliente(item) {
+    if (esAdmin) return false;
+    return _productoSinStock(item) && !_productoTieneTransito(item);
 }
 
 function limpiarSeleccionFamilias() { familiaSeleccionadaActual=[]; limpiarBuscadorFamilia(); renderizarFiltrosFamilia(); filtrarProductos(); }
@@ -2797,6 +2858,9 @@ let filtrados = inventarioMaestro.filter(item => {
         }
         if (filtroSinImagenActivo && !_productoSinImagen(item)) return false;
         if (filtroSinStockActivo && !_productoSinStock(item)) return false;
+        // NUEVO: producto sin existencia real (ni en camino) -> invisible
+        // para el cliente. El admin nunca se ve afectado por esta línea.
+        if (_productoOcultoParaCliente(item)) return false;
         if (marcaSeleccionadaActual.length > 0 && !marcaSeleccionadaActual.includes((item.Marca||"").trim())) return false;
         if (familiaSeleccionadaActual.length > 0 && !familiaSeleccionadaActual.includes((item.Familia||"Sin Familia").trim())) return false;
         if (agencia) { const exs = item.Existencias||[]; if (!exs.some(e => e.sucursal === agencia)) return false; }
