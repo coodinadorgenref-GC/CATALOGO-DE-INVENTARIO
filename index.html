@@ -2923,7 +2923,14 @@ function renderizarTarjetasProductos(lista) {
         // sucursal ya lo tiene cuando en realidad todavía viene en camino.
         const existenciasItem = item.Existencias||[];
         const totalStock    = existenciasItem.filter(e=>!e.enTransito).reduce((s,e)=>s+Number(e.cantidad||0),0);
-        const totalTransito  = existenciasItem.filter(e=>e.enTransito).reduce((s,e)=>s+Number(e.cantidad||0),0);
+        // NUEVO: al admin solo se le suma el tránsito que pertenece a SU
+        // PROPIA sucursal (columna H de Usuarios_Autorizados) — ya no ve
+        // lo que viene en camino para otras agencias. Al cliente no le
+        // afecta (siempre ve el tránsito de las sucursales de su zona,
+        // igual que antes).
+        const totalTransito  = existenciasItem
+            .filter(e => e.enTransito && (!esAdmin || _adminVeAlmacenSucursal(e.sucursal)))
+            .reduce((s,e)=>s+Number(e.cantidad||0),0);
         // NUEVO: el badge rojo "Sin stock" ahora es SOLO para admin (les
         // sirve para curar el catálogo). Un cliente normal, si no hay
         // existencia, simplemente no ve ningún badge de cantidad — así
@@ -4465,15 +4472,21 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
 }
 
     // Existencias
+    // NUEVO: al admin se le oculta el tránsito de sucursales que no son
+    // la suya propia (columna H) — lo disponible de otras agencias se
+    // sigue mostrando igual que siempre, solo se restringe "por llegar".
+    const inventariosVisibles = esAdmin
+        ? inventarios.filter(inv => !inv.enTransito || _adminVeAlmacenSucursal(inv.sucursal))
+        : inventarios;
     let htmlExistencias = "";
-    if (inventarios.length > 0) {
+    if (inventariosVisibles.length > 0) {
         htmlExistencias = `
         <div class="mt-4 p-4 bg-slate-900/60 rounded-xl border border-slate-700/50 mb-4">
             <p class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">
                 <i class="fa-solid fa-layer-group mr-1.5"></i> Agencias y Disponibilidad:
             </p>
             <div class="max-h-[220px] overflow-y-auto flex flex-col gap-2 pr-1">
-                ${inventarios.map(inv => {
+                ${inventariosVisibles.map(inv => {
                     const grupo = detectarGrupoSucursal(inv.sucursal);
                     const tagClass = `tag-agencia tag-${grupo}`;
                     const enTransito = !!inv.enTransito;
