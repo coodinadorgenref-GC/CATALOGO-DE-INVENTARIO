@@ -2215,9 +2215,11 @@ async function obtenerInventarioDesdeServidor() {
     try {
         // NUEVO: con señal muy débil (no offline total) fetch() puede
         // tardar muchísimo en fallar — eso se siente igual que "pantalla
-        // congelada". Con AbortController lo cortamos a los 10s.
+        // congelada". Con AbortController lo cortamos, dejando margen
+        // amplio (30s) para no confundir una carga lenta-pero-real
+        // (Apps Script con caché vencido, señal débil) con un fallo.
         const controlador = new AbortController();
-        const temporizadorAbortar = setTimeout(() => controlador.abort(), 10000);
+        const temporizadorAbortar = setTimeout(() => controlador.abort(), 30000);
 
         const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
                                           body: JSON.stringify({ action:"obtenerInventario", token: tokenActual, correo: usuarioActual }),
