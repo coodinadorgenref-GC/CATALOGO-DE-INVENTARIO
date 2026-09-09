@@ -822,7 +822,7 @@
              muestra este aviso con botón para reintentar. -->
         <div id="aviso-sin-conexion" class="hidden flex-col items-center gap-3 mt-6 text-center max-w-xs">
             <i class="fa-solid fa-wifi-slash text-3xl text-slate-500"></i>
-            <p id="aviso-sin-conexion-texto" class="text-sm text-slate-400">No se pudo cargar el catálogo. Revisa tu conexión a internet.</p>
+            <p class="text-sm text-slate-400">No se pudo cargar el catálogo. Revisa tu conexión a internet.</p>
             <button onclick="reintentarCargaInventario()"
                     class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-wide px-4 py-2 rounded-xl">
                 <i class="fa-solid fa-rotate-right mr-1"></i> Reintentar
@@ -2251,17 +2251,6 @@ async function obtenerInventarioDesdeServidor() {
                     procesarDespuesDeCarga();
                 }
             }
-        } else {
-            // NUEVO: el servidor SÍ respondió (no fue un fallo de red, así
-            // que el catch de abajo nunca se disparaba) pero con
-            // success:false — por ejemplo un error interno de Apps Script
-            // (hoja renombrada, cuota agotada, permisos revocados, etc.).
-            // Antes esta rama no existía y el spinner se quedaba girando
-            // para siempre sin avisar nada. Ahora se muestra el aviso de
-            // "sin conexión" (reutilizado) con el mensaje real del
-            // servidor, solo si no había caché que mostrar mientras tanto.
-            console.error("Respuesta del servidor sin éxito:", rs.message);
-            if (!cache) mostrarAvisoSinConexion(rs.message);
         }
     } catch (e) {
         console.error("Error red:", e);
@@ -2273,18 +2262,9 @@ async function obtenerInventarioDesdeServidor() {
 }
 
 /** Muestra el aviso de "sin conexión" debajo de la animación de carga
- *  (sin ocultar la animación — solo se agrega el mensaje y el botón).
- *  NUEVO: acepta un mensaje opcional (por ejemplo, el mensaje real que
- *  regresó el servidor cuando success:false) — si no se pasa nada, usa
- *  el texto genérico de "revisa tu conexión" de siempre. */
-function mostrarAvisoSinConexion(mensaje) {
+ *  (sin ocultar la animación — solo se agrega el mensaje y el botón). */
+function mostrarAvisoSinConexion() {
     const aviso = document.getElementById("aviso-sin-conexion");
-    const texto = document.getElementById("aviso-sin-conexion-texto");
-    if (texto) {
-        texto.textContent = mensaje
-            ? "No se pudo cargar el catálogo: " + mensaje
-            : "No se pudo cargar el catálogo. Revisa tu conexión a internet.";
-    }
     if (aviso) { aviso.classList.remove("hidden"); aviso.classList.add("flex"); }
 }
 function ocultarAvisoSinConexion() {
