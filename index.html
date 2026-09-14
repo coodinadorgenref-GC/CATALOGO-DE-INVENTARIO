@@ -163,11 +163,14 @@
             /* NUEVO: en escritorio el botón "Actualizar" vivía pegado a la
                línea del título (arriba), mientras la barra de búsqueda se
                centra verticalmente dentro del header. Se baja SOLO en Y
-               (con transform, no afecta su posición horizontal ni el
-               layout de nada más) para que quede a la misma altura que
-               la barra de búsqueda. Ajusta el valor si cambia el
+               (con transform, no afecta su posición horizontal). El
+               transform no reserva espacio propio, así que se le suma el
+               mismo desplazamiento como margen a la línea de
+               "Usuario: ..." de abajo — si no, el botón queda encimado
+               sobre ese texto. Ajusta ambos valores juntos si cambia el
                contenido del bloque del logo. */
-            #btn-actualizar-inventario { transform: translateY(14px); }
+            #btn-actualizar-inventario { transform: translateY(6px); }
+            #header-info-usuario { margin-top: 6px; }
         }
 
         /* ══ TARJETAS 2 COLUMNAS EN MÓVIL ══════════════════════════ */
