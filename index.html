@@ -1461,7 +1461,8 @@ let usuarioActual            = "";
 let tokenActual               = "";
 let esAdmin                  = false;
 let almacenAdminActual        = ""; // Columna H del admin logueado (vacío si es usuario normal)
-let accesoNumeroParteBajaj = false;    
+let accesoNumeroParteBajaj = false;
+let accesoOfflinePermitido = false; // NUEVO — solo cuentas autorizadas conservan sesión/catálogo sin internet
 
 /** Normaliza un texto de almacén: mayúsculas, sin acentos, sin espacios extra. */
 function _normalizarAlmacenJS(texto) {
@@ -1956,17 +1957,29 @@ function verificarSesionGuardada() {
     const s = JSON.parse(str);
         duracionSesionActualMs = s.duracionMs || TIEMPO_EXPIRACION_MS;
         if (new Date().getTime() - s.timestamp > duracionSesionActualMs) {
-        // Liberamos el lugar de esa sesión vencida usando sus propios datos
-        // (usuarioActual/tokenActual todavía no se han asignado en esta carga).
-        try {
-            const payload = JSON.stringify({ action: "cerrarSesionServidor", correo: s.correo, token: s.token });
-            navigator.sendBeacon(API_URL, new Blob([payload], { type: "text/plain" }));
-        } catch {}
-        localStorage.removeItem("sesion_catalogo");
-        localStorage.removeItem("inventario_cache"); // NUEVO
-        location.reload();
-        return;
+        if (!navigator.onLine && s.accesoOffline) {
+            // Cuenta autorizada para trabajar sin internet + sin señal ahora
+            // mismo: NO borramos nada a ciegas. Entra con lo que ya tiene
+            // guardado; en cuanto vuelva la señal, el heartbeat normal
+            // confirma si la sesión sigue siendo válida en el servidor.
+            usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false;
+            almacenAdminActual = s.almacenAdmin || "";
+            accesoNumeroParteBajaj = s.accesoNumeroParteBajaj || false;
+            accesoOfflinePermitido = true;
+        } else {
+            // Liberamos el lugar de esa sesión vencida usando sus propios datos
+            // (usuarioActual/tokenActual todavía no se han asignado en esta carga).
+            try {
+                const payload = JSON.stringify({ action: "cerrarSesionServidor", correo: s.correo, token: s.token });
+                navigator.sendBeacon(API_URL, new Blob([payload], { type: "text/plain" }));
+            } catch {}
+            localStorage.removeItem("sesion_catalogo");
+            localStorage.removeItem("inventario_cache"); // NUEVO
+            location.reload();
+            return;
+        }
     }
+    accesoOfflinePermitido = s.accesoOffline || false;
     usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false;
     almacenAdminActual = s.almacenAdmin || "";
     accesoNumeroParteBajaj = s.accesoNumeroParteBajaj || false;
@@ -1986,10 +1999,11 @@ function verificarSesionGuardada() {
     iniciarControlDeSesion();
 }
 
-function guardarSesionEnDispositivo(correo, token, nombre, admin, rol, almacenAdmin, accesoNumParteBajaj, duracionMs) {
+function guardarSesionEnDispositivo(correo, token, nombre, admin, rol, almacenAdmin, accesoNumParteBajaj, duracionMs, accesoOffline) {
     localStorage.setItem("sesion_catalogo", JSON.stringify({
         correo, token, nombre, esAdmin: admin, rol: rol || "",
         almacenAdmin: almacenAdmin || "", accesoNumeroParteBajaj: !!accesoNumParteBajaj,
+        accesoOffline: !!accesoOffline,
         duracionMs: duracionMs || TIEMPO_EXPIRACION_MS,
         timestamp: new Date().getTime()
     }));
@@ -2032,6 +2046,13 @@ function reiniciarTemporizadorInactividad() {
 }
 
 function cerrarSesionPorInactividad() {
+    if (!navigator.onLine && accesoOfflinePermitido) {
+        // Sin señal y cuenta autorizada: no cerramos nada — reprogramamos
+        // el chequeo para más tarde. En cuanto vuelva la conexión, el
+        // heartbeat normal (cada 3 min) confirma contra el servidor.
+        temporizadorInactividad = setTimeout(cerrarSesionPorInactividad, HEARTBEAT_SESION_MS);
+        return;
+    }
     _liberarSesionEnServidor();
     detenerControlDeSesion();
     localStorage.removeItem("sesion_catalogo");
@@ -2156,7 +2177,8 @@ async function manejarInicioDeSesion() {
             document.getElementById("rol-usuario-wrapper").classList.toggle("hidden", !rs.rol);
             const recordarme = document.getElementById("input-recordarme")?.checked || false;
             duracionSesionActualMs = recordarme ? DURACION_RECORDARME_MS : TIEMPO_EXPIRACION_MS;
-            guardarSesionEnDispositivo(usuarioActual, rs.token, rs.nombre, esAdmin, rs.rol, almacenAdminActual, accesoNumeroParteBajaj, duracionSesionActualMs);
+            accesoOfflinePermitido = rs.accesoOffline || false;
+            guardarSesionEnDispositivo(usuarioActual, rs.token, rs.nombre, esAdmin, rs.rol, almacenAdminActual, accesoNumeroParteBajaj, duracionSesionActualMs, accesoOfflinePermitido);
             document.getElementById("vista-login").classList.add("hidden");
             document.getElementById("vista-catalogo").classList.remove("hidden");
             document.getElementById("cargando-datos").classList.remove("hidden");
