@@ -160,6 +160,14 @@
         }
         @media (min-width: 1024px) {
             #barra-movil { display: none !important; }
+            /* NUEVO: en escritorio el botón "Actualizar" vivía pegado a la
+               línea del título (arriba), mientras la barra de búsqueda se
+               centra verticalmente dentro del header. Se baja SOLO en Y
+               (con transform, no afecta su posición horizontal ni el
+               layout de nada más) para que quede a la misma altura que
+               la barra de búsqueda. Ajusta el valor si cambia el
+               contenido del bloque del logo. */
+            #btn-actualizar-inventario { transform: translateY(14px); }
         }
 
         /* ══ TARJETAS 2 COLUMNAS EN MÓVIL ══════════════════════════ */
@@ -648,7 +656,7 @@
                         <h2 onclick="irAInicioLimpio()" title="Ir al inicio"
                             class="text-sm lg:text-lg font-black tracking-tight uppercase leading-tight whitespace-nowrap cursor-pointer hover:text-emerald-400 transition">La Barata del Hogar</h2>
                         <!-- Botón Actualizar — junto al logo, siempre visible -->
-                        <button onclick="forzarSincronizacionDatos()" title="Actualizar inventario"
+                        <button id="btn-actualizar-inventario" onclick="forzarSincronizacionDatos()" title="Actualizar inventario"
                                 class="flex items-center gap-1 bg-slate-700 hover:bg-emerald-600 text-white text-[10px] font-bold px-2 py-1 rounded-lg transition cursor-pointer shrink-0 h-[26px]">
                             <i class="fa-solid fa-rotate text-[10px]" id="icono-sincronizar"></i>
                             <span id="texto-sincronizar" class="hidden sm:inline">Actualizar</span>
@@ -716,6 +724,16 @@
                           class="hidden absolute -top-1.5 -right-1.5 bg-emerald-500 text-white text-[9px] font-black rounded-full min-w-[16px] h-4 px-1 items-center justify-center leading-none">0</span>
                 </button>
             </div>
+
+            <!-- NUEVO: indicador de estado de conexión — verde "En línea" /
+                 gris opaco "Sin conexión". Se actualiza solo, con
+                 navigator.onLine y los eventos online/offline (ver
+                 actualizarIndicadorConexion en el JS). -->
+            <span id="indicador-conexion" title="Estado de conexión"
+                  class="shrink-0 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide px-2.5 rounded-xl h-[38px] border bg-slate-800/60 border-slate-700 text-slate-500">
+                <span id="punto-indicador-conexion" class="w-2 h-2 rounded-full shrink-0 bg-slate-500"></span>
+                <span id="texto-indicador-conexion" class="hidden sm:inline">Sin conexión</span>
+            </span>
 
             <!-- Cerrar sesión — punto 3: más grande y siempre visible -->
             <button onclick="cerrarSesion()"
@@ -1943,11 +1961,38 @@ function dispararSalidaAnimacionMoto(callback) {
     }, espera);
 }
 
+/* ══════════════════════════════════════════
+   INDICADOR DE ESTADO DE CONEXIÓN (verde "En línea" / gris "Sin
+   conexión"), visible en el header entre "Usuarios conectados" y
+   "Cerrar Sesión". Se recalcula con navigator.onLine y se mantiene al
+   día con los eventos "online"/"offline" del navegador — no hace
+   falta ningún polling.
+══════════════════════════════════════════ */
+function actualizarIndicadorConexion() {
+    const cont  = document.getElementById("indicador-conexion");
+    const punto = document.getElementById("punto-indicador-conexion");
+    const texto = document.getElementById("texto-indicador-conexion");
+    if (!cont || !punto || !texto) return;
+
+    if (navigator.onLine) {
+        cont.className  = "shrink-0 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide px-2.5 rounded-xl h-[38px] border bg-emerald-950/60 border-emerald-800 text-emerald-400";
+        punto.className = "w-2 h-2 rounded-full shrink-0 bg-emerald-400";
+        texto.textContent = "En línea";
+    } else {
+        cont.className  = "shrink-0 flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wide px-2.5 rounded-xl h-[38px] border bg-slate-800/60 border-slate-700 text-slate-500";
+        punto.className = "w-2 h-2 rounded-full shrink-0 bg-slate-500";
+        texto.textContent = "Sin conexión";
+    }
+}
+window.addEventListener("online", actualizarIndicadorConexion);
+window.addEventListener("offline", actualizarIndicadorConexion);
+
 window.onload = function () {
     iniciarAnimacionMoto();
     // Ocultado inicial con style.display para que iOS Safari no lo ignore
     _mostrarBotonFlotante("btn-carrito-flotante", false);
     _mostrarBotonFlotante("btn-cotizaciones-admin", false);
+    actualizarIndicadorConexion();
     verificarSesionGuardada();
 };
 
