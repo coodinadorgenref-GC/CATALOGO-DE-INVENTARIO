@@ -75,11 +75,13 @@
             color: #22b14c; font-size: 13px; text-transform: uppercase; font-weight: 800;
             margin: 0 0 10px 0; letter-spacing: .5px; border-bottom: 1px solid #23324d;
             padding-bottom: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+            gap: 8px; overflow-wrap: anywhere; word-break: break-word;
         }
         .lista-compatibilidad-modal { list-style: none; padding: 0; margin: 0; }
         .lista-compatibilidad-modal li {
             position: relative; padding-left: 1.25rem; margin-bottom: .35rem;
             color: #cbd5e1; font-size: 13px; font-weight: 500; line-height: 1.4;
+            overflow-wrap: anywhere; word-break: break-word;
         }
         .lista-compatibilidad-modal li::before {
             content: "•"; color: #22b14c; font-weight: bold; font-size: 1.2rem;
@@ -1065,10 +1067,10 @@
 <div id="modal-detalles"
      class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300"
      onclick="cerrarModalExterno(event)">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto transform translate-y-4 transition-transform duration-300 relative" id="modal-contenido">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto overflow-x-hidden transform translate-y-4 transition-transform duration-300 relative" id="modal-contenido">
         <button onclick="alternarModal()"
                 class="absolute top-4 right-4 text-slate-400 hover:text-white bg-slate-900/50 hover:bg-slate-900 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer text-xl z-10">×</button>
-        <div id="modal-cuerpo" class="p-6"></div>
+        <div id="modal-cuerpo" class="p-6 break-words"></div>
     </div>
 </div>
 
