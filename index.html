@@ -2284,63 +2284,84 @@ async function obtenerInventarioDesdeServidor() {
             localStorage.removeItem("inventario_cache");
         }
     }
-    try {
-        // NUEVO: con señal muy débil (no offline total) fetch() puede
-        // tardar muchísimo en fallar — eso se siente igual que "pantalla
-        // congelada". Con AbortController lo cortamos, dejando margen
-        // amplio (30s) para no confundir una carga lenta-pero-real
-        // (Apps Script con caché vencido, señal débil) con un fallo.
-        const controlador = new AbortController();
-        const temporizadorAbortar = setTimeout(() => controlador.abort(), 30000);
+    // NUEVO: reintento automático ante fallos transitorios (Apps Script
+    // devolviendo una página de error HTML en vez de JSON, un timeout
+    // puntual, "cold start" del Worker, etc.). Un solo reintento, con
+    // una pausa corta, es suficiente para que estos hiccups pasajeros
+    // ni se le noten al usuario — antes cualquiera de estos casos
+    // mandaba directo a "no se pudo cargar el catálogo" aunque
+    // segundos después la misma petición funcionara perfecto.
+    const MAX_INTENTOS_INVENTARIO = 2;
+    const ESPERA_ENTRE_REINTENTOS_MS = 1500;
 
-        const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-                                          body: JSON.stringify({ action:"obtenerInventario", token: tokenActual, correo: usuarioActual }),
-                                          signal: controlador.signal });
-        clearTimeout(temporizadorAbortar);
-        const rs = await r.json();
-        if (rs.sesionInvalida) { manejarSesionInvalidaDelServidor(rs.message); return; }
-        if (rs.success) {
-            ocultarAvisoSinConexion();
-            renderizarCarruselMarcas(rs.marcasDestacadas || []);
-            const dataStr = JSON.stringify(rs.data);
-            // Solo re-renderizar si los datos cambiaron (evita doble render en iOS)
-            if (!cache || cache !== dataStr) {
-                inventarioMaestro = rs.data;
-                try { localStorage.setItem("inventario_cache", dataStr); } catch {}
-                // Si ya había caché visible, solo actualizamos filtros y catálogo sin mostrar spinner
-                if (cache) {
-                    renderizarFiltrosFamilia();
-                    renderizarFiltrosMarcas();
-                    const sel = document.getElementById("filtro-agencia");
-                    if (sel) {
-                        const valorPrevio = sel.value; // NUEVO: no perder la agencia seleccionada al reconstruir
-                        while(sel.options.length>1) sel.remove(1);
-                        poblarSelectAgencias();
-                        if (valorPrevio && [...sel.options].some(o => o.value === valorPrevio)) sel.value = valorPrevio;
+    for (let intento = 1; intento <= MAX_INTENTOS_INVENTARIO; intento++) {
+        const esUltimoIntento = intento === MAX_INTENTOS_INVENTARIO;
+        try {
+            // Con señal muy débil (no offline total) fetch() puede tardar
+            // muchísimo en fallar — eso se siente igual que "pantalla
+            // congelada". Con AbortController lo cortamos, dejando margen
+            // amplio (30s) para no confundir una carga lenta-pero-real
+            // (Apps Script con caché vencido, señal débil) con un fallo.
+            const controlador = new AbortController();
+            const temporizadorAbortar = setTimeout(() => controlador.abort(), 30000);
+
+            const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+                                              body: JSON.stringify({ action:"obtenerInventario", token: tokenActual, correo: usuarioActual }),
+                                              signal: controlador.signal });
+            clearTimeout(temporizadorAbortar);
+            // NUEVO: si Apps Script/el Worker regresó una página HTML de
+            // error en vez de JSON, r.json() lanzaría un SyntaxError que
+            // antes se confundía con un fallo de red genérico. Se valida
+            // aparte para poder reintentar con el mismo criterio que un
+            // error de red real.
+            const rs = await r.json();
+            if (rs.sesionInvalida) { manejarSesionInvalidaDelServidor(rs.message); return; }
+            if (rs.success) {
+                ocultarAvisoSinConexion();
+                renderizarCarruselMarcas(rs.marcasDestacadas || []);
+                const dataStr = JSON.stringify(rs.data);
+                // Solo re-renderizar si los datos cambiaron (evita doble render en iOS)
+                if (!cache || cache !== dataStr) {
+                    inventarioMaestro = rs.data;
+                    try { localStorage.setItem("inventario_cache", dataStr); } catch {}
+                    // Si ya había caché visible, solo actualizamos filtros y catálogo sin mostrar spinner
+                    if (cache) {
+                        renderizarFiltrosFamilia();
+                        renderizarFiltrosMarcas();
+                        const sel = document.getElementById("filtro-agencia");
+                        if (sel) {
+                            const valorPrevio = sel.value; // NUEVO: no perder la agencia seleccionada al reconstruir
+                            while(sel.options.length>1) sel.remove(1);
+                            poblarSelectAgencias();
+                            if (valorPrevio && [...sel.options].some(o => o.value === valorPrevio)) sel.value = valorPrevio;
+                        }
+                        requestAnimationFrame(() => filtrarProductos());
+                    } else {
+                        procesarDespuesDeCarga();
                     }
-                    requestAnimationFrame(() => filtrarProductos());
-                } else {
-                    procesarDespuesDeCarga();
                 }
+                return; // éxito: no hace falta reintentar
+            } else {
+                // El servidor SÍ respondió (no fue un fallo de red) pero
+                // con success:false — por ejemplo un error interno de
+                // Apps Script (hoja renombrada, cuota agotada, permisos
+                // revocados, etc.). Se reintenta igual, por si fue algo
+                // pasajero (p. ej. choque con otra ejecución concurrente).
+                console.error("Respuesta del servidor sin éxito (intento " + intento + "/" + MAX_INTENTOS_INVENTARIO + "):", rs.message);
+                if (esUltimoIntento && !cache) mostrarAvisoSinConexion(rs.message);
             }
-        } else {
-            // NUEVO: el servidor SÍ respondió (no fue un fallo de red, así
-            // que el catch de abajo nunca se disparaba) pero con
-            // success:false — por ejemplo un error interno de Apps Script
-            // (hoja renombrada, cuota agotada, permisos revocados, etc.).
-            // Antes esta rama no existía y el spinner se quedaba girando
-            // para siempre sin avisar nada. Ahora se muestra el aviso de
-            // "sin conexión" (reutilizado) con el mensaje real del
-            // servidor, solo si no había caché que mostrar mientras tanto.
-            console.error("Respuesta del servidor sin éxito:", rs.message);
-            if (!cache) mostrarAvisoSinConexion(rs.message);
+        } catch (e) {
+            console.error("Error red (intento " + intento + "/" + MAX_INTENTOS_INVENTARIO + "):", e);
+            // Si no había caché para mostrar, la pantalla de carga se
+            // quedaba girando para siempre sin avisar nada. Solo en ese
+            // caso, y solo tras agotar los reintentos, se muestra el
+            // aviso de "sin conexión" con botón de reintentar.
+            if (esUltimoIntento && !cache) mostrarAvisoSinConexion();
         }
-    } catch (e) {
-        console.error("Error red:", e);
-        // NUEVO: si no había caché para mostrar, la pantalla de carga se
-        // quedaba girando para siempre sin avisar nada. Ahora, solo en
-        // ese caso, se muestra el aviso de "sin conexión" con reintentar.
-        if (!cache) mostrarAvisoSinConexion();
+
+        if (!esUltimoIntento) {
+            await new Promise(resolve => setTimeout(resolve, ESPERA_ENTRE_REINTENTOS_MS));
+        }
     }
 }
 
