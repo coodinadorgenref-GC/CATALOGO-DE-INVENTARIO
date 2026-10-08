@@ -4142,6 +4142,12 @@ async function cargarCotizacionesAdmin(silencioso) {
                         <i class="fa-brands fa-whatsapp"></i> Contactar
                     </button>` : "";
 
+                const htmlMaps = `<button onclick="abrirCotizacionEnMaps('${idBloqueCardSeg}')"
+                            title="Abrir esta cotización en Maps con los precios, lista para enviar como pedido"
+                            class="text-[9px] font-bold px-2 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white cursor-pointer flex items-center gap-1">
+                        <i class="fa-solid fa-map-location-dot"></i> Cotizar en Maps
+                    </button>`;
+
                 return `<div class="bloque-fecha-admin ${tonoClase} ${atendidoPor && !loAtiendoYo ? 'opacity-70' : ''}">
                     <div class="encabezado-fecha-admin">
                         <span class="etiqueta-fecha-admin"><i class="fa-solid fa-paper-plane"></i> Cotización solicitada <span class="opacity-70">#${idxBloque + 1}</span></span>
@@ -4150,6 +4156,7 @@ async function cargarCotizacionesAdmin(silencioso) {
                     <div class="flex items-center gap-2 mb-2">
                         ${htmlAtencion}
                         ${htmlWhatsApp}
+                        ${htmlMaps}
                     </div>
                     <div ${atendidoPor && !loAtiendoYo ? 'style="pointer-events:none;"' : ''}>${subBloques}</div>
                 </div>`;
@@ -4184,6 +4191,13 @@ async function cargarCotizacionesAdmin(silencioso) {
     } finally {
         peticionAdminEnCurso = false;
     }
+}
+
+/** Abre Maps con esta cotización precargada (productos y cantidades; los precios los
+ *  pone Maps con su propia lista — nunca pasan por el catálogo). */
+const URL_MAPS_APP = "https://coodinadorgenref-gc.github.io/Maps/";
+function abrirCotizacionEnMaps(bloqueId) {
+    window.open(URL_MAPS_APP + "?cotizacion=" + encodeURIComponent(bloqueId), "_blank", "noopener");
 }
 
 /** Admin: "Atender" un bloque de cotización — evita que otra agencia le
