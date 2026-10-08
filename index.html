@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6591,6 +6590,48 @@ function filtrarPorMarcaDesdeFooter(palabraClave) {
       });
     });
   }
+</script>
+<script>
+/* ---------- Botón "atrás" del celular ----------
+   "Atrás" cierra primero lo que esté abierto encima (zoom de foto, detalle,
+   carrito, filtros...) y solo al final deja salir, con un aviso previo. */
+(function(){
+  var avisado = false, t = null;
+  function el(id){ return document.getElementById(id); }
+  function abierto(id){ var e = el(id); return !!e && !e.classList.contains('opacity-0'); }   // modales con opacity-0 al cerrar
+
+  // De arriba hacia abajo: lo que está encima va primero.
+  var capas = [
+    function(){ if (abierto('modal-zoom-imagen'))        { cerrarZoomImagen(); return true; } },
+    function(){ if (abierto('modal-form-foto'))          { cerrarFormularioFoto(); return true; } },
+    function(){ if (abierto('modal-buscar-foto'))        { cerrarModalBuscarFoto(); return true; } },
+    function(){ if (abierto('modal-usuarios-conectados')){ cerrarModalUsuariosConectados(); return true; } },
+    function(){ var e = el('modal-cotizacion'); if (e && e.classList.contains('visible')){ cerrarModalCotizacion(); return true; } },
+    function(){ if (abierto('modal-detalles'))           { alternarModal(); return true; } },
+    function(){ var e = el('panel-cotizaciones-admin'); if (e && e.classList.contains('abierto')){ toggleCotizacionesAdmin(); return true; } },
+    function(){ var e = el('panel-carrito'); if (e && e.classList.contains('abierto')){ toggleCarrito(); return true; } },
+    function(){ var e = el('sidebar-filtros'); if (e && e.classList.contains('drawer-abierto')){ cerrarDrawerFiltros(); return true; } }
+  ];
+
+  function cerrarCapaSuperior(){
+    for (var i = 0; i < capas.length; i++){
+      try { if (capas[i]()) return true; } catch(err){ console.error(err); }
+    }
+    return false;
+  }
+  function centinela(){ history.pushState({ app: 'catalogo', centinela: true }, ''); }
+
+  window.addEventListener('popstate', function(){
+    if (cerrarCapaSuperior()){ centinela(); avisado = false; return; }
+    if (!avisado){
+      avisado = true; centinela();
+      if (typeof mostrarToastInfo === 'function') mostrarToastInfo('Toca "atrás" otra vez para salir');
+      clearTimeout(t); t = setTimeout(function(){ avisado = false; }, 2500);
+    }
+  });
+  history.replaceState({ app: 'catalogo' }, '');
+  centinela();
+})();
 </script>
 </body>
 </html>
