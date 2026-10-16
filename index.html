@@ -638,6 +638,62 @@
             .animate-bounce, .animate-pulse { animation: none !important; }
             html { scroll-behavior: auto; }
         }
+
+        /* ── Cotizar en piso de venta (MASTER.md: tokens, hoja inferior en móvil, áreas táctiles 44 px) ── */
+        #btn-cotizar-piso {
+            position: fixed; bottom: 28px; right: 176px; z-index: 200;
+            width: 64px; height: 64px; border-radius: 16px;
+            align-items: center; justify-content: center; flex-direction: column; gap: 3px;
+            cursor: pointer; border: none; outline: none;
+            background: var(--brand); color: var(--on-brand);
+            box-shadow: 0 6px 20px rgba(0,0,0,.45);
+            transition: transform .15s;
+        }
+        #btn-cotizar-piso:hover { transform: scale(1.06); }
+        #btn-cotizar-piso:active { transform: scale(0.92); }
+        #btn-cotizar-piso .btn-flotante-icon { font-size: 22px; line-height: 1; }
+        #btn-cotizar-piso .btn-flotante-label { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px; line-height: 1; }
+        .cp-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(15,23,42,.72); display: none; align-items: flex-end; justify-content: center; }
+        .cp-overlay.visible { display: flex; }
+        .cp-card { background: var(--surface); color: var(--text); border: 1px solid var(--border); width: 100%; max-width: 720px; max-height: 92dvh; overflow-y: auto;
+            border-radius: 16px 16px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); box-shadow: 0 10px 24px rgba(0,0,0,.45); animation: cp-sube .2s ease-out; }
+        @media (min-width: 768px) { .cp-overlay { align-items: center; } .cp-card { border-radius: 16px; max-height: 88dvh; } }
+        @keyframes cp-sube { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+        @media (prefers-reduced-motion: reduce) { .cp-card { animation: none; } }
+        .cp-cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
+        .cp-cab h3 { font-family: 'Rubik', sans-serif; font-size: 22px; font-weight: 700; margin: 0; }
+        .cp-cerrar { min-width: 44px; min-height: 44px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text); cursor: pointer; }
+        .cp-cerrar:hover, .cp-btn-sec:hover { background: var(--surface-2); }
+        .cp-error { display: none; border: 1px solid var(--danger); color: var(--danger); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 14px; }
+        .cp-error.visible { display: block; }
+        .cp-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+        @media (min-width: 560px) { .cp-grid { grid-template-columns: 1fr 1fr; } }
+        .cp-campo label { display: block; font-size: 12px; font-weight: 700; color: var(--text-3); margin-bottom: 4px; }
+        .cp-campo input, .cp-campo select { width: 100%; min-height: 44px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 12px; font-size: 16px; }
+        .cp-campo input:focus-visible, .cp-campo select:focus-visible, .cp-card button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+        .cp-resultados { border: 1px solid var(--border); border-radius: 8px; margin-top: 4px; max-height: 260px; overflow-y: auto; background: var(--surface-2); }
+        .cp-res { display: flex; flex-direction: column; gap: 2px; width: 100%; min-height: 44px; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--border); color: var(--text); padding: 8px 12px; cursor: pointer; font-size: 14px; }
+        .cp-res:hover { background: var(--surface); }
+        .cp-res:last-child { border-bottom: 0; }
+        .cp-sku { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; color: var(--text-2); font-size: 13px; }
+        .cp-linea { border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-top: 8px; background: var(--bg); }
+        .cp-linea-top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+        .cp-desc { font-weight: 700; font-size: 15px; line-height: 1.25; }
+        .cp-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; margin-top: 4px; }
+        .cp-ok { color: var(--brand); } .cp-aten { color: var(--attention); } .cp-err { color: var(--danger); }
+        .cp-quitar { min-width: 44px; min-height: 44px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--danger); cursor: pointer; flex: none; }
+        .cp-fila { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; justify-content: space-between; margin-top: 8px; }
+        .cp-qty { display: flex; align-items: center; gap: 4px; }
+        .cp-qty button { min-width: 44px; min-height: 44px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 18px; cursor: pointer; }
+        .cp-qty input { width: 64px; min-height: 44px; text-align: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 16px; }
+        .cp-precio { text-align: right; font-variant-numeric: tabular-nums; }
+        .cp-precio .cp-imp { font-family: 'Rubik', sans-serif; font-size: 18px; font-weight: 600; }
+        .cp-precio input { width: 130px; min-height: 44px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 8px; font-size: 16px; text-align: right; }
+        .cp-ayuda { font-size: 12px; color: var(--text-3); margin: 6px 0 0; }
+        .cp-btn-sec { width: 100%; min-height: 44px; margin-top: 12px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-weight: 600; cursor: pointer; }
+        .cp-total { display: flex; justify-content: space-between; align-items: baseline; font-family: 'Rubik', sans-serif; font-size: 22px; font-weight: 700; margin: 16px 0 4px; }
+        .cp-listo { text-align: center; padding: 8px 0; }
+        .cp-folio { font-family: 'Rubik', sans-serif; font-size: 34px; font-weight: 700; color: var(--brand); margin: 8px 0; }
     </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
@@ -1429,6 +1485,57 @@
 <!-- ════════════════════════════════════════════════
      MODAL SELECCIÓN DE AGENCIA PARA COTIZAR
 ═════════════════════════════════════════════════ -->
+<!-- ════════════════════════════════════════════════
+     COTIZAR EN PISO DE VENTA (admin / vendedor / gerente)
+═════════════════════════════════════════════════ -->
+<button id="btn-cotizar-piso" type="button" onclick="cotPisoAbrir()" style="display:none" title="Nueva cotización" aria-label="Nueva cotización">
+    <span class="btn-flotante-icon"><i aria-hidden="true" class="fa-solid fa-file-invoice-dollar"></i></span>
+    <span class="btn-flotante-label">Cotizar</span>
+</button>
+<div id="cp-overlay" class="cp-overlay" role="dialog" aria-modal="true" aria-labelledby="cp-titulo" onclick="cotPisoClickFuera(event)">
+    <div class="cp-card">
+        <div class="cp-cab">
+            <h3 id="cp-titulo">Nueva cotización</h3>
+            <button type="button" class="cp-cerrar" aria-label="Cerrar" onclick="cotPisoCerrar()"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="cp-error" class="cp-error" role="alert" aria-live="polite"></div>
+        <div id="cp-form">
+            <div class="cp-grid">
+                <div class="cp-campo"><label for="cp-cliente">Nombre del cliente</label>
+                    <input id="cp-cliente" type="text" autocomplete="off" enterkeyhint="next"></div>
+                <div class="cp-campo"><label for="cp-telefono">Teléfono</label>
+                    <input id="cp-telefono" type="tel" inputmode="numeric" autocomplete="off" placeholder="Ej. 9851234567" enterkeyhint="next"></div>
+                <div class="cp-campo"><label for="cp-moto">Motocicleta (opcional)</label>
+                    <input id="cp-moto" type="text" autocomplete="off" enterkeyhint="next"></div>
+                <div class="cp-campo"><label for="cp-anio">Año (opcional)</label>
+                    <input id="cp-anio" type="text" inputmode="numeric" maxlength="4" autocomplete="off" enterkeyhint="next"></div>
+                <div class="cp-campo"><label for="cp-idcliente">ID de cliente del catálogo (opcional)</label>
+                    <input id="cp-idcliente" type="text" autocomplete="off" enterkeyhint="next"></div>
+                <div class="cp-campo"><label for="cp-agencia">Agencia (logos de la hoja)</label>
+                    <select id="cp-agencia"><option value="VENTO">Vento</option><option value="BAJAJ">Bajaj</option><option value="SUZUKI">Suzuki</option></select></div>
+            </div>
+            <div class="cp-campo" style="margin-top:16px">
+                <label for="cp-buscador">Producto: SKU, nombre o número de parte</label>
+                <input id="cp-buscador" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Escribe o pega el SKU…">
+                <div id="cp-resultados" class="cp-resultados" hidden></div>
+            </div>
+            <div id="cp-lineas"></div>
+            <button type="button" class="cp-btn-sec" onclick="cotPisoAgregarPedido()"><i aria-hidden="true" class="fa-solid fa-plus"></i> Producto bajo pedido (número de parte)</button>
+            <div class="cp-total"><span>Total</span><span id="cp-total">$0.00</span></div>
+            <p id="cp-aviso" class="cp-ayuda" aria-live="polite"></p>
+            <button type="button" id="cp-guardar" class="btn-primary" onclick="cotPisoGuardar()" style="width:100%;min-height:48px;border-radius:8px;font-weight:600;margin-top:12px;cursor:pointer">Guardar cotización</button>
+        </div>
+        <div id="cp-listo" class="cp-listo" hidden>
+            <p style="color:var(--text-2);margin:0">Cotización guardada</p>
+            <div id="cp-folio" class="cp-folio"></div>
+            <p id="cp-listo-detalle" style="color:var(--text-2);margin:0 0 4px"></p>
+            <p id="cp-listo-aviso" class="cp-ayuda" style="margin-bottom:16px"></p>
+            <button type="button" class="btn-primary" onclick="cotPisoNueva()" style="width:100%;min-height:48px;border-radius:8px;font-weight:600;cursor:pointer">Nueva cotización</button>
+            <button type="button" class="cp-btn-sec" onclick="cotPisoCerrar(true)">Cerrar</button>
+        </div>
+    </div>
+</div>
+
 <div id="modal-cotizacion" onclick="cerrarModalCotizacionExterno(event)">
     <div class="caja">
         <h3 class="text-lg font-black uppercase text-white mb-1 flex items-center gap-2">
@@ -2007,6 +2114,7 @@ window.onload = function () {
     // Ocultado inicial con style.display para que iOS Safari no lo ignore
     _mostrarBotonFlotante("btn-carrito-flotante", false);
     _mostrarBotonFlotante("btn-cotizaciones-admin", false);
+    _mostrarBotonFlotante("btn-cotizar-piso", false);
     actualizarIndicadorConexion();
     verificarSesionGuardada();
 };
@@ -2430,6 +2538,7 @@ function _continuarDespuesDeAnimacionCarga() {
         // Sin sesión: garantizamos que ambos botones estén ocultos con display:none
         _mostrarBotonFlotante("btn-carrito-flotante", false);
         _mostrarBotonFlotante("btn-cotizaciones-admin", false);
+        _mostrarBotonFlotante("btn-cotizar-piso", false);
     } else {
         // Con sesión: mostramos según el rol (display:flex para que el ícono esté centrado)
         const zonaTotal    = esAdmin && esZonaValladolid();
@@ -2438,6 +2547,7 @@ function _continuarDespuesDeAnimacionCarga() {
 
         _mostrarBotonFlotante("btn-carrito-flotante", mostrarVerde, true);
         _mostrarBotonFlotante("btn-cotizaciones-admin", mostrarAzul, true);
+        _mostrarBotonFlotante("btn-cotizar-piso", esAdmin, true);
 
         // NUEVO: botón "Buscar por foto" — solo admin.
         const btnFotoDesktop = document.getElementById("btn-buscar-foto-desktop");
@@ -6596,5 +6706,245 @@ function filtrarPorMarcaDesdeFooter(palabraClave) {
   centinela();
 })();
 </script>
+<script id="js-cotizar-piso">
+/* ═══════════════════════════════════════════════════════════════
+   COTIZAR EN PISO DE VENTA — solo esAdmin (admin, vendedor y gerente).
+   Captura como "Nueva venta" de Maps: nombre, teléfono, SKU. Los precios que se ven aquí son
+   solo de apoyo: el servidor los recalcula al guardar (guardarCotizacion) y asigna el folio.
+   El número de parte de un producto bajo pedido solo lo ve el vendedor y no sale en la hoja.
+   ═══════════════════════════════════════════════════════════════ */
+let _cpLineas = [];          // { id, tipo:'catalogo'|'pedido', sku, descripcion, disponibilidad, stock, cantidad, numeroParte, precioAprox }
+let _cpPrecios = null;       // { SKU normalizado: precio } — se pide una vez por sesión
+let _cpPreciosPromesa = null;
+let _cpSeq = 0;
+let _cpGuardando = false;
+let _cpGuardada = false;
+
+const _cpNorm = s => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+const _cpSku = v => { const t = String(v == null ? '' : v).trim(); return /^\d+$/.test(t) ? t.replace(/^0+(?=\d)/, '') : t; };   // igual que _normSku del servidor
+const _cpMoneda = n => '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const _cpEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const _cpEl = id => document.getElementById(id);
+
+async function _cpApi(action, extra) {
+    const r = await fetch(API_URL, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(Object.assign({ action, correo: usuarioActual, token: tokenActual }, extra || {})) });
+    const rs = await r.json();
+    if (rs && rs.sesionInvalida) { manejarSesionInvalidaDelServidor(rs.message); throw new Error(rs.message || 'Sesión expirada.'); }
+    return rs;
+}
+
+function _cpCargarPrecios() {
+    if (_cpPrecios) return Promise.resolve(_cpPrecios);
+    if (_cpPreciosPromesa) return _cpPreciosPromesa;
+    _cpPreciosPromesa = _cpApi('obtenerPreciosVenta').then(rs => {
+        if (!rs.success) throw new Error(rs.message || 'No se pudieron cargar los precios.');
+        const m = {};
+        rs.data.forEach(p => { m[_cpSku(p.sku)] = p.precio; });
+        _cpPrecios = m;
+        return m;
+    }).catch(e => { _cpPreciosPromesa = null; throw e; });
+    return _cpPreciosPromesa;
+}
+
+function _cpError(msg) {
+    const e = _cpEl('cp-error');
+    e.textContent = msg || '';
+    e.classList.toggle('visible', !!msg);
+}
+function _cpAviso(msg) { _cpEl('cp-aviso').textContent = msg || ''; }
+
+function _cpReiniciar() {
+    _cpLineas = []; _cpGuardada = false;
+    ['cp-cliente', 'cp-telefono', 'cp-moto', 'cp-anio', 'cp-idcliente', 'cp-buscador'].forEach(id => { _cpEl(id).value = ''; });
+    const h = String(almacenAdminActual || '').toUpperCase();
+    _cpEl('cp-agencia').value = h.includes('BAJAJ') ? 'BAJAJ' : h.includes('SUZUKI') ? 'SUZUKI' : 'VENTO';
+    _cpEl('cp-resultados').hidden = true;
+    _cpEl('cp-form').hidden = false; _cpEl('cp-listo').hidden = true;
+    _cpError(''); _cpAviso('');
+    _cpPintarLineas();
+}
+
+function cotPisoAbrir() {
+    if (!esAdmin) return;
+    _cpReiniciar();
+    _cpEl('cp-overlay').classList.add('visible');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => _cpEl('cp-cliente').focus(), 60);
+    _cpCargarPrecios().then(() => _cpPintarLineas()).catch(e => _cpAviso('No se pudieron mostrar los precios (' + e.message + '). Puedes capturar la cotización: el servidor calcula los precios al guardar.'));
+}
+
+function cotPisoCerrar(forzar) {
+    if (!forzar && _cpLineas.length && !_cpGuardada && !confirm('¿Descartar esta cotización sin guardar?')) return;
+    _cpEl('cp-overlay').classList.remove('visible');
+    document.body.style.overflow = '';
+}
+function cotPisoClickFuera(e) { if (e.target.id === 'cp-overlay') cotPisoCerrar(); }
+function cotPisoNueva() { _cpReiniciar(); setTimeout(() => _cpEl('cp-cliente').focus(), 60); }
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && _cpEl('cp-overlay') && _cpEl('cp-overlay').classList.contains('visible')) cotPisoCerrar();
+});
+
+/* ── Búsqueda (SKU, nombre o número de parte; el vendedor ve los números de parte) ── */
+function _cpBuscar(q) {
+    const t = _cpNorm(q);
+    if (t.length < 2) return [];
+    const partes = t.split(/\s+/);
+    const out = [];
+    for (const p of inventarioMaestro) {
+        const campo = _cpNorm(p.SKU) + ' ' + _cpNorm(p.Producto) + ' ' + _cpNorm(p.Pr_Numero_Parte) + ' ' + _cpNorm((p.NumerosParte || []).join(' '));
+        if (partes.every(w => campo.includes(w))) { out.push(p); if (out.length >= 40) break; }
+    }
+    out.sort((a, b) => (_cpNorm(b.SKU) === t) - (_cpNorm(a.SKU) === t));
+    return out.slice(0, 8);
+}
+function _cpStock(p) { return (p.Existencias || []).reduce((s, e) => s + Number(e.cantidad || 0), 0); }
+
+function _cpPintarResultados() {
+    const cont = _cpEl('cp-resultados');
+    const res = _cpBuscar(_cpEl('cp-buscador').value);
+    if (!_cpNorm(_cpEl('cp-buscador').value) || _cpNorm(_cpEl('cp-buscador').value).length < 2) { cont.hidden = true; return res; }
+    cont.hidden = false;
+    cont.innerHTML = res.length ? res.map(p => {
+        const st = _cpStock(p);
+        return `<button type="button" class="cp-res" onclick="cotPisoAgregarSku(this.dataset.sku)" data-sku="${_cpEsc(p.SKU)}">
+            <span>${_cpEsc(p.Producto)}</span>
+            <span class="cp-sku">${_cpEsc(p.SKU)}</span>
+            <span class="cp-badge ${st > 0 ? 'cp-ok' : 'cp-aten'}"><i aria-hidden="true" class="fa-solid ${st > 0 ? 'fa-circle-check' : 'fa-triangle-exclamation'}"></i> ${st > 0 ? 'En existencia' : 'Bajo pedido'}</span>
+        </button>`;
+    }).join('') : '<p class="cp-ayuda" style="padding:8px 12px">Sin resultados. Si no está en el catálogo, agrégalo bajo pedido con su número de parte.</p>';
+    return res;
+}
+
+function cotPisoAgregarSku(sku) {
+    const p = inventarioMaestro.find(x => String(x.SKU) === String(sku));
+    if (!p) return;
+    const ya = _cpLineas.find(l => l.tipo === 'catalogo' && String(l.sku) === String(p.SKU));
+    if (ya) ya.cantidad = Math.min(ya.cantidad + 1, 9999);
+    else { const st = _cpStock(p); _cpLineas.push({ id: ++_cpSeq, tipo: 'catalogo', sku: String(p.SKU), descripcion: p.Producto || '', disponibilidad: st > 0 ? 'En existencia' : 'Bajo pedido', stock: st, cantidad: 1, precioAprox: '' }); }
+    _cpEl('cp-buscador').value = ''; _cpEl('cp-resultados').hidden = true;
+    _cpError(''); _cpPintarLineas();
+    _cpEl('cp-buscador').focus();
+}
+function cotPisoAgregarPedido() {
+    _cpLineas.push({ id: ++_cpSeq, tipo: 'pedido', sku: '', descripcion: '', disponibilidad: 'Bajo pedido', stock: 0, cantidad: 1, numeroParte: '', precioAprox: '' });
+    _cpError(''); _cpPintarLineas();
+    setTimeout(() => { const i = document.querySelector('#cp-l-' + _cpSeq + ' input[data-campo="numeroParte"]'); if (i) i.focus(); }, 30);
+}
+function cotPisoQuitar(id) { _cpLineas = _cpLineas.filter(l => l.id !== id); _cpPintarLineas(); }
+function cotPisoCantidad(id, d) { const l = _cpLineas.find(x => x.id === id); if (!l) return; l.cantidad = Math.max(1, Math.min(9999, l.cantidad + d)); _cpPintarLineas(); }
+function cotPisoCampo(id, campo, valor) {
+    const l = _cpLineas.find(x => x.id === id); if (!l) return;
+    if (campo === 'cantidad') { const n = Math.floor(Number(valor)); l.cantidad = n >= 1 ? Math.min(n, 9999) : 1; }
+    else l[campo] = valor;
+    _cpActualizarImportes();
+}
+
+/* ── Precio de una línea (solo apoyo visual; el servidor recalcula) ── */
+function _cpPrecioLinea(l) {
+    if (l.tipo === 'catalogo' && _cpPrecios && _cpPrecios[_cpSku(l.sku)] !== undefined) return { valor: _cpPrecios[_cpSku(l.sku)], lista: true };
+    const a = Number(l.precioAprox);
+    return a > 0 ? { valor: a, lista: false } : { valor: null, lista: false };
+}
+function _cpActualizarImportes() {
+    let total = 0, sin = 0;
+    _cpLineas.forEach(l => {
+        const p = _cpPrecioLinea(l);
+        const el = document.getElementById('cp-imp-' + l.id);
+        if (p.valor === null) { sin++; if (el) el.textContent = '—'; }
+        else { total += p.valor * l.cantidad; if (el) el.textContent = _cpMoneda(p.valor * l.cantidad); }
+    });
+    _cpEl('cp-total').textContent = _cpMoneda(total);
+    _cpAviso(sin ? sin + (sin === 1 ? ' producto sin precio: captura un precio aproximado o se guardará sin importe.' : ' productos sin precio: captura un precio aproximado o se guardarán sin importe.') : '');
+}
+
+function _cpPintarLineas() {
+    const cont = _cpEl('cp-lineas');
+    if (!_cpLineas.length) { cont.innerHTML = '<p class="cp-ayuda" style="margin-top:12px">Aún no hay productos. Busca un SKU o agrega uno bajo pedido.</p>'; _cpActualizarImportes(); return; }
+    cont.innerHTML = _cpLineas.map(l => {
+        const ped = l.tipo === 'pedido';
+        const p = _cpPrecioLinea(l);
+        const sobre = !ped && l.stock > 0 && l.cantidad > l.stock;
+        const badge = (l.disponibilidad === 'En existencia')
+            ? '<span class="cp-badge cp-ok"><i aria-hidden="true" class="fa-solid fa-circle-check"></i> En existencia</span>'
+            : '<span class="cp-badge cp-aten"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> Bajo pedido</span>';
+        const aviso = sobre ? `<div class="cp-badge cp-aten"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> Solo hay ${l.stock} en existencia</div>` : '';
+        const cabeza = ped
+            ? `<div style="flex:1;min-width:0">
+                 <div class="cp-campo"><label for="cp-np-${l.id}">Número de parte (solo lo ves tú; no sale en la hoja)</label>
+                   <input id="cp-np-${l.id}" data-campo="numeroParte" type="text" autocomplete="off" value="${_cpEsc(l.numeroParte)}" oninput="cotPisoCampo(${l.id},'numeroParte',this.value)"></div>
+                 <div class="cp-campo" style="margin-top:8px"><label for="cp-ds-${l.id}">Descripción</label>
+                   <input id="cp-ds-${l.id}" type="text" autocomplete="off" value="${_cpEsc(l.descripcion)}" oninput="cotPisoCampo(${l.id},'descripcion',this.value)"></div>
+                 ${badge}
+               </div>`
+            : `<div style="min-width:0"><div class="cp-desc">${_cpEsc(l.descripcion)}</div><div class="cp-sku">${_cpEsc(l.sku)}</div>${badge}${aviso}</div>`;
+        const precioHtml = (!ped && p.lista)
+            ? `<div class="cp-ayuda" style="margin:0">${_cpMoneda(p.valor)} c/u</div><div class="cp-imp" id="cp-imp-${l.id}">${_cpMoneda(p.valor * l.cantidad)}</div>`
+            : `<div class="cp-campo"><label for="cp-pa-${l.id}">${ped ? 'Precio aproximado' : 'Sin precio en lista: captura uno'}</label>
+                 <input id="cp-pa-${l.id}" type="number" inputmode="decimal" min="0" step="0.01" value="${_cpEsc(l.precioAprox)}" oninput="cotPisoCampo(${l.id},'precioAprox',this.value)"></div>
+               <div class="cp-imp" id="cp-imp-${l.id}">${p.valor === null ? '—' : _cpMoneda(p.valor * l.cantidad)}</div>`;
+        return `<div class="cp-linea" id="cp-l-${l.id}">
+            <div class="cp-linea-top">${cabeza}<button type="button" class="cp-quitar" aria-label="Quitar ${_cpEsc(ped ? (l.numeroParte || 'producto bajo pedido') : l.sku)}" onclick="cotPisoQuitar(${l.id})"><i aria-hidden="true" class="fa-solid fa-trash-can"></i></button></div>
+            <div class="cp-fila">
+              <div class="cp-qty"><button type="button" aria-label="Menos" onclick="cotPisoCantidad(${l.id},-1)">−</button>
+                <input type="number" inputmode="numeric" min="1" max="9999" value="${l.cantidad}" aria-label="Cantidad" oninput="cotPisoCampo(${l.id},'cantidad',this.value)">
+                <button type="button" aria-label="Más" onclick="cotPisoCantidad(${l.id},1)">+</button></div>
+              <div class="cp-precio">${precioHtml}</div>
+            </div></div>`;
+    }).join('');
+    _cpActualizarImportes();
+}
+
+/* ── Guardar (el servidor valida, calcula precios y asigna el folio) ── */
+function _cpValidar() {
+    if (!_cpEl('cp-cliente').value.trim()) return 'Captura el nombre del cliente.';
+    if (_cpEl('cp-telefono').value.replace(/\D/g, '').length < 10) return 'El teléfono debe tener al menos 10 dígitos.';
+    if (!_cpLineas.length) return 'Agrega al menos un producto.';
+    const sinNp = _cpLineas.find(l => l.tipo === 'pedido' && !String(l.numeroParte).trim());
+    if (sinNp) return 'Captura el número de parte de cada producto bajo pedido.';
+    return '';
+}
+async function cotPisoGuardar() {
+    if (_cpGuardando) return;
+    const err = _cpValidar();
+    if (err) { _cpError(err); return; }
+    _cpError('');
+    const btn = _cpEl('cp-guardar');
+    _cpGuardando = true; btn.disabled = true; btn.innerHTML = '<i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> Guardando…';
+    try {
+        const datos = {
+            cliente: _cpEl('cp-cliente').value.trim(), telefono: _cpEl('cp-telefono').value, idCliente: _cpEl('cp-idcliente').value.trim(),
+            moto: _cpEl('cp-moto').value.trim(), anio: _cpEl('cp-anio').value.trim(), agencia: _cpEl('cp-agencia').value, origen: 'PISO',
+            lineas: _cpLineas.map(l => l.tipo === 'pedido'
+                ? { tipo: 'pedido', cantidad: l.cantidad, numeroParte: l.numeroParte, descripcion: l.descripcion, precioAprox: l.precioAprox }
+                : { tipo: 'catalogo', sku: l.sku, cantidad: l.cantidad, descripcion: l.descripcion, disponibilidad: l.disponibilidad, precioAprox: l.precioAprox })
+        };
+        const rs = await _cpApi('guardarCotizacion', { datos });
+        if (!rs.success) { _cpError(rs.message || 'No se pudo guardar la cotización.'); return; }
+        _cpGuardada = true;
+        _cpEl('cp-form').hidden = true; _cpEl('cp-listo').hidden = false;
+        _cpEl('cp-folio').textContent = rs.folio;
+        _cpEl('cp-listo-detalle').textContent = rs.items.length + (rs.items.length === 1 ? ' producto' : ' productos') + ' · Total ' + _cpMoneda(rs.total) + ' · Estado: ' + rs.estado;
+        _cpEl('cp-listo-aviso').textContent = rs.sinPrecio ? rs.sinPrecio + ' sin precio: revisa antes de enviarla al cliente.' : '';
+    } catch (e) {
+        if (!/sesi/i.test(e.message || '')) _cpError('Error de conexión. La cotización no se guardó; intenta de nuevo.');
+    } finally {
+        _cpGuardando = false; btn.disabled = false; btn.textContent = 'Guardar cotización';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const b = _cpEl('cp-buscador');
+    if (!b) return;
+    b.addEventListener('input', _cpPintarResultados);
+    b.addEventListener('keydown', e => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const res = _cpBuscar(b.value);
+        if (res.length) cotPisoAgregarSku(res[0].SKU);
+    });
+});
+</script>
+
 </body>
 </html>

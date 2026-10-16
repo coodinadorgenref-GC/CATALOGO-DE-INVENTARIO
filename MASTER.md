@@ -76,7 +76,7 @@ Base conservada de la app actual (`#0f172a / #1e293b / #334155 / #22b14c`), con 
 **Tarjeta de producto:** foto 1:1 con espacio reservado (sin saltos de layout) · SKU mono · descripción (2 líneas máx.) · insignia de disponibilidad · [rol vendedor] precio alineado a la derecha · botón "Agregar". Foto con `loading="lazy"` y `imagen-no-disponible.png` como respaldo.
 **Insignias de disponibilidad:** `En existencia` (brand), `Pocas piezas` (attention), `Agotado` (danger), `Bajo pedido` (attention). Siempre ícono + texto.
 **Inputs:** etiqueta visible arriba (nada de placeholder como etiqueta), error debajo del campo en `--danger` con ícono, ayuda en `--text-3`, `inputmode`/`autocomplete` correctos (teléfono: `tel`).
-**Captura de cotización (piso de venta):** 3 campos en este orden — Nombre · Teléfono · SKU — igual que "Nueva venta" de Maps; el SKU admite lector/pegado y valida contra el catálogo al salir del campo.
+**Captura de cotización (piso de venta):** Nombre · Teléfono · (Motocicleta · Año · ID de cliente opcionales) · Agencia · buscador de producto (SKU, nombre o número de parte; Enter agrega el primer resultado, admite lector/pegado) — igual que "Nueva venta" de Maps. Hoja inferior en móvil, áreas táctiles de 44 px, estado de disponibilidad con ícono + texto. Implementada en `index.html` (`cotPiso*`).
 **Modales:** en móvil se convierten en hoja inferior (`max-h 90dvh`, scroll interno, cierre con Esc y toque fuera); respetar `env(safe-area-inset-*)`.
 
 ## 7. Navegación y patrones de pantalla

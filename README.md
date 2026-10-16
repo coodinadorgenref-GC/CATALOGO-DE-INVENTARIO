@@ -6,12 +6,14 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 ## Cómo está armado
 - `index.html`: toda la app (login, catálogo, carrito del cliente, panel de Cotizaciones Pendientes, galería de fotos). Estilos con Tailwind (CDN) y los tokens de `MASTER.md` en `:root` (`--brand`, `--surface`, `--text-3`…). Botones verdes con `.btn-primary`, ámbar con `.btn-attention`, insignias con `.badge-brand`; no volver a usar `bg-emerald-600 text-white` (no pasa contraste).
 - `MASTER.md`: sistema visual del rediseño (fuente única de verdad del diseño).
+- **Cotizar en piso de venta** (`index.html`, bloque `js-cotizar-piso`, prefijo `cotPiso*`/`_cp*`): botón flotante "Cotizar" solo para `esAdmin` (admin, vendedor, gerente). Captura nombre, teléfono, motocicleta y año, ID de cliente, agencia (logos de la hoja) y productos por SKU, nombre o número de parte; los precios que se ven son de apoyo y el servidor los recalcula al guardar. Una línea bajo pedido lleva número de parte (solo lo ve el vendedor, no sale en la hoja) y precio aproximado capturado a mano hasta que exista la lista de precios del REPORTEADOR.
 - `sw.js`: service worker. El nombre de caché es fijo (`catalogo-bh-shell`); no hace falta subir versión a mano.
 - `manifest.json` e iconos (`icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `favicon.ico`) e `imagen-no-disponible.png`.
 - Backend: repo `coodinadorgenref-GC/apps-script` (se sube con clasp). Los archivos .gs que alimentan el API:
   - `Código.js`: login, sesiones, roles, carritos, cotizaciones, bitácora, Telegram.
   - `Inventario_base.js`: inventario del catálogo leído de DATOS, con los filtros en código.
   - `Precios_venta.js`: precios calculados en el servidor; el COSTO nunca sale del servidor.
+  - `Cotizaciones.js`: hoja `COTIZACIONES` (una fila por folio `C00001`…), `guardarCotizacion`, `listarCotizaciones`, `cambiarEstadoCotizacion` (Borrador · Enviada · Aceptada · Rechazada · Cancelada). El folio sale de un contador (`FOLIO_COTIZACION` en Propiedades del script) con candado; los precios los calcula el servidor.
   - `Sesion_rol.js`, `Codigo_Reporteador.js`, `Cierres_mensuales.js`, `Subidas_y_meses.js`, `Talleres.js`, `Inventario_pegado.js`.
 - Datos: Google Sheets, expuestos por el Worker de Cloudflare `catalogo-labarata-proxy`.
 - Apps hermanas: REPORTEADOR (dashboard) y Maps (prospectos, rutas y notas de venta).
@@ -40,10 +42,10 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 6. Se reestructura la interfaz y el flujo de trabajo con el skill UI/UX Pro Max.
 
 ## Pendiente (en orden)
-1. Rol Gerente: backend (`apps-script`, commit `eaed2e1`, ya desplegado) y frontend del catálogo listos. Falta confirmar: la cuenta de prueba con `gerente` en la columna F (con agencia en la H) y que el REPORTEADOR (repo aparte) acepte `esGerente` para mostrar la pestaña Talleres.
+1. Rol Gerente: listo en backend, catálogo y REPORTEADOR (v74: entra con alcance de vendedor y ve Talleres de su agencia). Falta probarlo con una cuenta `gerente` (columna F) con agencia en la columna H.
 2. Sistema visual (MASTER.md): hecho y aplicada la capa base en `index.html` (16-oct): tokens, contraste AA en botones y grises, fuentes Rubik + Nunito Sans, texto mínimo de 11 px, `aria-label`/`aria-hidden`/`aria-live`, foco visible, imágenes `loading="lazy"`, emojis sustituidos por Font Awesome. Queda lo estructural, que va con la etapa 6: barra inferior móvil, tarjeta de producto, modales como hoja inferior y áreas táctiles de 44 px.
 3. Listas de precios en el REPORTEADOR hacia el API.
-4. Cotización en piso de venta (captura del vendedor) y ajuste del flujo del carrito.
+4. Cotización en piso de venta: captura, folio y guardado hechos (falta desplegar `Cotizaciones.js` en Apps Script y probar). Falta: que "Atender" en Pendientes abra la cotización en el catálogo con los SKU del carrito (hoy abre Maps), lista de mis cotizaciones con cambio de estado en la interfaz, y el precio por número de parte desde la lista de precios del REPORTEADOR.
 5. Hoja de cotización tipo factura por agencia (el catálogo aún no carga jsPDF ni tiene hoja carta).
 6. Reestructura de la interfaz.
 
