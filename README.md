@@ -4,7 +4,8 @@
 PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan administración, vendedores y clientes (con login). Corre en GitHub Pages y lee/escribe en Google Sheets mediante Apps Script.
 
 ## Cómo está armado
-- `index.html`: toda la app (login, catálogo, carrito del cliente, panel de Cotizaciones Pendientes, galería de fotos). Estilos con Tailwind (CDN).
+- `index.html`: toda la app (login, catálogo, carrito del cliente, panel de Cotizaciones Pendientes, galería de fotos). Estilos con Tailwind (CDN) y los tokens de `MASTER.md` en `:root` (`--brand`, `--surface`, `--text-3`…). Botones verdes con `.btn-primary`, ámbar con `.btn-attention`, insignias con `.badge-brand`; no volver a usar `bg-emerald-600 text-white` (no pasa contraste).
+- `MASTER.md`: sistema visual del rediseño (fuente única de verdad del diseño).
 - `sw.js`: service worker. El nombre de caché es fijo (`catalogo-bh-shell`); no hace falta subir versión a mano.
 - `manifest.json` e iconos (`icon-192.png`, `icon-512.png`, `apple-touch-icon.png`, `favicon.ico`) e `imagen-no-disponible.png`.
 - Backend: repo `coodinadorgenref-GC/apps-script` (se sube con clasp). Los archivos .gs que alimentan el API:
@@ -39,8 +40,8 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 6. Se reestructura la interfaz y el flujo de trabajo con el skill UI/UX Pro Max.
 
 ## Pendiente (en orden)
-1. Rol Gerente: backend subido a `apps-script` (commit `eaed2e1`) y frontend del catálogo listo. Falta: `clasp push` + nueva implementación del Apps Script, crear la cuenta de prueba con `gerente` en la columna F (con agencia en la H), y que el REPORTEADOR (repo aparte) acepte `esGerente` para mostrar la pestaña Talleres.
-2. Sistema visual del rediseño (MASTER.md) con UI/UX Pro Max.
+1. Rol Gerente: backend (`apps-script`, commit `eaed2e1`, ya desplegado) y frontend del catálogo listos. Falta confirmar: la cuenta de prueba con `gerente` en la columna F (con agencia en la H) y que el REPORTEADOR (repo aparte) acepte `esGerente` para mostrar la pestaña Talleres.
+2. Sistema visual (MASTER.md): hecho y aplicada la capa base en `index.html` (16-oct): tokens, contraste AA en botones y grises, fuentes Rubik + Nunito Sans, texto mínimo de 11 px, `aria-label`/`aria-hidden`/`aria-live`, foco visible, imágenes `loading="lazy"`, emojis sustituidos por Font Awesome. Queda lo estructural, que va con la etapa 6: barra inferior móvil, tarjeta de producto, modales como hoja inferior y áreas táctiles de 44 px.
 3. Listas de precios en el REPORTEADOR hacia el API.
 4. Cotización en piso de venta (captura del vendedor) y ajuste del flujo del carrito.
 5. Hoja de cotización tipo factura por agencia (el catálogo aún no carga jsPDF ni tiene hoja carta).

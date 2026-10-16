@@ -3,7 +3,7 @@
 > Fuente única de verdad del diseño. Si existe `pages/<pantalla>.md`, sus reglas **sustituyen** a este archivo para esa pantalla.
 > Generado con UI/UX Pro Max (16-oct-2026) y adaptado al catálogo: es una **herramienta de trabajo** (mostrador + celular), no una landing.
 > Dials: Variance 3 (minimal) · Motion 3 (sutil) · Density 6 (estándar, tirando a compacta en listas).
-> Etapa 1: solo diseño. No se ha tocado `index.html`.
+> Etapa 1: diseño. La capa base ya está aplicada en `index.html` (ver §14); lo estructural queda para la etapa 6.
 
 ## 1. Dirección
 
@@ -54,7 +54,7 @@ Base conservada de la app actual (`#0f172a / #1e293b / #334155 / #22b14c`), con 
 
 ## 4. Tipografía
 
-- **Títulos y precios:** Rubik 500/600. **Cuerpo:** Nunito Sans 400/600. `display=swap`.
+- **Títulos y precios:** Rubik 500/600/700. **Cuerpo:** Nunito Sans 400/600/700/800/900 (la app usa `font-bold` y `font-black` en muchos sitios; con solo 400/600 todo el negro se vería semibold). `display=swap`.
 - **SKU / números de parte:** monoespaciada del sistema, `font-variant-numeric: tabular-nums`, para que columnas y precios alineen.
 - Cuerpo mínimo **16 px** (evita zoom automático de iOS en inputs); etiquetas auxiliares ≥ 12 px. Interlineado 1.5 en texto corrido, 1.25 en tarjetas.
 - Escala: 12 · 14 · 16 · 18 · 22 · 28.
@@ -127,3 +127,9 @@ Contraste 4.5:1 (texto) y 3:1 (bordes de controles/íconos); foco visible siempr
 1. **Solo modo oscuro** por ahora. El modo claro queda fuera de alcance (excepto la hoja de cotización, sección 8).
 2. **Fuentes:** Rubik + Nunito Sans (Google Fonts). Hay que cachearlas en `sw.js` para uso sin conexión.
 3. **Íconos:** se mantiene Font Awesome 6.4; se decide si se migra a SVG en la etapa 6.
+
+## 14. Estado de aplicación en `index.html` (16-oct-2026)
+
+**Aplicado:** tokens en `:root` (los nombres viejos `--verde`, `--fondo`, `--tarjeta`, `--borde` quedan como alias); clases `.btn-primary`, `.btn-attention`, `.btn-state-ok`, `.btn-state-error`, `.badge-brand`; texto gris `slate-500` y `#64748b` sustituido por `--text-3`; fuentes Rubik y Nunito Sans (se cachean solas en `sw.js`); foco visible con teclado; `prefers-reduced-motion` también para `animate-bounce`/`animate-pulse`; `aria-label` en 29 botones solo-ícono, `aria-hidden` en los íconos decorativos, toasts con `aria-live="polite"`, error de login con `role="alert"`; `loading="lazy"` en miniaturas, tarjetas y carrito; emojis (🏍🔵🟣🟠📦📩✓⏳) sustituidos por íconos Font Awesome.
+**Piso de texto:** 11 px (10 px solo en insignias sobre miniaturas). Subir a 12 px al rediseñar tarjetas.
+**Pendiente (etapa 6):** barra inferior móvil, tarjeta de producto y precio en Rubik, modales como hoja inferior, áreas táctiles ≥ 44 px, botón de contraseña con `tabindex="-1"` (no se alcanza con teclado), campos de cotización (`type="tel"`).

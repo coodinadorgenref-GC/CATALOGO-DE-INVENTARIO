@@ -5,7 +5,7 @@
 //    esperar a la red — y la versión más nueva se descarga en segundo
 //    plano para la próxima vez. Solo si NUNCA se ha abierto en ese
 //    dispositivo (sin nada guardado todavía) se espera a la red.
-// 2) Librerías externas (Tailwind, Font Awesome) -> "caché primero, refresca
+// 2) Librerías externas (Tailwind, Font Awesome, Google Fonts) -> "caché primero, refresca
 //    detrás", para que carguen rápido y funcionen sin conexión.
 //
 // IMPORTANTE: esto NO guarda offline los pedidos ni cambios que necesiten
@@ -101,7 +101,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // CDNs externos (Tailwind, Font Awesome): caché primero, refresca detrás.
+  // CDNs externos (Tailwind, Font Awesome, Google Fonts): caché primero, refresca detrás.
   event.respondWith(
     caches.open(CACHE_NAME).then((cache) =>
       cache.match(req).then((cached) => {
