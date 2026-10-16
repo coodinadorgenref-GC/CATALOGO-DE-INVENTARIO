@@ -2251,7 +2251,7 @@ function mostrarErrorLogin(el, msg) {
     el.className = "bg-red-950/50 text-red-400 text-xs font-semibold p-3 rounded-xl mb-4 text-center border border-red-900/50 block";
 }
 function ocultarErrorLogin(el) { el.className = "hidden"; }
-function manejarTecladoLogin(e) { if (e.key === "Enter") manejarInicioDeSesion(); }
+
     
 /** Alterna entre mostrar el código de acceso en texto plano o
  *  oculto con puntos, cambiando también el ícono del ojo. */
@@ -3375,20 +3375,6 @@ function agregarAlCarrito(item) {
     mostrarToastCarrito(item.Producto);
 }
 
-function cambiarCantidadCarrito(sku, delta) {
-    _versionCarritoLocal++;
-    const item = carrito.find(c=>String(c.sku)===String(sku));
-    if (!item) return;
-    const nueva = item.cantidad + delta;
-    if (nueva < 1) { eliminarDelCarrito(sku); return; }
-    item.cantidad = Math.min(nueva, item.stockMax || 9999);
-    // Actualizar solo el input visual sin redibujar todo el carrito
-    const inp = document.getElementById(`qty-${sku}`);
-    if (inp) inp.value = item.cantidad;
-    actualizarBadgeCarrito();
-    guardarCarritoLocal();
-    sincronizarCarritoInstantaneo();
-}
 
 /** Versión de cambio por botón +/−: lee primero el valor actual del
  *  input (por si el usuario lo editó manualmente sin hacer blur),
@@ -4299,11 +4285,7 @@ async function cambiarEstadoGrupoAdmin(correoUsuario, grupo, nuevoEstado) {
     } catch { alert("Error de conexión al actualizar estado."); }
 }
 
-/** Admin: cambia el estado GLOBAL de la cotización general de un usuario
- *  (acceso legacy para compatibilidad; ahora se prefiere cambiarEstadoGrupoAdmin). */
-async function cambiarEstadoCotizacionAdmin(correoUsuario, nuevoEstado) {
-    await cambiarEstadoGrupoAdmin(correoUsuario, "__TODOS__", nuevoEstado);
-}
+
 
 /** Admin presiona "Por cotizar": el botón cambia de inmediato a
  *  "Cotización enviada" (estado transitorio, 5 segundos) y luego el
@@ -4944,18 +4926,7 @@ async function guardarFichaCompleta(sku, esBalata) {
     }
 }
 
-// ── A partir de aquí, funciones viejas de edición por-campo (Comp.
-// suelta, Posición suelta, Relacionados suelto). Ya no las usa ningún
-// botón de la interfaz — se dejan sin borrar por si algo más las
-// referencia — pero el flujo nuevo es habilitarEdicionFichaCompleta().
-function habilitarEdicion(sku, contenido) {
-    document.getElementById("contenedor-compatibilidad").innerHTML =
-        `<textarea id="edit-compat" class="w-full h-40 bg-slate-900 border border-slate-700 p-3 text-xs text-white rounded-xl">${contenido}</textarea>`;
-    const btn = document.getElementById("btn-edicion");
-    btn.innerHTML = '<span class="underline decoration-2 underline-offset-2">G</span>uardar Cambios';
-    btn.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition text-xs uppercase tracking-wider flex items-center justify-center cursor-pointer";
-    btn.onclick = () => guardarCompatibilidad(sku);
-}
+
 
 /* ══════════════════════════════════════════
    FICHA TÉCNICA DE ESTATORES (solo SUB_FAMILIA "Estatores")
@@ -5367,23 +5338,7 @@ function guardarCompatibilidad(sku) {
     alternarModal(); // ya no bloquea: el admin puede seguir de inmediato
 }
 
-/**
- * Bloquea/desbloquea la posibilidad de navegar a otro producto o cerrar
- * el modal mientras hay una actualización de compatibilidad en curso.
- */
-function bloquearNavegacionCatalogo(bloquear) {
-    const grid = document.getElementById("grid-productos");
-    if (grid) grid.style.pointerEvents = bloquear ? "none" : "";
-    if (grid) grid.style.opacity = bloquear ? "0.5" : "";
 
-    // También deshabilitamos el botón de cerrar (X) del modal mientras se guarda
-    const btnCerrar = document.querySelector('#modal-detalles button[onclick="alternarModal()"]');
-    if (btnCerrar) {
-        btnCerrar.disabled = bloquear;
-        btnCerrar.style.opacity = bloquear ? "0.3" : "";
-        btnCerrar.style.pointerEvents = bloquear ? "none" : "";
-    }
-}
 
 /* ══════════════════════════════════════════
    MODALES — HELPERS
@@ -5469,15 +5424,7 @@ function cerrarFormularioFoto() {
     fotoProductoSkuActual = null;
     fotoProductoArchivosActuales = [];
 }
-/** Cierra el modal de detalle del producto de forma forzada (sin toggle),
- *  usado después de subir una foto exitosamente para regresar directo
- *  al catálogo sin que el admin tenga que cerrarlo manualmente. */
-function cerrarModalDetalleForzado() {
-    const modal = document.getElementById("modal-detalles");
-    const contenido = document.getElementById("modal-contenido");
-    modal.classList.add("opacity-0", "pointer-events-none");
-    contenido.classList.add("translate-y-4");
-}
+
 /** Cierra la ventana emergente solo si se hizo clic en el fondo oscuro
  *  (fuera de la tarjeta), igual que los demás modales. */
 function cerrarFormularioFotoExterno(e) {
@@ -6304,11 +6251,7 @@ function manejarTecladoBuscador(e) { if (e.key==="Enter") document.getElementByI
 /* ══════════════════════════════════════════
    WHATSAPP DIRECTO (desde modal, legacy)
 ══════════════════════════════════════════ */
-function enviarMensajeCotizacionModal(sku, descripcion, numero) {
-    if (!numero?.trim()) { alert("Esta sucursal no tiene número de WhatsApp."); return; }
-    const msg = `Hola, me interesa cotizar la siguiente refacción:\n\n*SKU:* ${sku}\n*Descripción:* ${descripcion}\n\n¿Tienen disponibilidad? Quedo en espera.`;
-    window.open(`https://api.whatsapp.com/send?phone=${encodeURIComponent(numero)}&text=${encodeURIComponent(msg)}`,"_blank");
-}
+
 
 document.addEventListener("keydown", function (e) {
   if (!esAdmin) return;
