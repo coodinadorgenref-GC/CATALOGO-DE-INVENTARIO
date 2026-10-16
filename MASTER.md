@@ -7,7 +7,7 @@
 
 ## 1. Dirección
 
-- **Estilo:** Minimalismo / Swiss funcional, **oscuro por defecto** (continuidad con la app actual y con `theme-color #1d293d`).
+- **Estilo:** Minimalismo / Swiss funcional, con **tres aspectos**: Oscuro, Claro e Igual que el sistema, que se eligen en Configuración → Aspecto (decisión 1, §13). Aspecto inicial: por confirmar.
 - **Prioridad:** encontrar un SKU y cotizarlo en pocos toques. Todo lo demás es secundario.
 - **Stack real:** HTML único + Tailwind v4 (CDN browser) + Font Awesome 6.4. Los tokens van como variables CSS en `:root` y se consumen con clases Tailwind (`bg-[var(--surface)]`) o utilitarios propios.
 - **Sin dependencias nuevas** para animación (CSS puro; no GSAP): es PWA de un archivo y debe cargar rápido.
@@ -20,6 +20,7 @@
 | Número de parte "bajo pedido" | no existe | visible solo en la UI, **nunca** en la hoja de cotización |
 | Costo | nunca | nunca |
 | Navegación | Catálogo · Carrito · Cuenta | + Cotizar · Pendientes |
+| Cotizar en ruta (abre Maps) | visible | — |
 
 Los precios no se ocultan con CSS: el servidor no los manda. La UI solo debe tener un hueco predecible para ellos.
 
@@ -50,7 +51,34 @@ Base conservada de la app actual (`#0f172a / #1e293b / #334155 / #22b14c`), con 
 - Ámbar/naranja = "requiere atención" (bajo pedido, cotización pendiente, kits de proveedor). **No** es el color del botón principal.
 - El estado nunca va solo en color: siempre ícono + texto (ej. ● En existencia / ⚠ Bajo pedido, con ícono FA, no emoji).
 
-**Modo claro:** no se define en esta etapa (ver decisiones abiertas). Si se pide, se invierten los tokens `--bg/--surface/--text*` y se re-verifica 4.5:1.
+### Aspectos: Oscuro, Claro e Igual que el sistema
+
+Los tres se eligen en Configuración → Aspecto (§7.1). Mecanismo:
+- Atributo `data-theme="dark|light"` en `<html>`. "Igual que el sistema" no fija atributo y sigue `prefers-color-scheme`.
+- La elección se guarda en el dispositivo (`localStorage`, clave `aspecto`) y un script mínimo en `<head>` la aplica antes de pintar, para que no haya parpadeo.
+- `<meta name="color-scheme" content="dark light">`; al cambiar de aspecto se actualiza también `theme-color`.
+- Todo color va por token. Las clases Tailwind de color fijo (`bg-slate-900`, `text-emerald-400`, `border-slate-700`…) no cambian con el aspecto y hay que migrarlas a tokens.
+
+| Token | Oscuro | Claro |
+|---|---|---|
+| `--bg` | `#0f172a` | `#f8fafc` |
+| `--surface` | `#1e293b` | `#ffffff` |
+| `--surface-2` | `#273449` | `#f1f5f9` |
+| `--border` (decorativo) | `#334155` | `#cbd5e1` |
+| `--border-strong` (bordes de inputs y controles, ≥ 3:1) | `#64748b` (3.1:1) | `#64748b` (4.8:1) |
+| `--text` | `#f1f5f9` (16.3:1) | `#0f172a` (17.1:1) |
+| `--text-2` | `#cbd5e1` (9.9:1) | `#334155` (10.4:1) |
+| `--text-3` | `#94a3b8` (5.7:1) | `#475569` (7.6:1) |
+| `--brand` (fondo de botón) | `#22b14c` | `#22b14c` |
+| `--on-brand` | `#0f172a` (6.3:1) | `#0f172a` (6.3:1) |
+| `--brand-text` (texto y enlaces verdes) | `#22b14c` (6.3:1) | `#047857` (5.5:1 sobre tarjeta, 5.2:1 sobre fondo) |
+| `--attention` (fondo) | `#fb923c` | `#fb923c` |
+| `--on-attention` | `#0f172a` | `#0f172a` (7.9:1) |
+| `--attention-text` | `#fb923c` (6.5:1) | `#b45309` (5.0:1) |
+| `--danger` | `#f87171` (5.3:1) | `#b91c1c` (6.5:1) |
+| `--ring` | `#22b14c` | `#047857` (5.5:1) |
+
+El verde de marca `#22b14c` sobre fondo claro da solo 2.5:1: sirve como fondo de botón (con `--on-brand`), nunca como color de texto en claro; para eso está `--brand-text`. Contrastes calculados el 16-oct-2026.
 
 ## 4. Tipografía
 
@@ -64,6 +92,7 @@ Base conservada de la app actual (`#0f172a / #1e293b / #334155 / #22b14c`), con 
 - Espaciado (density 6): `4 · 8 · 12 · 16 · 24 · 32 · 48`. Listas y tablas de catálogo usan 8/12; paneles y modales 16/24.
 - Radio: 8 px controles, 12 px tarjetas, 16 px modales/hojas inferiores.
 - Profundidad en oscuro: **borde 1 px + cambio de superficie**, sombra solo en modales y menús (`0 10px 24px rgba(0,0,0,.45)`).
+- Profundidad en claro: borde `--border` y sombra suave en tarjetas y menús (`0 1px 2px rgba(15,23,42,.08), 0 4px 12px rgba(15,23,42,.08)`).
 - Máx. de ancho de lectura en desktop: 1280 px; el catálogo es rejilla fluida (2 col móvil · 3 tablet · 4–5 desktop).
 
 ## 6. Componentes
@@ -76,7 +105,7 @@ Base conservada de la app actual (`#0f172a / #1e293b / #334155 / #22b14c`), con 
 **Tarjeta de producto:** foto 1:1 con espacio reservado (sin saltos de layout) · SKU mono · descripción (2 líneas máx.) · insignia de disponibilidad · [rol vendedor] precio alineado a la derecha · botón "Agregar". Foto con `loading="lazy"` y `imagen-no-disponible.png` como respaldo.
 **Insignias de disponibilidad:** `En existencia` (brand), `Pocas piezas` (attention), `Agotado` (danger), `Bajo pedido` (attention). Siempre ícono + texto.
 **Inputs:** etiqueta visible arriba (nada de placeholder como etiqueta), error debajo del campo en `--danger` con ícono, ayuda en `--text-3`, `inputmode`/`autocomplete` correctos (teléfono: `tel`).
-**Captura de cotización (piso de venta):** Nombre · Teléfono · (Motocicleta · Año · ID de cliente opcionales) · Agencia · buscador de producto (SKU, nombre o número de parte; Enter agrega el primer resultado, admite lector/pegado) — igual que "Nueva venta" de Maps. Hoja inferior en móvil, áreas táctiles de 44 px, estado de disponibilidad con ícono + texto. Implementada en `index.html` (`cotPiso*`).
+**Captura de cotización (todas):** orden fijo: 1) **ID de cliente** (si existe, se traen todos sus datos y los campos siguientes se llenan solos y siguen editables) · 2) Nombre · 3) Teléfono · 4) Motocicleta (opcional) · 5) Año (opcional) · 6) buscador de producto (SKU, nombre o número de parte; Enter agrega el primer resultado, admite lector/pegado). **No hay selector de Agencia**: la hoja sale con el logo predeterminado. Hoja inferior en móvil, áreas táctiles de 44 px, disponibilidad con ícono + texto. Implementada en `index.html` (`cotPiso*`); el nuevo orden y la eliminación de Agencia están pendientes (§14).
 **Modales:** en móvil se convierten en hoja inferior (`max-h 90dvh`, scroll interno, cierre con Esc y toque fuera); respetar `env(safe-area-inset-*)`.
 
 ## 7. Navegación y patrones de pantalla
@@ -85,12 +114,23 @@ Base conservada de la app actual (`#0f172a / #1e293b / #334155 / #22b14c`), con 
 - Desktop: barra superior con buscador siempre visible; atajos de teclado actuales se conservan.
 - Búsqueda: protagonista de la pantalla de catálogo; filtros en panel plegable ("progressive disclosure"), no una fila interminable de selects.
 - Sustituye al patrón "Feature-Rich Showcase" del generador (era para landings): aquí no hay hero ni CTA repetido.
+- **Acción principal (Cotizar):** es lo más importante del vendedor y no puede parecerse a los demás botones flotantes. En móvil va como botón central elevado de la barra inferior (verde `--brand`, ícono + etiqueta "Cotizar", 56 px); en escritorio, botón primario fijo con texto. Los demás destinos son secundarios, sin el relleno de la marca.
+- **Etiquetas en botones con ícono:** el texto va **debajo** del ícono, nunca dentro del círculo o disco. Unos 10 caracteres como máximo ("Pendientes" es el límite; en el botón de cotizar, "Cotizar"), 11–12 px, `white-space: nowrap` y `min-width: 0`. Si no cabe, se quita la etiqueta y queda el `aria-label`. Se prueba a 360 px de ancho.
 
-Pantallas con override previsto en `pages/`: `login`, `catalogo`, `carrito`, `cotizar`, `pendientes`, `cotizacion-pdf`.
+Pantallas con override previsto en `pages/`: `login`, `catalogo`, `carrito`, `cotizar`, `pendientes`, `configuracion`, `cotizacion-pdf`.
+
+### 7.1 Configuración (panel oculto)
+
+Panel oculto, al estilo de Maps y del REPORTEADOR: no aparece en la navegación principal. Tres secciones:
+- **Aspecto:** Claro · Oscuro · Igual que el sistema. Selector de tres opciones que aplica al instante (§3).
+- **Cuenta y versión:** contenido por definir; propuesta: datos de la cuenta, rol, cerrar sesión y versión de la app.
+- **Cotizaciones:** las mismas funciones que en Maps: historial, consulta, reenviar, cambiar estado (Borrador · Enviada · Aceptada · Rechazada · Cancelada), etc.
+
+Por confirmar: quién la ve y cómo se abre.
 
 ## 8. Hoja de cotización (excepción a la regla oscura)
 
-Documento **claro, tamaño carta, tipo factura**, independiente del tema de la app (se imprime/comparte). Mismo formato para todas las agencias; cambia solo el bloque de logos (Vento, Bajaj, Suzuki). Contenido: fecha de elaboración, ID/folio, cliente y teléfono, tabla (cant., SKU, disponibilidad, descripción, precio unitario, importe), asesor de ventas y datos de contacto. No incluye números de parte de "bajo pedido" ni costos. Se detalla en la etapa 5, tomando como referencia `generarPdfNotaVenta` (Maps).
+Documento **claro, tamaño carta, tipo factura**, independiente del tema de la app (se imprime/comparte). Un solo formato con un logo cargado de forma predeterminada (no hay selector de agencia). Contenido: fecha de elaboración, ID/folio, cliente (con su ID si existe) y teléfono, motocicleta y año si se capturaron, tabla (cant., SKU, disponibilidad, descripción, precio unitario, importe), asesor de ventas y datos de contacto. No incluye números de parte de "bajo pedido" ni costos. Se detalla en la etapa 5, tomando como referencia `generarPdfNotaVenta` (Maps).
 
 ## 9. Movimiento
 
@@ -110,11 +150,14 @@ Contraste 4.5:1 (texto) y 3:1 (bordes de controles/íconos); foco visible siempr
 - Efectos de hover que muevan el layout; hover como única forma de acceder a algo (el mostrador es táctil).
 - Cambios de estado instantáneos sin transición ni feedback de carga.
 - Tablas que obliguen a scroll horizontal en 375 px (pasar a tarjetas/filas apiladas).
+- Texto dentro de un círculo o disco de ícono: se desborda; la etiqueta va debajo.
+- Colores fijos de Tailwind (`bg-slate-900`, `text-emerald-400`, `border-slate-700`…) en pantallas nuevas: no cambian con el aspecto; usar tokens.
+- Dejar la acción principal con el mismo peso visual que las secundarias.
 
 ## 12. Lista de verificación antes de entregar cualquier pantalla
 
 - [ ] Probado en 375, 768, 1024 y 1440 px, sin scroll horizontal
-- [ ] Contrastes revisados con los tokens de la sección 3
+- [ ] Contrastes revisados con los tokens de la sección 3, en aspecto claro y en oscuro
 - [ ] Áreas táctiles ≥ 44×44 y separación ≥ 8 px
 - [ ] Foco visible y orden de tabulación lógico
 - [ ] Estados vacío, cargando y error diseñados
@@ -124,12 +167,15 @@ Contraste 4.5:1 (texto) y 3:1 (bordes de controles/íconos); foco visible siempr
 
 ## 13. Decisiones tomadas (16-oct-2026)
 
-1. **Solo modo oscuro** por ahora. El modo claro queda fuera de alcance (excepto la hoja de cotización, sección 8).
+1. **Tres aspectos** (16-oct, sustituye a "solo oscuro"): Claro, Oscuro e Igual que el sistema, elegibles en Configuración → Aspecto. Tokens para ambos en §3.
 2. **Fuentes:** Rubik + Nunito Sans (Google Fonts). Hay que cachearlas en `sw.js` para uso sin conexión.
 3. **Íconos:** se mantiene Font Awesome 6.4; se decide si se migra a SVG en la etapa 6.
+4. **Una sola hoja de cotización** con logo predeterminado, sin selector de agencia (16-oct).
+5. **Toda cotización empieza por el ID del cliente** (16-oct), §6.
 
 ## 14. Estado de aplicación en `index.html` (16-oct-2026)
 
 **Aplicado:** tokens en `:root` (los nombres viejos `--verde`, `--fondo`, `--tarjeta`, `--borde` quedan como alias); clases `.btn-primary`, `.btn-attention`, `.btn-state-ok`, `.btn-state-error`, `.badge-brand`; texto gris `slate-500` y `#64748b` sustituido por `--text-3`; fuentes Rubik y Nunito Sans (se cachean solas en `sw.js`); foco visible con teclado; `prefers-reduced-motion` también para `animate-bounce`/`animate-pulse`; `aria-label` en 29 botones solo-ícono, `aria-hidden` en los íconos decorativos, toasts con `aria-live="polite"`, error de login con `role="alert"`; `loading="lazy"` en miniaturas, tarjetas y carrito; emojis (🏍🔵🟣🟠📦📩✓⏳) sustituidos por íconos Font Awesome.
 **Piso de texto:** 11 px (10 px solo en insignias sobre miniaturas). Subir a 12 px al rediseñar tarjetas.
 **Pendiente (etapa 6):** barra inferior móvil, tarjeta de producto y precio en Rubik, modales como hoja inferior, áreas táctiles ≥ 44 px, botón de contraseña con `tabindex="-1"` (no se alcanza con teclado), campos de cotización (`type="tel"`).
+**Pendiente nuevo (16-oct):** fallos vistos en uso: el botón Cotizar se pierde entre los demás flotantes y las etiquetas de Pendientes y Cotización se desbordan del ícono (reglas en §7). Además: aspecto claro/oscuro/sistema con migración de colores fijos a tokens (§3), panel Configuración (§7.1) y nuevo orden de captura sin Agencia (§6).
