@@ -128,7 +128,7 @@ Panel oculto, al estilo de Maps y del REPORTEADOR: no aparece en la navegación 
 
 Por confirmar: quién la ve y cómo se abre.
 
-## 8. Hoja de cotización (excepción a la regla oscura)
+## 8. Hoja de cotización (excepción al aspecto de la app: siempre clara)
 
 Documento **claro, tamaño carta, tipo factura**, independiente del tema de la app (se imprime/comparte). Un solo formato con un logo cargado de forma predeterminada (no hay selector de agencia). Contenido: fecha de elaboración, ID/folio, cliente (con su ID si existe) y teléfono, motocicleta y año si se capturaron, tabla (cant., SKU, disponibilidad, descripción, precio unitario, importe), asesor de ventas y datos de contacto. No incluye números de parte de "bajo pedido" ni costos. Se detalla en la etapa 5, tomando como referencia `generarPdfNotaVenta` (Maps).
 
