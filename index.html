@@ -2214,7 +2214,7 @@ async function manejarInicioDeSesion() {
             // sin importar si el usuario tecleó su correo o su teléfono — así el carrito
             // y las cotizaciones siempre quedan ligadas a la misma llave única por persona.
             usuarioActual = rs.correo || valorIngresado;
-            tokenActual = rs.token; esAdmin = rs.esAdmin || false;
+            tokenActual = rs.token; esAdmin = !!(rs.esAdmin || rs.esGerente); // gerente: permisos de vendedor (el servidor no lo marca esAdmin para que Maps lo rechace)
             almacenAdminActual = rs.almacenAdmin || "";
             accesoNumeroParteBajaj = rs.accesoNumeroParteBajaj || false;
             document.getElementById("nombre-usuario").innerText = rs.nombre;

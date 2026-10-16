@@ -18,7 +18,7 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 ## Roles (columna F de `Usuarios_Autorizados`)
 - `admin`: permisos completos; es el único "admin real" (Maps, Talleres, Reporteador completo).
 - `vendedor`: mismos permisos que admin dentro del catálogo; además entra a Maps.
-- `gerente` (nuevo): mismos permisos que vendedor en el catálogo, **sin acceso a Maps** por ahora. La función central es `_tienePermisosDeAdmin` en `Código.js`.
+- `gerente` (nuevo): mismos permisos que vendedor en el catálogo, **sin acceso a Maps** por ahora. El servidor usa `_tienePermisosDeAdmin` (`Código.js`), pero el login le manda `esAdmin:false` y `esGerente:true`; así Maps lo rechaza solo y el catálogo lo trata como admin con `esAdmin || esGerente`. En el REPORTEADOR entra con alcance de vendedor (solo la agencia de su columna H) y ve Talleres solo de esa agencia (`obtenerTalleres`).
 - Cualquier otro valor (vacío, cliente): cliente con carrito.
 
 ## Reglas que no se rompen
@@ -39,7 +39,7 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 6. Se reestructura la interfaz y el flujo de trabajo con el skill UI/UX Pro Max.
 
 ## Pendiente (en orden)
-1. Rol Gerente: cambio en `_tienePermisosDeAdmin` aplicado en el clon local; falta pegarlo en el Apps Script real y crear la cuenta de prueba con `gerente` en la columna F.
+1. Rol Gerente: backend subido a `apps-script` (commit `eaed2e1`) y frontend del catálogo listo. Falta: `clasp push` + nueva implementación del Apps Script, crear la cuenta de prueba con `gerente` en la columna F (con agencia en la H), y que el REPORTEADOR (repo aparte) acepte `esGerente` para mostrar la pestaña Talleres.
 2. Sistema visual del rediseño (MASTER.md) con UI/UX Pro Max.
 3. Listas de precios en el REPORTEADOR hacia el API.
 4. Cotización en piso de venta (captura del vendedor) y ajuste del flujo del carrito.
