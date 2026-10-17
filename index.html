@@ -6304,7 +6304,7 @@ async function _cpApi(action, extra) {
 function _cpCargarPrecios() {
     if (_cpPrecios) return Promise.resolve(_cpPrecios);
     if (_cpPreciosPromesa) return _cpPreciosPromesa;
-    _cpPreciosPromesa = _cpApi('obtenerPreciosVenta').then(rs => {
+    _cpPreciosPromesa = _cpApi('obtenerPreciosCatalogo').then(rs => {
         if (!rs.success) throw new Error(rs.message || 'No se pudieron cargar los precios.');
         const m = {};
         rs.data.forEach(p => { m[_cpSku(p.sku)] = p.precio; });

@@ -123,3 +123,13 @@ En Cotizar, el campo "Cliente" busca en la hoja `Mecanicos` por ID, nombre (toda
 - Cotizar, Cotización y Pendientes son ahora fichas tipo ícono de iPhone: 60 px, esquinas de 14 px, glifo blanco, etiqueta en una píldora debajo (ya no se corta "Pendientes"). Verde = cotizar, azul = Pendientes; el globo rojo va en la esquina de la ficha. Funciona aunque JS ponga `display: block` o `flex`.
 - Aspecto claro: fondo `#eef2f7` con tarjetas blancas (antes casi del mismo tono), bordes más suaves y sombras de Tailwind atenuadas.
 - "Imagen no disponible": en claro se usa `imagen-no-disponible-claro.png` (mismo dibujo, paleta clara) mediante CSS `content: url()`; `sw.js` ya la precarga. Si algún navegador no aplicara `content` en `img`, se vería la oscura.
+
+## Lista de precios (17-oct)
+- Se sube y se consulta desde el **REPORTEADOR** (Configuración › Carga de datos › "Lista de precios del catálogo"), solo admin real. Excel (A = SKU, B = precio **antes de IVA**) o pegado; se puede subir solo lo que cambia o falta (alta y actualización por lote, sin subir todo masivo).
+- Vive en la hoja `LISTA_PRECIOS` del libro del API (`Lista_precios.js`) y alimenta **únicamente** el catálogo. `obtenerPreciosCatalogo` devuelve el precio ya con IVA (×1.16, a centavos) y `Cotizaciones.js` lo usa para calcular las cotizaciones; el catálogo ya no usa `obtenerPreciosVenta` (queda solo para Maps).
+- **Toda cotización lleva IVA.** Los SKU que no estén en la lista salen "sin precio" y los captura el vendedor (precio aproximado), como antes con Bajaj y Suzuki.
+- Hasta que se suba la lista, el catálogo no mostrará precios: hay que cargarla antes de usar Cotizar.
+
+## Historial de cotizaciones en un sheet aparte (pendiente, 17-oct)
+Decisión: el historial vivirá en otro libro (ID `11jrqAsndSQRS6yQBOLyZZZF1OB-rGn0GnvCLS-CRqk8`), dividido en pestañas por marca. Aún no está implementado: la hoja `COTIZACIONES` sigue en el libro del API.
+Por confirmar: nombres de las pestañas (¿Vento, Bajaj, Suzuki, Carabela?) y qué hacer cuando una cotización mezcla marcas (¿una fila por marca con solo sus líneas, o la cotización completa en cada pestaña?).
