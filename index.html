@@ -645,6 +645,21 @@
         #btn-cotizar-piso:active { transform: scale(0.92); }
         #btn-cotizar-piso .btn-flotante-icon { font-size: 26px; line-height: 1; }
         #btn-cotizar-piso .btn-flotante-label { font-size: 12px; font-weight: 800; text-transform: none; letter-spacing: 0; white-space: nowrap; line-height: 1.1; }
+        .cfg-res { display: flex; flex-direction: column; align-items: flex-start; width: 100%; min-height: 44px; padding: 8px 12px; background: transparent; border: 0; border-bottom: 1px solid var(--border); color: var(--text); text-align: left; cursor: pointer; }
+        .cfg-res span { font-size: 12px; color: var(--text-3); }
+        .cfg-res:hover { background: var(--surface); }
+        .cfg-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+        .cfg-tab { flex: 1; min-height: 44px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-2); font-weight: 700; cursor: pointer; }
+        .cfg-tab[aria-selected="true"] { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+        .cfg-fila { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+        .cfg-fila span:first-child { color: var(--text-3); }
+        .cfg-cot { border: 1px solid var(--border); border-radius: 12px; padding: 12px; margin-top: 8px; background: var(--bg); font-size: 14px; }
+        .cfg-cot-top { display: flex; justify-content: space-between; gap: 8px; align-items: center; margin-bottom: 4px; }
+        .cfg-est { font-size: 12px; font-weight: 700; display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); }
+        .cfg-muted { color: var(--text-3); font-size: 12px; }
+        .cfg-cot ul { margin: 8px 0 0; padding-left: 18px; color: var(--text-2); }
+        .cfg-acciones { display: flex; gap: 8px; margin-top: 10px; }
+        .cfg-acciones select, .cfg-acciones button { min-height: 44px; flex: 1; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; font-weight: 600; padding: 0 10px; cursor: pointer; }
         .cp-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(15,23,42,.72); display: none; align-items: flex-end; justify-content: center; }
         .cp-overlay.visible { display: flex; }
         .cp-card { background: var(--surface); color: var(--text); border: 1px solid var(--border); width: 100%; max-width: 720px; max-height: 92dvh; overflow-y: auto;
@@ -818,6 +833,10 @@
                 <span id="texto-indicador-conexion" class="hidden sm:inline">Sin conexión</span>
             </span>
 
+            <button type="button" onclick="cfgAbrir()" aria-label="Configuración" title="Configuración"
+                    class="shrink-0 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center w-[38px] h-[38px]">
+                <i aria-hidden="true" class="fa-solid fa-gear"></i>
+            </button>
             <!-- Cerrar sesión — punto 3: más grande y siempre visible -->
             <button onclick="cerrarSesion()"
                     class="shrink-0 bg-slate-700 hover:bg-red-800 text-white text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1.5 h-[38px]">
@@ -1371,6 +1390,30 @@
 <!-- ════════════════════════════════════════════════
      COTIZAR EN PISO DE VENTA (admin / vendedor / gerente)
 ═════════════════════════════════════════════════ -->
+<div id="cfg-overlay" class="cp-overlay" onclick="if(event.target===this)cfgCerrar()">
+  <div class="cp-card" role="dialog" aria-modal="true" aria-labelledby="cfg-titulo">
+    <div class="cp-cab"><h3 id="cfg-titulo">Configuración</h3>
+      <button type="button" class="cp-cerrar" onclick="cfgCerrar()" aria-label="Cerrar configuración"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button></div>
+    <div class="cfg-tabs" role="tablist">
+      <button type="button" class="cfg-tab" id="cfg-tab-cuenta" role="tab" aria-selected="true" onclick="cfgTab('cuenta')">Cuenta y versión</button>
+      <button type="button" class="cfg-tab" id="cfg-tab-cot" role="tab" aria-selected="false" onclick="cfgTab('cot')" style="display:none">Cotizaciones</button>
+    </div>
+    <div id="cfg-cuenta">
+      <div class="cfg-fila"><span>Nombre</span><span id="cfg-nombre"></span></div>
+      <div class="cfg-fila"><span>Correo</span><span id="cfg-correo"></span></div>
+      <div class="cfg-fila"><span>Tipo de cuenta</span><span id="cfg-tipo"></span></div>
+      <div class="cfg-fila"><span>Versión de la app</span><span id="cfg-version"></span></div>
+      <button type="button" class="cp-btn-sec" onclick="location.reload()"><i aria-hidden="true" class="fa-solid fa-rotate"></i> Recargar para actualizar</button>
+      <button type="button" class="cp-btn-sec" onclick="cfgCerrar(); cerrarSesion()"><i aria-hidden="true" class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</button>
+    </div>
+    <div id="cfg-cotizaciones" hidden>
+      <div class="cp-campo"><label for="cfg-buscar">Buscar por folio, cliente, teléfono o ID</label>
+        <input id="cfg-buscar" type="search" autocomplete="off" oninput="cfgPintarCotizaciones()"></div>
+      <p id="cfg-cot-estado" class="cp-ayuda" role="status" aria-live="polite"></p>
+      <div id="cfg-cot-lista"></div>
+    </div>
+  </div>
+</div>
 <button id="btn-cotizar-piso" type="button" onclick="cotPisoAbrir()" style="display:none" title="Nueva cotización" aria-label="Nueva cotización">
     <span class="btn-flotante-icon"><i aria-hidden="true" class="fa-solid fa-file-invoice-dollar"></i></span>
     <span class="btn-flotante-label">Cotizar</span>
@@ -1384,9 +1427,10 @@
         <div id="cp-error" class="cp-error" role="alert" aria-live="polite"></div>
         <div id="cp-form">
             <div class="cp-grid">
-                <div class="cp-campo"><label for="cp-idcliente">ID de cliente (si ya existe)</label>
-                    <input id="cp-idcliente" type="text" autocomplete="off" enterkeyhint="search" onchange="cotPisoBuscarCliente()" onkeydown="if(event.key==='Enter'){event.preventDefault();cotPisoBuscarCliente();}">
-                    <p id="cp-id-estado" class="cp-ayuda" role="status" aria-live="polite"></p></div>
+                <div class="cp-campo"><label for="cp-idcliente">Cliente: ID, nombre o teléfono</label>
+                    <input id="cp-idcliente" type="text" autocomplete="off" enterkeyhint="search" placeholder="Busca al mecánico para traer su ID" oninput="_cpIdResuelto=''" onchange="cotPisoBuscarCliente()" onkeydown="if(event.key==='Enter'){event.preventDefault();cotPisoBuscarCliente();}">
+                    <p id="cp-id-estado" class="cp-ayuda" role="status" aria-live="polite"></p>
+                    <div id="cp-id-resultados" class="cp-resultados" hidden></div></div>
                 <div class="cp-campo"><label for="cp-cliente">Nombre del cliente</label>
                     <input id="cp-cliente" type="text" autocomplete="off" enterkeyhint="next"></div>
                 <div class="cp-campo"><label for="cp-telefono">Teléfono</label>
@@ -6038,6 +6082,7 @@ function filtrarPorMarcaDesdeFooter(palabraClave) {
     function(){ if (abierto('modal-zoom-imagen'))        { cerrarZoomImagen(); return true; } },
     function(){ if (abierto('modal-form-foto'))          { cerrarFormularioFoto(); return true; } },
     function(){ if (abierto('modal-usuarios-conectados')){ cerrarModalUsuariosConectados(); return true; } },
+    function(){ var e = el('cfg-overlay'); if (e && e.classList.contains('visible')){ cfgCerrar(); return true; } },
     function(){ var e = el('modal-cotizacion'); if (e && e.classList.contains('visible')){ cerrarModalCotizacion(); return true; } },
     function(){ if (abierto('modal-detalles'))           { alternarModal(); return true; } },
     function(){ var e = el('panel-cotizaciones-admin'); if (e && e.classList.contains('abierto')){ toggleCotizacionesAdmin(); return true; } },
@@ -6119,27 +6164,109 @@ function _cpAgenciaAuto() {
     return h.includes('BAJAJ') ? 'BAJAJ' : h.includes('SUZUKI') ? 'SUZUKI' : 'VENTO';
 }
 
-/** ID de cliente (hoja Mecanicos): si existe, trae nombre y teléfono; siguen editables. */
+/* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
+const APP_VERSION = '2026-10-17';
+const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
+const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
+let _cfgCots = [];
+const _cfgMoneda = n => (n === null || n === undefined || n === '') ? 'por confirmar' : Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
+
+function cfgAbrir() {
+    _cpEl('cfg-nombre').textContent = (document.getElementById('nombre-usuario')?.textContent || '').trim() || '—';
+    _cpEl('cfg-correo').textContent = usuarioActual || '—';
+    _cpEl('cfg-tipo').textContent = esAdmin ? 'Asesor' : 'Cliente';
+    _cpEl('cfg-version').textContent = APP_VERSION;
+    _cpEl('cfg-tab-cot').style.display = esAdmin ? '' : 'none';
+    cfgTab('cuenta');
+    _cpEl('cfg-overlay').classList.add('visible');
+}
+function cfgCerrar() { _cpEl('cfg-overlay').classList.remove('visible'); }
+function cfgTab(t) {
+    const cot = t === 'cot' && esAdmin;
+    _cpEl('cfg-cuenta').hidden = cot; _cpEl('cfg-cotizaciones').hidden = !cot;
+    _cpEl('cfg-tab-cuenta').setAttribute('aria-selected', String(!cot));
+    _cpEl('cfg-tab-cot').setAttribute('aria-selected', String(cot));
+    if (cot) cfgCargarCotizaciones();
+}
+async function cfgCargarCotizaciones() {
+    const est = _cpEl('cfg-cot-estado'); est.textContent = 'Cargando…';
+    try {
+        const rs = await _cpApi('listarCotizaciones');
+        if (!rs.success) { est.textContent = rs.message || 'No se pudieron cargar.'; return; }
+        _cfgCots = rs.cotizaciones || [];
+        cfgPintarCotizaciones();
+    } catch (e) { est.textContent = 'No se pudieron cargar. Revisa tu conexión.'; }
+}
+function cfgPintarCotizaciones() {
+    const q = (_cpEl('cfg-buscar').value || '').trim().toLowerCase();
+    const lista = _cfgCots.filter(c => !q || [c.folio, c.cliente, c.telefono, c.idCliente].join(' ').toLowerCase().includes(q));
+    _cpEl('cfg-cot-estado').textContent = lista.length ? lista.length + ' cotización(es)' : 'Sin cotizaciones.';
+    _cpEl('cfg-cot-lista').innerHTML = lista.map(c => {
+        const lineas = (c.items || []).map(it => `<li>${it.cantidad} × ${escaparHTML(it.descripcion || '')}${it.sku ? ' (' + escaparHTML(it.sku) + ')' : ''}${it.tipo === 'pedido' ? ' · bajo pedido, parte ' + escaparHTML(it.numeroParte || '') : ''} — ${_cfgMoneda(it.importe)}</li>`).join('');
+        const opciones = ESTADOS_COT.map(e => `<option${e === c.estado ? ' selected' : ''}>${e}</option>`).join('');
+        const f = escaparHTML(c.folio);
+        return `<div class="cfg-cot"><div class="cfg-cot-top"><b>${f}</b><span class="cfg-est"><i aria-hidden="true" class="fa-solid ${ICONO_ESTADO_COT[c.estado] || 'fa-circle'}"></i> ${escaparHTML(c.estado)}</span></div>
+            <div>${escaparHTML(c.cliente)} · ${escaparHTML(String(c.telefono))}${c.idCliente ? ' · ID ' + escaparHTML(c.idCliente) : ''}</div>
+            <div class="cfg-muted">${escaparHTML(String(c.fecha).slice(0, 16))} · ${_cfgMoneda(c.total)}</div>
+            <details><summary>Ver líneas (${(c.items || []).length})</summary><ul>${lineas}</ul></details>
+            <div class="cfg-acciones"><select aria-label="Estado de ${f}" onchange="cfgCambiarEstado('${f}', this)">${opciones}</select>
+            <button type="button" onclick="cfgReenviar('${f}')"><i aria-hidden="true" class="fa-brands fa-whatsapp"></i> Reenviar</button></div></div>`;
+    }).join('');
+}
+async function cfgCambiarEstado(folio, sel) {
+    const c = _cfgCots.find(x => x.folio === folio); const previo = c ? c.estado : sel.value;
+    try {
+        const rs = await _cpApi('cambiarEstadoCotizacion', { folio, estado: sel.value });
+        if (!rs.success) throw new Error(rs.message || 'No se pudo cambiar el estado.');
+        if (c) c.estado = sel.value;
+        cfgPintarCotizaciones();
+    } catch (e) { sel.value = previo; _cpEl('cfg-cot-estado').textContent = e.message || 'No se pudo cambiar el estado.'; }
+}
+/** Reenvía por WhatsApp: líneas, importes y total. El número de parte de lo bajo pedido NO va en el mensaje. */
+function cfgReenviar(folio) {
+    const c = _cfgCots.find(x => x.folio === folio); if (!c) return;
+    const tel = String(c.telefono).replace(/\D/g, '');
+    const lin = (c.items || []).map(it => `• ${it.cantidad} × ${it.descripcion || ''}${it.sku ? ' (' + it.sku + ')' : ''} — ${_cfgMoneda(it.importe)}`).join('\n');
+    const msg = `Hola ${c.cliente}, te comparto tu cotización ${c.folio}:\n${lin}\nTotal: ${_cfgMoneda(c.total)}`;
+    window.open('https://wa.me/' + (tel.length === 10 ? '52' + tel : tel) + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+}
+
+let _cpIdResuelto = '';
+let _cpCoincidencias = [];
+
+/** Cliente (hoja Mecanicos): por ID, nombre o teléfono. Con una sola coincidencia llena todo; con varias, deja elegir. */
 async function cotPisoBuscarCliente() {
-    const id = _cpEl('cp-idcliente').value.trim();
-    const est = _cpEl('cp-id-estado');
-    if (!id) { est.textContent = ''; return; }
+    const q = _cpEl('cp-idcliente').value.trim();
+    const est = _cpEl('cp-id-estado'), lista = _cpEl('cp-id-resultados');
+    lista.hidden = true; lista.innerHTML = '';
+    if (q.length < 2) { est.textContent = ''; return; }
     est.textContent = 'Buscando…';
     try {
-        const rs = await _cpApi('buscarMecanico', { id });
-        if (!rs.success) { est.textContent = rs.message || 'No se pudo buscar el ID.'; return; }
-        if (!rs.encontrado) { est.textContent = 'No se encontró ese ID. Captura nombre y teléfono.'; _cpEl('cp-cliente').focus(); return; }
-        _cpEl('cp-cliente').value = rs.nombre || '';
-        _cpEl('cp-telefono').value = rs.telefono || '';
-        est.textContent = 'Cliente encontrado: ' + (rs.nombre || id);
-        _cpEl('cp-moto').focus();
-    } catch (e) { est.textContent = 'No se pudo buscar el ID. Revisa tu conexión.'; }
+        const rs = await _cpApi('buscarMecanico', { consulta: q });
+        if (!rs.success) { est.textContent = rs.message || 'No se pudo buscar.'; return; }
+        if (rs.encontrado) { _cpElegirCliente({ id: rs.id, nombre: rs.nombre, telefono: rs.telefono }); return; }
+        _cpCoincidencias = rs.coincidencias || [];
+        if (!_cpCoincidencias.length) { est.textContent = 'No se encontró. Captura nombre y teléfono.'; _cpEl('cp-cliente').focus(); return; }
+        est.textContent = _cpCoincidencias.length + ' coincidencias: elige una.';
+        lista.innerHTML = _cpCoincidencias.map((m, k) => `<button type="button" class="cfg-res" onclick="_cpElegirCliente(_cpCoincidencias[${k}])"><b>${escaparHTML(m.nombre)}</b><span>ID ${escaparHTML(m.id)} · ${escaparHTML(m.telefono)}</span></button>`).join('');
+        lista.hidden = false;
+    } catch (e) { est.textContent = 'No se pudo buscar. Revisa tu conexión.'; }
+}
+
+function _cpElegirCliente(m) {
+    _cpIdResuelto = m.id || '';
+    _cpEl('cp-idcliente').value = m.id || '';
+    _cpEl('cp-cliente').value = m.nombre || '';
+    _cpEl('cp-telefono').value = m.telefono || '';
+    _cpEl('cp-id-resultados').hidden = true;
+    _cpEl('cp-id-estado').textContent = 'Cliente: ' + (m.nombre || '') + ' · ID ' + (m.id || '');
+    _cpEl('cp-moto').focus();
 }
 
 function _cpReiniciar() {
     _cpLineas = []; _cpGuardada = false;
     ['cp-cliente', 'cp-telefono', 'cp-moto', 'cp-anio', 'cp-idcliente', 'cp-buscador'].forEach(id => { _cpEl(id).value = ''; });
-    _cpEl('cp-id-estado').textContent = '';
+    _cpEl('cp-id-estado').textContent = ''; _cpIdResuelto = ''; _cpEl('cp-id-resultados').hidden = true;
     _cpEl('cp-resultados').hidden = true;
     _cpEl('cp-form').hidden = false; _cpEl('cp-listo').hidden = true;
     _cpError(''); _cpAviso('');
@@ -6294,7 +6421,7 @@ async function cotPisoGuardar() {
     _cpGuardando = true; btn.disabled = true; btn.innerHTML = '<i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> Guardando…';
     try {
         const datos = {
-            cliente: _cpEl('cp-cliente').value.trim(), telefono: _cpEl('cp-telefono').value, idCliente: _cpEl('cp-idcliente').value.trim(),
+            cliente: _cpEl('cp-cliente').value.trim(), telefono: _cpEl('cp-telefono').value, idCliente: _cpIdResuelto,
             moto: _cpEl('cp-moto').value.trim(), anio: _cpEl('cp-anio').value.trim(), agencia: _cpAgenciaAuto(), origen: 'PISO',
             lineas: _cpLineas.map(l => l.tipo === 'pedido'
                 ? { tipo: 'pedido', cantidad: l.cantidad, numeroParte: l.numeroParte, descripcion: l.descripcion, precioAprox: l.precioAprox }

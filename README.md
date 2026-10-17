@@ -56,11 +56,11 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 7. **Hecho en `index.html` (16-oct), falta probar en celular** — fallos visibles: el botón "Cotizar" se pierde entre los demás botones flotantes, y las etiquetas "Pendientes" y "Cotización" se desbordan del ícono. Reglas de corrección en `MASTER.md` §7.
 8. **Hecho (16-oct)**: captura con ID de cliente primero (autollena nombre y teléfono desde la hoja `Mecanicos`: B = ID, C = nombre, E = teléfono; `buscarMecanico` en `Cotizaciones.js`) y sin selector de Agencia (se deduce del almacén del asesor solo para el registro). Falta: logo predeterminado en la hoja de cotización (no existe aún) y subir `Código.js` y `Cotizaciones.js` a Apps Script.
 9. **Hecho (16-oct)**: Buscar por Foto quitado del index y de `Código.js` (`analizarFotoProducto` y su ruta). Falta subir `Código.js` a Apps Script y borrar `GROQ_API_KEY` de las Propiedades del script.
-10. Panel oculto Configuración: Aspecto, Cuenta y versión, Cotizaciones (decisión 9), con tema claro/oscuro/sistema.
+10. **Hecho en parte (17-oct)**: panel Configuración (engrane en la cabecera) con **Cuenta y versión** y **Cotizaciones** (lista de las tuyas, búsqueda, ver líneas, cambiar estado, reenviar por WhatsApp sin número de parte). **Falta Aspecto** (Claro/Oscuro/Sistema): requiere antes migrar los colores fijos de Tailwind a tokens.
 11. **Hecho (16-oct)**: botón "Cotizar en Maps" quitado de Pendientes, enlace a Maps quitado del mensaje de Telegram, y botón "Cotizar en ruta" en el pie del carrito del cliente (abre Maps sin datos). Falta subir `Código.js` a Apps Script.
 
 ## Por confirmar
-- Configuración: ¿la ven todos los roles o solo admin, vendedor y gerente? ¿Cómo se abre (ícono oculto, gesto, otra forma)? ¿Con qué aspecto arranca?
+- Configuración: hoy el engrane lo ven todos los usuarios con sesión y la pestaña Cotizaciones solo los asesores; ¿se deja así o se oculta de otra forma? ¿Con qué aspecto arranca?
 - "Cotizar en ruta": ¿lleva el carrito del cliente a Maps o solo abre Maps?
 - Lista de precios "de otra fuente": ¿es la que se sube en el REPORTEADOR o una hoja distinta?
 - Maps: confirmar que `esVendedor`, `esAdminReal` y `validarSesion` se quedan, porque los usa para su propio acceso.
@@ -68,3 +68,6 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 ## Cómo probar
 1. Subir `index.html`, `sw.js` y `README.md` a GitHub Pages y recargar.
 2. Rol Gerente: en `Usuarios_Autorizados` poner `gerente` en la columna F de una cuenta de prueba. Debe ver el catálogo como vendedor y no debe poder entrar a Maps.
+
+## Búsqueda de cliente (17-oct)
+En Cotizar, el campo "Cliente" busca en la hoja `Mecanicos` por ID, nombre (todas las palabras, sin acentos) o teléfono (4+ dígitos) y muestra hasta 8 coincidencias con su ID (`buscarMecanico(correo, consulta)` en `Cotizaciones.js`).
