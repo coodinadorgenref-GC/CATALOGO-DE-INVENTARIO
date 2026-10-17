@@ -26,6 +26,9 @@ const APP_SHELL = [
   './icon-512.png',
   './apple-touch-icon.png',
   './imagen-no-disponible.png',
+  './logo-carabela.png',
+  './logo-suzuki.png',
+  './logo-bajaj.png',
 ];
 
 self.addEventListener('install', (event) => {

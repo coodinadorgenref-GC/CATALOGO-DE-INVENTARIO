@@ -658,7 +658,9 @@
         .cfg-est { font-size: 12px; font-weight: 700; display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); }
         .cfg-muted { color: var(--text-3); font-size: 12px; }
         .cfg-cot ul { margin: 8px 0 0; padding-left: 18px; color: var(--text-2); }
-        .cfg-acciones { display: flex; gap: 8px; margin-top: 10px; }
+        .cfg-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .cfg-acciones select { flex-basis: 100%; }
+        .cfg-acciones button:disabled { opacity: .6; cursor: progress; }
         .cfg-acciones select, .cfg-acciones button { min-height: 44px; flex: 1; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; font-weight: 600; padding: 0 10px; cursor: pointer; }
         .cp-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(15,23,42,.72); display: none; align-items: flex-end; justify-content: center; }
         .cp-overlay.visible { display: flex; }
@@ -1456,7 +1458,8 @@
             <div id="cp-folio" class="cp-folio"></div>
             <p id="cp-listo-detalle" style="color:var(--text-2);margin:0 0 4px"></p>
             <p id="cp-listo-aviso" class="cp-ayuda" style="margin-bottom:16px"></p>
-            <button type="button" class="btn-primary" onclick="cotPisoNueva()" style="width:100%;min-height:48px;border-radius:8px;font-weight:600;cursor:pointer">Nueva cotización</button>
+            <button type="button" id="cp-hoja" class="btn-primary" onclick="hojaCotizacionPdf(_cpUltima, this)" style="width:100%;min-height:48px;border-radius:8px;font-weight:600;cursor:pointer"><i aria-hidden="true" class="fa-solid fa-file-pdf"></i> Hoja PDF</button>
+            <button type="button" class="cp-btn-sec" onclick="cotPisoNueva()">Nueva cotización</button>
             <button type="button" class="cp-btn-sec" onclick="cotPisoCerrar(true)">Cerrar</button>
         </div>
     </div>
@@ -6123,6 +6126,7 @@ let _cpPreciosPromesa = null;
 let _cpSeq = 0;
 let _cpGuardando = false;
 let _cpGuardada = false;
+let _cpUltima = null;   // última cotización guardada, para la hoja PDF
 
 const _cpNorm = s => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 const _cpSku = v => { const t = String(v == null ? '' : v).trim(); return /^\d+$/.test(t) ? t.replace(/^0+(?=\d)/, '') : t; };   // igual que _normSku del servidor
@@ -6158,10 +6162,10 @@ function _cpError(msg) {
 }
 function _cpAviso(msg) { _cpEl('cp-aviso').textContent = msg || ''; }
 
-/** Sin selector de Agencia: se deduce del almacén del asesor (solo para el registro; la hoja lleva logo predeterminado). */
+/** Sin selector de Agencia: se deduce del almacén del asesor. Define el logo de la hoja (Carabela, Suzuki o Bajaj; Vento va sin logo). */
 function _cpAgenciaAuto() {
     const h = String(almacenAdminActual || '').toUpperCase();
-    return h.includes('BAJAJ') ? 'BAJAJ' : h.includes('SUZUKI') ? 'SUZUKI' : 'VENTO';
+    return h.includes('BAJAJ') ? 'BAJAJ' : h.includes('SUZUKI') ? 'SUZUKI' : h.includes('CARABELA') ? 'CARABELA' : 'VENTO';
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
@@ -6210,7 +6214,8 @@ function cfgPintarCotizaciones() {
             <div class="cfg-muted">${escaparHTML(String(c.fecha).slice(0, 16))} · ${_cfgMoneda(c.total)}</div>
             <details><summary>Ver líneas (${(c.items || []).length})</summary><ul>${lineas}</ul></details>
             <div class="cfg-acciones"><select aria-label="Estado de ${f}" onchange="cfgCambiarEstado('${f}', this)">${opciones}</select>
-            <button type="button" onclick="cfgReenviar('${f}')"><i aria-hidden="true" class="fa-brands fa-whatsapp"></i> Reenviar</button></div></div>`;
+            <button type="button" onclick="cfgReenviar('${f}')"><i aria-hidden="true" class="fa-brands fa-whatsapp"></i> Reenviar</button>
+            <button type="button" onclick="cfgHojaPdf('${f}', this)"><i aria-hidden="true" class="fa-solid fa-file-pdf"></i> Hoja PDF</button></div></div>`;
     }).join('');
 }
 async function cfgCambiarEstado(folio, sel) {
@@ -6222,6 +6227,9 @@ async function cfgCambiarEstado(folio, sel) {
         cfgPintarCotizaciones();
     } catch (e) { sel.value = previo; _cpEl('cfg-cot-estado').textContent = e.message || 'No se pudo cambiar el estado.'; }
 }
+function cfgHojaPdf(folio, btn) {
+    const c = _cfgCots.find(x => x.folio === folio); if (c) hojaCotizacionPdf(c, btn);
+}
 /** Reenvía por WhatsApp: líneas, importes y total. El número de parte de lo bajo pedido NO va en el mensaje. */
 function cfgReenviar(folio) {
     const c = _cfgCots.find(x => x.folio === folio); if (!c) return;
@@ -6230,6 +6238,185 @@ function cfgReenviar(folio) {
     const msg = `Hola ${c.cliente}, te comparto tu cotización ${c.folio}:\n${lin}\nTotal: ${_cfgMoneda(c.total)}`;
     window.open('https://wa.me/' + (tel.length === 10 ? '52' + tel : tel) + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
 }
+
+/* ═════ HOJA_COTIZACION_INICIO ═════
+   Hoja de cotización: carta, tipo factura, siempre clara (se imprime o se comparte).
+   Logo según la agencia del asesor (Carabela, Suzuki, Bajaj); sin logo, lleva el nombre de la empresa.
+   Nunca lleva número de parte de lo bajo pedido ni costos. jsPDF se carga solo la primera vez que se usa. */
+const HOJA_LOGOS = {
+    CARABELA: { archivo: 'logo-carabela.png', w: 472, h: 90 },
+    SUZUKI:   { archivo: 'logo-suzuki.png',   w: 470, h: 90 },
+    BAJAJ:    { archivo: 'logo-bajaj.png',    w: 437, h: 90 }
+};
+const JSPDF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+let _jsPdfPromesa = null;
+
+function _cargarJsPdf() {
+    if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+    if (_jsPdfPromesa) return _jsPdfPromesa;
+    _jsPdfPromesa = new Promise((ok, mal) => {
+        const s = document.createElement('script');
+        s.src = JSPDF_URL;
+        s.onload = () => (window.jspdf && window.jspdf.jsPDF) ? ok(window.jspdf.jsPDF) : (_jsPdfPromesa = null, mal(new Error('No se pudo preparar el PDF.')));
+        s.onerror = () => { _jsPdfPromesa = null; mal(new Error('No se pudo cargar el generador de PDF. Revisa tu conexión.')); };
+        document.head.appendChild(s);
+    });
+    return _jsPdfPromesa;
+}
+
+/** Logo de la agencia como data URL (se guarda en memoria). Si no hay logo para esa agencia o no carga, devuelve null. */
+async function _hojaLogoDe(agencia) {
+    const l = HOJA_LOGOS[String(agencia || '').toUpperCase()];
+    if (!l) return null;
+    if (!l.dataUrl) {
+        try {
+            const blob = await (await fetch(l.archivo)).blob();
+            l.dataUrl = await new Promise((ok, mal) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = mal; r.readAsDataURL(blob); });
+        } catch (e) { return null; }
+    }
+    return { dataUrl: l.dataUrl, w: l.w, h: l.h };
+}
+
+/** cot: { folio, fecha, agencia, cliente, telefono, idCliente, moto, anio, vendedorNombre, total, items:[{cantidad, sku, descripcion, disponibilidad, precio, precioAprox, importe}] } */
+function hojaCotizacionConstruir(jsPDF, cot, logo) {
+    const doc = new jsPDF({ unit: 'mm', format: 'letter' });
+    const PW = 215.9, PH = 279.4, MX = 14, TW = PW - 2 * MX, LIM = PH - 18;
+    const VERDE = [34, 177, 76], VERDE_TXT = [4, 120, 87], OSC = [15, 23, 42], GRIS = [71, 85, 105], LINEA = [203, 213, 225], FONDO = [241, 245, 249];
+    const moneda = n => '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const txt = v => String(v === null || v === undefined ? '' : v).trim();
+    const items = Array.isArray(cot.items) ? cot.items : [];
+    const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    const mf = /^(\d{4})-(\d{2})-(\d{2})/.exec(txt(cot.fecha));
+    const hoy = new Date();
+    const fechaTxt = mf ? Number(mf[3]) + ' de ' + MESES[Number(mf[2]) - 1] + ' de ' + mf[1] : hoy.getDate() + ' de ' + MESES[hoy.getMonth()] + ' de ' + hoy.getFullYear();
+    const tel = txt(cot.telefono).replace(/\D/g, '');
+    const telTxt = tel.length === 10 ? tel.slice(0, 3) + ' ' + tel.slice(3, 6) + ' ' + tel.slice(6) : tel;
+    const fuente = (peso, tam, color) => { doc.setFont('helvetica', peso); doc.setFontSize(tam); doc.setTextColor(color[0], color[1], color[2]); };
+    let y = 14;
+
+    // ── Encabezado: logo (o nombre) a la izquierda; título, folio y fecha a la derecha
+    if (logo) {
+        const alto = 9, ancho = alto * logo.w / logo.h;
+        try { doc.addImage(logo.dataUrl, 'PNG', MX, y - 2, ancho, alto); } catch (e) {}
+    } else {
+        fuente('bold', 13, OSC); doc.text('LA BARATA DEL HOGAR', MX, y + 4);
+    }
+    fuente('bold', 17, VERDE_TXT); doc.text('COTIZACIÓN', PW - MX, y + 3, { align: 'right' });
+    fuente('bold', 10, OSC); doc.text('Folio: ' + txt(cot.folio), PW - MX, y + 9, { align: 'right' });
+    fuente('normal', 9, GRIS); doc.text(fechaTxt, PW - MX, y + 14, { align: 'right' });
+    y += 19;
+    doc.setDrawColor(VERDE[0], VERDE[1], VERDE[2]); doc.setLineWidth(0.7); doc.line(MX, y, PW - MX, y);
+    y += 6;
+
+    // ── Datos del cliente (izquierda) y del asesor y la moto (derecha)
+    const izq = [['CLIENTE', txt(cot.cliente), true]];
+    if (txt(cot.idCliente)) izq.push(['', 'ID de cliente: ' + txt(cot.idCliente), false]);
+    if (telTxt) izq.push(['', 'Teléfono: ' + telTxt, false]);
+    const der = [['ASESOR DE VENTAS', txt(cot.vendedorNombre) || '—', true]];
+    const moto = [txt(cot.moto), txt(cot.anio) ? 'Año ' + txt(cot.anio) : ''].filter(Boolean).join(' · ');
+    if (moto) der.push(['MOTOCICLETA', moto, true]);
+    const alturaCol = col => col.reduce((h, f) => h + (f[0] ? 4 : 0) + 4.6, 0);
+    const hCaja = Math.max(alturaCol(izq), alturaCol(der)) + 6;
+    doc.setFillColor(FONDO[0], FONDO[1], FONDO[2]); doc.roundedRect(MX, y, TW, hCaja, 1.5, 1.5, 'F');
+    const pintaCol = (col, x0, ancho) => {
+        let yy = y + 5;
+        col.forEach(f => {
+            if (f[0]) { fuente('bold', 7, GRIS); doc.text(f[0], x0, yy); yy += 4; }
+            fuente(f[2] ? 'bold' : 'normal', f[2] ? 10.5 : 9, OSC);
+            doc.text(doc.splitTextToSize(f[1], ancho)[0], x0, yy); yy += 4.6;
+        });
+    };
+    pintaCol(izq, MX + 4, TW / 2 - 8);
+    pintaCol(der, MX + TW / 2 + 4, TW / 2 - 8);
+    y += hCaja + 7;
+
+    // ── Tabla de partidas
+    const cols = [
+        { t: 'Cant.', w: 13, a: 'c' }, { t: 'SKU', w: 30, a: 'l' }, { t: 'Descripción', w: TW - 13 - 30 - 27 - 25 - 27, a: 'l' },
+        { t: 'Disponibilidad', w: 27, a: 'l' }, { t: 'P. unit.', w: 25, a: 'r' }, { t: 'Importe', w: 27, a: 'r' }
+    ];
+    const celdaX = (k, a) => { const x0 = MX + cols.slice(0, k).reduce((s, c) => s + c.w, 0); return a === 'c' ? x0 + cols[k].w / 2 : a === 'r' ? x0 + cols[k].w - 2 : x0 + 2; };
+    const encabezadoTabla = () => {
+        doc.setFillColor(VERDE_TXT[0], VERDE_TXT[1], VERDE_TXT[2]); doc.rect(MX, y, TW, 7, 'F');
+        fuente('bold', 8, [255, 255, 255]);
+        cols.forEach((c, k) => doc.text(c.t, celdaX(k, c.a), y + 4.7, { align: c.a === 'c' ? 'center' : c.a === 'r' ? 'right' : 'left' }));
+        y += 7;
+    };
+    encabezadoTabla();
+    let hayAprox = false, sinPrecio = 0;
+    items.forEach((it, n) => {
+        const aprox = it.precioAprox === true && it.precio !== null && it.precio !== undefined;
+        if (aprox) hayAprox = true;
+        const sinP = it.precio === null || it.precio === undefined || it.importe === null || it.importe === undefined;
+        if (sinP) sinPrecio++;
+        fuente('normal', 8.5, OSC);
+        const lDesc = doc.splitTextToSize(txt(it.descripcion) || '—', cols[2].w - 4);
+        const lSku = doc.splitTextToSize(txt(it.sku) || '—', cols[1].w - 4);
+        const lDisp = doc.splitTextToSize(txt(it.disponibilidad) || '—', cols[3].w - 4);
+        const hFila = Math.max(lDesc.length, lSku.length, lDisp.length, 1) * 4 + 3;
+        if (y + hFila > LIM) { doc.addPage(); y = 14; encabezadoTabla(); fuente('normal', 8.5, OSC); }
+        if (n % 2 === 1) { doc.setFillColor(FONDO[0], FONDO[1], FONDO[2]); doc.rect(MX, y, TW, hFila, 'F'); }
+        const base = y + 5;
+        doc.text(String(it.cantidad), celdaX(0, 'c'), base, { align: 'center' });
+        doc.text(lSku, celdaX(1, 'l'), base);
+        doc.text(lDesc, celdaX(2, 'l'), base);
+        doc.text(lDisp, celdaX(3, 'l'), base);
+        doc.text(sinP ? 'Por confirmar' : moneda(it.precio) + (aprox ? '*' : ''), celdaX(4, 'r'), base, { align: 'right' });
+        doc.text(sinP ? 'Por confirmar' : moneda(it.importe) + (aprox ? '*' : ''), celdaX(5, 'r'), base, { align: 'right' });
+        doc.setDrawColor(LINEA[0], LINEA[1], LINEA[2]); doc.setLineWidth(0.15); doc.line(MX, y + hFila, MX + TW, y + hFila);
+        y += hFila;
+    });
+
+    // ── Total y notas
+    if (y + 34 > LIM) { doc.addPage(); y = 14; }
+    y += 6;
+    const wT = 78, xT = PW - MX - wT;
+    doc.setDrawColor(VERDE_TXT[0], VERDE_TXT[1], VERDE_TXT[2]); doc.setLineWidth(0.5); doc.line(xT, y, PW - MX, y);
+    fuente('bold', 11, OSC); doc.text('TOTAL', xT + 2, y + 7);
+    fuente('bold', 14, VERDE_TXT); doc.text(moneda(cot.total || 0), PW - MX - 2, y + 7.4, { align: 'right' });
+    y += 14;
+    fuente('normal', 8, GRIS);
+    if (hayAprox) { doc.text('* Precio aproximado, por confirmar.', MX, y); y += 4.2; }
+    if (sinPrecio) { doc.text(sinPrecio + (sinPrecio === 1 ? ' partida por confirmar, no incluida' : ' partidas por confirmar, no incluidas') + ' en el total.', MX, y); y += 4.2; }
+    doc.text('Precios y existencias sujetos a confirmación.', MX, y);
+
+    // ── Pie de cada hoja
+    const n = doc.getNumberOfPages();
+    for (let i = 1; i <= n; i++) {
+        doc.setPage(i);
+        fuente('normal', 8, GRIS);
+        doc.text('Cotización ' + txt(cot.folio), MX, PH - 8);
+        doc.text('Hoja ' + i + ' de ' + n, PW - MX, PH - 8, { align: 'right' });
+    }
+    return doc;
+}
+
+/** Genera la hoja y la comparte (celular) o la descarga. boton: se bloquea mientras prepara. */
+async function hojaCotizacionPdf(cot, boton) {
+    if (!cot || !cot.folio) { mostrarToastInfo('No hay una cotización para generar la hoja.'); return; }
+    const original = boton ? boton.innerHTML : '';
+    if (boton) { boton.disabled = true; boton.innerHTML = '<i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> Preparando…'; }
+    try {
+        const [jsPDF, logo] = await Promise.all([_cargarJsPdf(), _hojaLogoDe(cot.agencia)]);
+        const doc = hojaCotizacionConstruir(jsPDF, cot, logo);
+        const nombre = 'Cotizacion-' + String(cot.folio).replace(/[^\w-]/g, '') + '.pdf';
+        const blob = doc.output('blob');
+        const archivo = new File([blob], nombre, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+            try { await navigator.share({ files: [archivo], title: 'Cotización ' + cot.folio }); return; }
+            catch (e) { if (e && e.name === 'AbortError') return; }   // si el celular no deja compartir, se descarga
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = nombre;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (e) {
+        mostrarToastInfo(e && e.message ? e.message : 'No se pudo generar la hoja.');
+    } finally {
+        if (boton) { boton.disabled = false; boton.innerHTML = original; }
+    }
+}
+/* ═════ HOJA_COTIZACION_FIN ═════ */
 
 let _cpIdResuelto = '';
 let _cpCoincidencias = [];
@@ -6430,6 +6617,8 @@ async function cotPisoGuardar() {
         const rs = await _cpApi('guardarCotizacion', { datos });
         if (!rs.success) { _cpError(rs.message || 'No se pudo guardar la cotización.'); return; }
         _cpGuardada = true;
+        _cpUltima = { folio: rs.folio, fecha: rs.fecha, agencia: datos.agencia, cliente: datos.cliente, telefono: datos.telefono, idCliente: datos.idCliente,
+            moto: datos.moto, anio: datos.anio, vendedorNombre: (document.getElementById('nombre-usuario')?.textContent || '').trim(), total: rs.total, items: rs.items };
         _cpEl('cp-form').hidden = true; _cpEl('cp-listo').hidden = false;
         _cpEl('cp-folio').textContent = rs.folio;
         _cpEl('cp-listo-detalle').textContent = rs.items.length + (rs.items.length === 1 ? ' producto' : ' productos') + ' · Total ' + _cpMoneda(rs.total) + ' · Estado: ' + rs.estado;
