@@ -51,12 +51,12 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 2. Sistema visual (MASTER.md): hecho y aplicada la capa base en `index.html` (16-oct): tokens, contraste AA en botones y grises, fuentes Rubik + Nunito Sans, texto mínimo de 11 px, `aria-label`/`aria-hidden`/`aria-live`, foco visible, imágenes `loading="lazy"`, emojis sustituidos por Font Awesome. Queda lo estructural, que va con la etapa 6: barra inferior móvil, tarjeta de producto, modales como hoja inferior y áreas táctiles de 44 px.
 3. Listas de precios en el REPORTEADOR hacia el API.
 4. Cotización en piso de venta: captura, folio y guardado hechos (falta desplegar `Cotizaciones.js` en Apps Script y probar). Falta: que "Atender" en Pendientes abra la cotización en el catálogo con los SKU del carrito (el botón a Maps ya se quitó de las tarjetas de Pendientes), lista de mis cotizaciones con cambio de estado en la interfaz, y el precio por número de parte desde la lista de precios del REPORTEADOR.
-5. Hoja de cotización tipo factura por agencia (el catálogo aún no carga jsPDF ni tiene hoja carta).
-6. Reestructura de la interfaz.
+5. Hoja de cotización tipo factura, tamaño carta, **un solo formato** con logo predeterminado (decisión 7; el catálogo aún no carga jsPDF ni tiene hoja carta). Falta elegir el logo: ver «Logo de la hoja de cotización».
+6. Reestructura de la interfaz. La barra inferior móvil y el rediseño estructural quedan para después, por indicación (17-oct).
 7. **Hecho en `index.html` (16-oct), falta probar en celular** — fallos visibles: el botón "Cotizar" se pierde entre los demás botones flotantes, y las etiquetas "Pendientes" y "Cotización" se desbordan del ícono. Reglas de corrección en `MASTER.md` §7.
-8. **Hecho (16-oct)**: captura con ID de cliente primero (autollena nombre y teléfono desde la hoja `Mecanicos`: B = ID, C = nombre, E = teléfono; `buscarMecanico` en `Cotizaciones.js`) y sin selector de Agencia (se deduce del almacén del asesor solo para el registro). Falta: logo predeterminado en la hoja de cotización (no existe aún) y subir `Código.js` y `Cotizaciones.js` a Apps Script.
+8. **Hecho (16-oct)**: captura con ID de cliente primero (autollena nombre y teléfono desde la hoja `Mecanicos`: B = ID, C = nombre, E = teléfono; `buscarMecanico` en `Cotizaciones.js`) y sin selector de Agencia (se deduce del almacén del asesor solo para el registro). Falta: logo predeterminado en la hoja de cotización (no existe aún; candidatos en «Logo de la hoja de cotización») y subir `Código.js` y `Cotizaciones.js` a Apps Script.
 9. **Hecho (16-oct)**: Buscar por Foto quitado del index y de `Código.js` (`analizarFotoProducto` y su ruta). Falta subir `Código.js` a Apps Script y borrar `GROQ_API_KEY` de las Propiedades del script.
-10. **Hecho en parte (17-oct)**: panel Configuración (engrane en la cabecera) con **Cuenta y versión** y **Cotizaciones** (lista de las tuyas, búsqueda, ver líneas, cambiar estado, reenviar por WhatsApp sin número de parte). **Falta Aspecto** (Claro/Oscuro/Sistema): requiere antes migrar los colores fijos de Tailwind a tokens.
+10. **Hecho en parte (17-oct)**: panel Configuración (engrane en la cabecera) con **Cuenta y versión** y **Cotizaciones** (lista de las tuyas, búsqueda, ver líneas, cambiar estado, reenviar por WhatsApp sin número de parte). **Falta Aspecto** (Claro/Oscuro/Sistema): requiere antes migrar los colores fijos de Tailwind a tokens; si no, el tema claro se vería roto. Hoy `index.html` tiene unas 235 líneas con clases de color fijo (`bg-/text-/border-slate-*`, `emerald-*`) y ningún `data-theme` ni `prefers-color-scheme`.
 11. **Hecho (16-oct)**: botón "Cotizar en Maps" quitado de Pendientes, enlace a Maps quitado del mensaje de Telegram, y botón "Cotizar en ruta" en el pie del carrito del cliente (abre Maps sin datos). Falta subir `Código.js` a Apps Script.
 
 ## Por confirmar
@@ -64,10 +64,15 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 - "Cotizar en ruta": ¿lleva el carrito del cliente a Maps o solo abre Maps?
 - Lista de precios "de otra fuente": ¿es la que se sube en el REPORTEADOR o una hoja distinta?
 - Maps: confirmar que `esVendedor`, `esAdminReal` y `validarSesion` se quedan, porque los usa para su propio acceso.
+- Logo predeterminado de la hoja de cotización: ¿cuál de los logos de `logos-marcas.js` va en el encabezado? Ahí solo hay logos de marcas (y de Carabela); no hay uno propio de la empresa.
 
 ## Cómo probar
 1. Subir `index.html`, `sw.js` y `README.md` a GitHub Pages y recargar.
 2. Rol Gerente: en `Usuarios_Autorizados` poner `gerente` en la columna F de una cuenta de prueba. Debe ver el catálogo como vendedor y no debe poder entrar a Maps.
+
+## Logo de la hoja de cotización (17-oct)
+Fuente indicada: `logos-marcas.js` del repo Maps (`coodinadorgenref-GC/Maps`). Define `window.LOGO_MARCAS`, un arreglo de `{ nombre, w, h, src }` con `src` en PNG base64 (ya redimensionados a 90 px de alto): Suzuki 470×90, Bajaj 437×90, Carabela 472×90, Vento 444×90, BDS 429×90, American Piston 750×90, Islo 590×90, ATUL 90×90, TVS 135×90, Piaggio 90×90. Son logos de marcas; Maps los usa en el **pie** de la nota de venta (`nota-venta.js`). Para el **encabezado** Maps solo prevé un `window.LOGO_CARABELA_PNG` opcional (42 × 8.02 mm) que no se define en ningún archivo, así que no existe ya un logo de encabezado listo.
+Propuesta, sin hacer todavía: al elegir el predeterminado, guardarlo como archivo propio del repo (no enlazar a Maps, que ya no atiende el catálogo) y cachearlo en `sw.js`.
 
 ## Búsqueda de cliente (17-oct)
 En Cotizar, el campo "Cliente" busca en la hoja `Mecanicos` por ID, nombre (todas las palabras, sin acentos) o teléfono (4+ dígitos) y muestra hasta 8 coincidencias con su ID (`buscarMecanico(correo, consulta)` en `Cotizaciones.js`).

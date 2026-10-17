@@ -105,7 +105,7 @@ El verde de marca `#22b14c` sobre fondo claro da solo 2.5:1: sirve como fondo de
 **Tarjeta de producto:** foto 1:1 con espacio reservado (sin saltos de layout) · SKU mono · descripción (2 líneas máx.) · insignia de disponibilidad · [rol vendedor] precio alineado a la derecha · botón "Agregar". Foto con `loading="lazy"` y `imagen-no-disponible.png` como respaldo.
 **Insignias de disponibilidad:** `En existencia` (brand), `Pocas piezas` (attention), `Agotado` (danger), `Bajo pedido` (attention). Siempre ícono + texto.
 **Inputs:** etiqueta visible arriba (nada de placeholder como etiqueta), error debajo del campo en `--danger` con ícono, ayuda en `--text-3`, `inputmode`/`autocomplete` correctos (teléfono: `tel`).
-**Captura de cotización (todas):** orden fijo: 1) **ID de cliente** (si existe, se traen todos sus datos y los campos siguientes se llenan solos y siguen editables) · 2) Nombre · 3) Teléfono · 4) Motocicleta (opcional) · 5) Año (opcional) · 6) buscador de producto (SKU, nombre o número de parte; Enter agrega el primer resultado, admite lector/pegado). **No hay selector de Agencia**: la hoja sale con el logo predeterminado. Hoja inferior en móvil, áreas táctiles de 44 px, disponibilidad con ícono + texto. Implementada en `index.html` (`cotPiso*`); el nuevo orden y la eliminación de Agencia están pendientes (§14).
+**Captura de cotización (todas):** orden fijo: 1) **ID de cliente** (si existe, se traen todos sus datos y los campos siguientes se llenan solos y siguen editables) · 2) Nombre · 3) Teléfono · 4) Motocicleta (opcional) · 5) Año (opcional) · 6) buscador de producto (SKU, nombre o número de parte; Enter agrega el primer resultado, admite lector/pegado). **No hay selector de Agencia**: la hoja sale con el logo predeterminado. Hoja inferior en móvil, áreas táctiles de 44 px, disponibilidad con ícono + texto. Implementada en `index.html` (`cotPiso*`) con este orden y sin selector de Agencia (17-oct).
 **Modales:** en móvil se convierten en hoja inferior (`max-h 90dvh`, scroll interno, cierre con Esc y toque fuera); respetar `env(safe-area-inset-*)`.
 
 ## 7. Navegación y patrones de pantalla
@@ -122,15 +122,17 @@ Pantallas con override previsto en `pages/`: `login`, `catalogo`, `carrito`, `co
 ### 7.1 Configuración (panel oculto)
 
 Panel oculto, al estilo de Maps y del REPORTEADOR: no aparece en la navegación principal. Tres secciones:
-- **Aspecto:** Claro · Oscuro · Igual que el sistema. Selector de tres opciones que aplica al instante (§3).
-- **Cuenta y versión:** contenido por definir; propuesta: datos de la cuenta, rol, cerrar sesión y versión de la app.
-- **Cotizaciones:** las mismas funciones que en Maps: historial, consulta, reenviar, cambiar estado (Borrador · Enviada · Aceptada · Rechazada · Cancelada), etc.
+- **Aspecto:** Claro · Oscuro · Igual que el sistema. Selector de tres opciones que aplica al instante (§3). **Pendiente:** primero hay que migrar los colores fijos de Tailwind a tokens; si no, el tema claro se vería roto.
+- **Cuenta y versión:** hecho (17-oct); muestra la versión de la app (`APP_VERSION`).
+- **Cotizaciones:** las mismas funciones que en Maps: historial, consulta, reenviar, cambiar estado (Borrador · Enviada · Aceptada · Rechazada · Cancelada), etc. Hecho en parte (17-oct): lista de las propias, búsqueda, ver líneas, cambiar estado y reenviar por WhatsApp sin número de parte.
 
-Por confirmar: quién la ve y cómo se abre.
+Hoy el engrane de la cabecera lo ven todos los usuarios con sesión y la pestaña Cotizaciones solo los asesores. Por confirmar: si se deja así o se oculta de otra forma.
 
 ## 8. Hoja de cotización (excepción al aspecto de la app: siempre clara)
 
 Documento **claro, tamaño carta, tipo factura**, independiente del tema de la app (se imprime/comparte). Un solo formato con un logo cargado de forma predeterminada (no hay selector de agencia). Contenido: fecha de elaboración, ID/folio, cliente (con su ID si existe) y teléfono, motocicleta y año si se capturaron, tabla (cant., SKU, disponibilidad, descripción, precio unitario, importe), asesor de ventas y datos de contacto. No incluye números de parte de "bajo pedido" ni costos. Se detalla en la etapa 5, tomando como referencia `generarPdfNotaVenta` (Maps).
+
+**Logo predeterminado (por elegir):** se toma de `logos-marcas.js` de Maps, que solo trae logos de marcas en PNG base64 a 90 px de alto (Suzuki, Bajaj, Carabela, Vento, BDS, American Piston, Islo, ATUL, TVS, Piaggio). Maps no define ningún logo de encabezado: `LOGO_CARABELA_PNG` es opcional y no se carga en ningún archivo. Falta decidir cuál va por defecto.
 
 ## 9. Movimiento
 
@@ -172,12 +174,14 @@ Contraste 4.5:1 (texto) y 3:1 (bordes de controles/íconos); foco visible siempr
 3. **Íconos:** se mantiene Font Awesome 6.4; se decide si se migra a SVG en la etapa 6.
 4. **Una sola hoja de cotización** con logo predeterminado, sin selector de agencia (16-oct).
 5. **Toda cotización empieza por el ID del cliente** (16-oct), §6.
+6. **Logo de la hoja** (17-oct): sale de `logos-marcas.js` de Maps; falta elegir cuál va por defecto (§8).
+7. **Para después** (17-oct, por indicación): barra inferior móvil y rediseño estructural.
 
 ## 14. Estado de aplicación en `index.html` (16-oct-2026)
 
 **Aplicado:** tokens en `:root` (los nombres viejos `--verde`, `--fondo`, `--tarjeta`, `--borde` quedan como alias); clases `.btn-primary`, `.btn-attention`, `.btn-state-ok`, `.btn-state-error`, `.badge-brand`; texto gris `slate-500` y `#64748b` sustituido por `--text-3`; fuentes Rubik y Nunito Sans (se cachean solas en `sw.js`); foco visible con teclado; `prefers-reduced-motion` también para `animate-bounce`/`animate-pulse`; `aria-label` en 29 botones solo-ícono, `aria-hidden` en los íconos decorativos, toasts con `aria-live="polite"`, error de login con `role="alert"`; `loading="lazy"` en miniaturas, tarjetas y carrito; emojis (🏍🔵🟣🟠📦📩✓⏳) sustituidos por íconos Font Awesome.
 **Piso de texto:** 11 px (10 px solo en insignias sobre miniaturas). Subir a 12 px al rediseñar tarjetas.
 **Pendiente (etapa 6):** barra inferior móvil, tarjeta de producto y precio en Rubik, modales como hoja inferior, áreas táctiles ≥ 44 px, botón de contraseña con `tabindex="-1"` (no se alcanza con teclado), campos de cotización (`type="tel"`).
-**Pendiente nuevo (16-oct):** fallos vistos en uso: el botón Cotizar se pierde entre los demás flotantes y las etiquetas de Pendientes y Cotización se desbordan del ícono (reglas en §7). Además: aspecto claro/oscuro/sistema con migración de colores fijos a tokens (§3), panel Configuración (§7.1) y nuevo orden de captura sin Agencia (§6).
 **Aplicado (16-oct):** botones flotantes: "Cotizar" pasa a ser el principal (72 px, a la derecha, relleno de marca) y "Pendientes" queda secundario a su izquierda (superficie con borde); las etiquetas ya no van en mayúsculas ni desbordan (11–12 px, una línea). Buscar por Foto eliminado. "Cotizar en ruta" en el pie del carrito del cliente.
-**Sigue pendiente:** panel Configuración con aspecto claro/oscuro/sistema (requiere migrar colores fijos a tokens), nuevo orden de captura con ID de cliente y sin Agencia, hoja de cotización con logo predeterminado, y el rediseño estructural del index (barra inferior móvil, tarjeta de producto, hojas inferiores).
+**Hecho (17-oct):** captura con ID de cliente primero y sin Agencia (§6); panel Configuración con Cuenta y versión y Cotizaciones (§7.1).
+**Sigue pendiente:** Aspecto claro/oscuro/sistema, que exige antes migrar los colores fijos de Tailwind a tokens (hoy unas 235 líneas de `index.html` usan `bg-/text-/border-slate-*` o `emerald-*`, y no hay `data-theme` ni `prefers-color-scheme`); hoja de cotización con logo predeterminado (§8); y el rediseño estructural del index (barra inferior móvil, tarjeta de producto, hojas inferiores), que queda para después.
