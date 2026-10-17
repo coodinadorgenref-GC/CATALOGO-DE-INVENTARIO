@@ -201,3 +201,5 @@ Contraste 4.5:1 (texto) y 3:1 (bordes de controles/íconos); foco visible siempr
 **Sigue pendiente (17-oct):** revisar cada pantalla en aspecto claro y pulir lo que el remapeo automático deje flojo; migrar poco a poco las clases de color fijo a tokens; barra inferior móvil y rediseño estructural.
 
 **Aplicado (17-oct):** aspecto claro/oscuro/sistema (tokens nuevos `--divider`, `--hover`, `--border-strong`, `--info-*`, `--danger-bg`, `--ok`, `--brand-text`, `--attention-text`), pestaña Aspecto en Configuración y Forzar recarga.
+
+**Aplicado (17-oct, 2):** botones flotantes como fichas tipo iPhone (60 px, radio 14, glifo blanco, etiqueta debajo en píldora, verde = cotizar, azul = Pendientes); aspecto claro con fondo `#eef2f7` y tarjetas blancas; imagen "no disponible" con variante clara.

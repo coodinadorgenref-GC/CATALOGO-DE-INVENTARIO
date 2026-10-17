@@ -25,7 +25,7 @@ const APP_SHELL = [
   './icon-192.png',
   './icon-512.png',
   './apple-touch-icon.png',
-  './imagen-no-disponible.png',
+  './imagen-no-disponible.png', './imagen-no-disponible-claro.png',
   './logo-vento.png',
   './logo-carabela.png',
   './logo-suzuki.png',

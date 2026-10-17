@@ -116,3 +116,8 @@ En Cotizar, el campo "Cliente" busca en la hoja `Mecanicos` por ID, nombre (toda
 - Para las ~560 clases de color fijo de Tailwind en el HTML no se reescribió nada: en claro se invierte la escala `--color-slate-*` y se ajustan emerald/red/amber/blue; `border-slate-*` usa `--border`; `text-white` pasa a `--text` salvo sobre fondos de color sólido.
 - `sw.js` no lleva número de versión (caché primero, actualiza detrás); para traer una versión nueva al instante está **Forzar recarga**.
 - Candado por almacén: `atenderCotizacion` separa en otra solicitud los productos que no son del almacén del asesor.
+
+## Botones flotantes y aspecto claro (17-oct, 2)
+- Cotizar, Cotización y Pendientes son ahora fichas tipo ícono de iPhone: 60 px, esquinas de 14 px, glifo blanco, etiqueta en una píldora debajo (ya no se corta "Pendientes"). Verde = cotizar, azul = Pendientes; el globo rojo va en la esquina de la ficha. Funciona aunque JS ponga `display: block` o `flex`.
+- Aspecto claro: fondo `#eef2f7` con tarjetas blancas (antes casi del mismo tono), bordes más suaves y sombras de Tailwind atenuadas.
+- "Imagen no disponible": en claro se usa `imagen-no-disponible-claro.png` (mismo dibujo, paleta clara) mediante CSS `content: url()`; `sw.js` ya la precarga. Si algún navegador no aplicara `content` en `img`, se vería la oscura.

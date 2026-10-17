@@ -222,80 +222,48 @@
         }
 
         /* ══════════════════════════════════════════════════
-           BOTONES FLOTANTES — ESTILO ÍCONO iOS
-           IMPORTANTE: display se controla 100% desde JS.
-           El CSS NO define display para no pisar el ocultado inicial.
+           BOTONES FLOTANTES — ficha tipo ícono de iPhone (MASTER §7)
+           Los tres miden lo mismo: ficha de 60 px, glifo blanco, etiqueta DEBAJO.
+           Verde = cotizar (Cotizar / Cotización), azul = Pendientes.
+           display lo controla JS (block o flex): el diseño funciona con ambos.
         ══════════════════════════════════════════════════ */
-
-        /* Estilos compartidos por ambos botones */
-        #btn-carrito-flotante,
-        #btn-cotizaciones-admin {
-            position: fixed; bottom: 28px; z-index: 200;
-            width: 64px; height: 64px;
-            /* Cuadrado con esquinas redondeadas estilo iOS (no círculo) */
-            border-radius: 16px;
-            align-items: center; justify-content: center;
-            cursor: pointer; border: none; outline: none;
-            transition: transform .15s, box-shadow .15s;
-            flex-direction: column; gap: 3px;
-            font-size: 11px; font-weight: 800;
-            letter-spacing: 0;
-            padding: 0 4px; box-sizing: border-box;
+        #btn-carrito-flotante, #btn-cotizaciones-admin, #btn-cotizar-piso {
+            position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 200;
+            width: 84px; padding: 0; margin: 0; background: none; border: 0; outline: none; box-shadow: none;
+            color: var(--text); text-align: center; cursor: pointer;
+            flex-direction: column; align-items: center; gap: 6px;
+            -webkit-tap-highlight-color: transparent;
         }
-        #btn-carrito-flotante:active,
-        #btn-cotizaciones-admin:active { transform: scale(0.92); }
-        #btn-carrito-flotante:hover,
-        #btn-cotizaciones-admin:hover  { transform: scale(1.06); }
-
-        /* ── Bola verde: Mi Cotización ── */
-        #btn-carrito-flotante {
-            right: 24px;
-            background: linear-gradient(145deg, #10b981, #047857);
-            box-shadow: 0 6px 20px rgba(5,150,105,.55), 0 2px 6px rgba(0,0,0,.3);
+        #btn-carrito-flotante, #btn-cotizar-piso { right: 12px; }
+        #btn-cotizaciones-admin { right: 100px; }
+        #btn-carrito-flotante .btn-flotante-icon, #btn-cotizaciones-admin .btn-flotante-icon, #btn-cotizar-piso .btn-flotante-icon {
+            position: relative; display: grid; place-items: center;
+            width: 60px; height: 60px; margin: 0 auto; border-radius: 14px;
+            font-size: 28px; line-height: 1; color: #fff;
+            background: linear-gradient(160deg, #2fcb5b, #15803d);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 6px 14px rgba(0,0,0,.28);
+            transition: transform .15s, filter .15s;
         }
-
-        /* ── Bola azul: Cotizaciones Pendientes ── */
-        #btn-cotizaciones-admin {
-            right: 112px; /* a la izquierda de "Cotizar", que es la acción principal */
-            background: var(--surface-2); color: var(--text);
-            border: 1px solid var(--border);
-            box-shadow: 0 6px 16px rgba(0,0,0,.4);
+        #btn-cotizaciones-admin .btn-flotante-icon { background: linear-gradient(160deg, #4f9cff, #1d4ed8); }
+        #btn-carrito-flotante:hover .btn-flotante-icon, #btn-cotizaciones-admin:hover .btn-flotante-icon, #btn-cotizar-piso:hover .btn-flotante-icon { filter: brightness(1.07); }
+        #btn-carrito-flotante:active .btn-flotante-icon, #btn-cotizaciones-admin:active .btn-flotante-icon, #btn-cotizar-piso:active .btn-flotante-icon { transform: scale(.92); }
+        #btn-carrito-flotante:focus-visible .btn-flotante-icon, #btn-cotizaciones-admin:focus-visible .btn-flotante-icon, #btn-cotizar-piso:focus-visible .btn-flotante-icon { outline: 2px solid var(--ring); outline-offset: 3px; }
+        .btn-flotante-label {
+            display: block; width: fit-content; max-width: 100%; margin: 0 auto; padding: 2px 8px; border-radius: 999px;
+            font-size: 11px; font-weight: 800; line-height: 1.25; letter-spacing: 0; text-transform: none; white-space: nowrap;
+            color: var(--text);
+            background: color-mix(in srgb, var(--surface) 88%, transparent);
+            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            box-shadow: 0 1px 3px rgba(0,0,0,.2);
         }
-        #btn-cotizaciones-admin .btn-flotante-icon { color: #60a5fa; }
-
-        /* ── BADGE rojo (esquina superior derecha) ── */
-        #badge-carrito,
-        #badge-cotizaciones-admin {
-            position: absolute;
-            top: -8px; right: -8px;
-            background: #ef4444;
-            color: #fff;
-            border-radius: 999px;
-            font-size: 12px; font-weight: 900;
-            min-width: 24px; height: 24px;
+        /* Globo rojo en la esquina de la ficha, como en iOS */
+        #badge-carrito, #badge-cotizaciones-admin {
+            position: absolute; top: -6px; right: 6px;
+            background: #ef4444; color: #fff; border-radius: 999px;
+            font-size: 12px; font-weight: 900; line-height: 1;
+            min-width: 24px; height: 24px; padding: 0 6px;
             display: flex; align-items: center; justify-content: center;
-            padding: 0 6px;
-            /* Borde blanco grueso igual que iOS */
-            border: 2.5px solid #fff;
-            box-shadow: 0 2px 6px rgba(0,0,0,.35);
-            pointer-events: none;
-            line-height: 1;
-        }
-
-        /* Ícono dentro del botón */
-        #btn-carrito-flotante   .btn-flotante-icon,
-        #btn-cotizaciones-admin .btn-flotante-icon {
-            font-size: 22px;
-            line-height: 1;
-        }
-        /* Etiqueta de texto debajo del ícono */
-        #btn-carrito-flotante   .btn-flotante-label,
-        #btn-cotizaciones-admin .btn-flotante-label {
-            font-size: 11px; font-weight: 800;
-            text-transform: none; letter-spacing: 0;
-            white-space: nowrap; max-width: 100%;
-            overflow: hidden; text-overflow: ellipsis;
-            line-height: 1.15;
+            border: 2.5px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); pointer-events: none;
         }
 
         /* ── PANEL ADMIN: COTIZACIONES POR USUARIO ───── */
@@ -683,19 +651,6 @@
         }
 
         /* ── Cotizar en piso de venta (MASTER.md: tokens, hoja inferior en móvil, áreas táctiles 44 px) ── */
-        #btn-cotizar-piso {
-            position: fixed; bottom: 28px; right: 24px; z-index: 200;
-            width: 72px; height: 72px; border-radius: 20px; padding: 0 4px; box-sizing: border-box;
-            align-items: center; justify-content: center; flex-direction: column; gap: 3px;
-            cursor: pointer; border: none; outline: none;
-            background: var(--brand); color: var(--on-brand);
-            box-shadow: 0 8px 24px rgba(34,177,76,.45), 0 2px 6px rgba(0,0,0,.4);
-            transition: transform .15s;
-        }
-        #btn-cotizar-piso:hover { transform: scale(1.06); }
-        #btn-cotizar-piso:active { transform: scale(0.92); }
-        #btn-cotizar-piso .btn-flotante-icon { font-size: 26px; line-height: 1; }
-        #btn-cotizar-piso .btn-flotante-label { font-size: 12px; font-weight: 800; text-transform: none; letter-spacing: 0; white-space: nowrap; line-height: 1.1; }
         .cfg-res { display: flex; flex-direction: column; align-items: flex-start; width: 100%; min-height: 44px; padding: 8px 12px; background: transparent; border: 0; border-bottom: 1px solid var(--border); color: var(--text); text-align: left; cursor: pointer; }
         .cfg-res span { font-size: 12px; color: var(--text-3); }
         .cfg-res:hover { background: var(--surface); }
@@ -758,15 +713,15 @@
         /* ── ASPECTO CLARO (data-theme="light"; el oscuro es el de :root) ── */
         :root[data-theme="light"] {
             color-scheme: light;
-            --bg: #f8fafc; --surface: #ffffff; --surface-2: #f1f5f9; --border: #cbd5e1;
+            --bg: #eef2f7; --surface: #ffffff; --surface-2: #f4f7fa; --border: #d5dde7;
             --text: #0f172a; --text-2: #334155; --text-3: #475569;
             --danger: #b91c1c; --ring: #047857;
-            --divider: #e2e8f0; --hover: #e2e8f0; --border-strong: #64748b;
+            --divider: #e5eaf0; --hover: #e6ecf3; --border-strong: #64748b;
             --info-text: #1d4ed8; --info-bg: #dbeafe; --danger-bg: #fee2e2; --ok: #047857;
             --brand-text: #047857; --attention-text: #b45309;
             /* Tailwind: escala invertida para lo que aún usa clases de color fijo */
-            --color-slate-950: #f8fafc; --color-slate-900: #f8fafc; --color-slate-800: #ffffff; --color-slate-700: #f1f5f9;
-            --color-slate-600: #e2e8f0; --color-slate-500: #94a3b8; --color-slate-400: #475569; --color-slate-300: #334155;
+            --color-slate-950: #eef2f7; --color-slate-900: #eef2f7; --color-slate-800: #ffffff; --color-slate-700: #f4f7fa;
+            --color-slate-600: #e6ecf3; --color-slate-500: #94a3b8; --color-slate-400: #475569; --color-slate-300: #334155;
             --color-slate-200: #1e293b; --color-slate-100: #0f172a;
             --color-emerald-300: #047857; --color-emerald-400: #047857; --color-emerald-500: #047857;
             --color-emerald-800: #a7f3d0; --color-emerald-900: #d1fae5; --color-emerald-950: #ecfdf5;
@@ -775,6 +730,10 @@
             --color-blue-300: #1e40af; --color-blue-400: #1d4ed8; --color-blue-900: #dbeafe; --color-sky-950: #f0f9ff;
         }
         :root[data-theme="light"] [class*="border-slate-"] { border-color: var(--border); }
+        /* Sombras de Tailwind pensadas para fondo oscuro: en claro se suavizan */
+        :root[data-theme="light"] :is(.shadow, .shadow-md, .shadow-lg, .shadow-xl, .shadow-2xl) { box-shadow: 0 1px 2px rgba(15,23,42,.05), 0 6px 18px rgba(15,23,42,.07); }
+        /* "Imagen no disponible": versión clara del mismo dibujo */
+        :root[data-theme="light"] img[src$="imagen-no-disponible.png"] { content: url("imagen-no-disponible-claro.png"); }
         :root[data-theme="light"] .text-white, :root[data-theme="light"] .hover\:text-white:hover { color: var(--text); }
         :root[data-theme="light"] :is(.bg-blue-600, .bg-amber-600, .bg-red-600, .bg-green-600, .bg-black\/50).text-white,
         :root[data-theme="light"] :is(.bg-blue-600, .bg-amber-600, .bg-red-600, .bg-green-600, .bg-black\/50) .text-white,
@@ -6388,7 +6347,7 @@ function aspectoAplicar() {
     const p = aspectoActual();
     const claro = p === 'claro' || (p === 'sistema' && matchMedia('(prefers-color-scheme: light)').matches);
     document.documentElement.setAttribute('data-theme', claro ? 'light' : 'dark');
-    const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', claro ? '#f8fafc' : '#1d293d');
+    const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', claro ? '#eef2f7' : '#1d293d');
 }
 function aspectoElegir(v) {
     try { localStorage.setItem('aspecto', v); } catch (e) {}
