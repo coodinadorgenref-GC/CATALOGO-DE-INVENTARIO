@@ -57,7 +57,7 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 7. **Hecho en `index.html` (16-oct), falta probar en celular** — fallos visibles: el botón "Cotizar" se pierde entre los demás botones flotantes, y las etiquetas "Pendientes" y "Cotización" se desbordan del ícono. Reglas de corrección en `MASTER.md` §7.
 8. **Hecho (16-oct)**: captura con ID de cliente primero (autollena nombre y teléfono desde la hoja `Mecanicos`: B = ID, C = nombre, E = teléfono; `buscarMecanico` en `Cotizaciones.js`) y sin selector de Agencia (se deduce del almacén del asesor; define el logo de la hoja). Falta subir `Código.js` y `Cotizaciones.js` a Apps Script.
 9. **Hecho (16-oct)**: Buscar por Foto quitado del index y de `Código.js` (`analizarFotoProducto` y su ruta). Falta subir `Código.js` a Apps Script y borrar `GROQ_API_KEY` de las Propiedades del script.
-10. **Hecho en parte (17-oct)**: panel Configuración (engrane en la cabecera) con **Cuenta y versión** y **Cotizaciones** (lista de las tuyas, búsqueda, ver líneas, cambiar estado, reenviar por WhatsApp sin número de parte). **Falta Aspecto** (Claro/Oscuro/Sistema): requiere antes migrar los colores fijos de Tailwind a tokens; si no, el tema claro se vería roto. Hoy `index.html` tiene unas 235 líneas con clases de color fijo (`bg-/text-/border-slate-*`, `emerald-*`) y ningún `data-theme` ni `prefers-color-scheme`.
+10. **Hecho (17-oct)**: panel Configuración (engrane en la cabecera) con **Aspecto** (Claro, Oscuro, Sistema; se guarda en el dispositivo; arranca en Oscuro), **Cuenta y versión** (con "Forzar recarga", igual que el REPORTEADOR) y **Cotizaciones** (lista de las tuyas, búsqueda, ver líneas, cambiar estado, reenviar por WhatsApp sin número de parte). El aspecto claro funciona con tokens en el CSS propio y con una escala de colores de Tailwind invertida (`:root[data-theme="light"]`); las clases de color fijo del HTML no se tocaron. Falta revisar pantalla por pantalla en claro.
 11. **Hecho (16-oct)**: botón "Cotizar en Maps" quitado de Pendientes, enlace a Maps quitado del mensaje de Telegram, y botón "Cotizar en ruta" en el pie del carrito del cliente (abre Maps sin datos). Falta subir `Código.js` a Apps Script.
 12. **Hecho en código (17-oct), falta probar en el celular y desplegar `Código.js`**: seguimiento paso a paso de las cotizaciones solicitadas por clientes (Atender → Revisar → Enviar → Cerrar, candado por cliente, hoja `Seguimiento_Solicitudes`), lista de pendientes más rápida, diálogos con la paleta del catálogo y cantidad del carrito que nunca elimina el producto. Ver «Seguimiento de la cotización solicitada por el cliente».
 
@@ -67,19 +67,18 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 - Lista de precios "de otra fuente": ¿es la que se sube en el REPORTEADOR o una hoja distinta?
 - Maps: confirmar que `esVendedor`, `esAdminReal` y `validarSesion` se quedan, porque los usa para su propio acceso.
 - Hoja de cotización: ¿se agrega también dirección o teléfono de la agencia, además de la agencia y el WhatsApp del vendedor?
-- Solicitudes de clientes: el candado es por cliente. Si un cliente pidió productos de dos almacenes y un asesor lo toma, el asesor del otro almacén no podrá tomarlo hasta que el primero lo cierre o lo libere (o Zona Valladolid lo reasigne). ¿Se deja así?
 
 ## Cómo probar
 1. Subir `index.html`, `sw.js` y `README.md` a GitHub Pages y recargar.
 2. Rol Gerente: en `Usuarios_Autorizados` poner `gerente` en la columna F de una cuenta de prueba. Debe ver el catálogo como vendedor y no debe poder entrar a Maps.
 
 ## Seguimiento de la cotización solicitada por el cliente (17-oct)
-El cliente envía su carrito con "Cotización general"; el asesor la atiende paso a paso. **Atender toma al cliente: nadie más puede tomarlo** (el candado lo pone el servidor, por cliente). Solo quien la atiende avanza, quita productos, envía y cierra; un asesor de Zona Valladolid puede liberarla para reasignarla.
+El cliente envía su carrito con "Cotización general"; el asesor la atiende paso a paso. **Atender toma los productos de tu almacén**: si el cliente pidió también de otro almacén, esa parte se separa como solicitud propia, sin dueño, y la toma el asesor de ese almacén (el candado por cliente solo aplica entre asesores del mismo almacén; el servidor lo valida). Solo quien la atiende avanza, quita productos, envía y cierra; un asesor de Zona Valladolid puede liberarla para reasignarla.
 
 ```mermaid
 flowchart TD
     A([Cliente envía su cotización general]) --> B[Solicitada<br/>sin dueño, visible a los asesores del almacén]
-    B -->|Atender| C[En atención<br/>el cliente queda bloqueado para los demás]
+    B -->|Atender| C[En atención<br/>tuya; otro asesor de tu almacén no la puede tomar]
     C -->|Quitar productos no disponibles| C
     C -->|Marcar revisada| D[Revisada]
     D -->|Volver a revisar| C
@@ -110,3 +109,10 @@ Logos tomados de `logos-marcas.js` del repo Maps (PNG de 90 px de alto) y guarda
 
 ## Búsqueda de cliente (17-oct)
 En Cotizar, el campo "Cliente" busca en la hoja `Mecanicos` por ID, nombre (todas las palabras, sin acentos) o teléfono (4+ dígitos) y muestra hasta 8 coincidencias con su ID (`buscarMecanico(correo, consulta)` en `Cotizaciones.js`).
+
+## Aspecto claro/oscuro (17-oct)
+- `data-theme` en `<html>` lo pone un script antes de pintar (preferencia `aspecto` en `localStorage`: claro, oscuro o sistema; sin preferencia arranca oscuro). `matchMedia` lo sigue cuando está en Sistema y se actualiza `theme-color`.
+- Los colores fijos del CSS propio (51 declaraciones) pasaron a tokens: `--divider`, `--hover`, `--border-strong`, `--info-text`, `--info-bg`, `--danger-bg`, `--ok`, `--brand-text`, `--attention-text`.
+- Para las ~560 clases de color fijo de Tailwind en el HTML no se reescribió nada: en claro se invierte la escala `--color-slate-*` y se ajustan emerald/red/amber/blue; `border-slate-*` usa `--border`; `text-white` pasa a `--text` salvo sobre fondos de color sólido.
+- `sw.js` no lleva número de versión (caché primero, actualiza detrás); para traer una versión nueva al instante está **Forzar recarga**.
+- Candado por almacén: `atenderCotizacion` separa en otra solicitud los productos que no son del almacén del asesor.

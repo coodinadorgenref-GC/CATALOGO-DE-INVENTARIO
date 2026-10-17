@@ -54,7 +54,7 @@ Base conservada de la app actual (`#0f172a / #1e293b / #334155 / #22b14c`), con 
 ### Aspectos: Oscuro, Claro e Igual que el sistema
 
 Los tres se eligen en Configuración → Aspecto (§7.1). Mecanismo:
-- Atributo `data-theme="dark|light"` en `<html>`. "Igual que el sistema" no fija atributo y sigue `prefers-color-scheme`.
+- Atributo `data-theme="dark|light"` en `<html>`, puesto por un script antes de pintar. "Igual que el sistema" se resuelve con `matchMedia` y se vuelve a resolver si el sistema cambia. Sin preferencia guardada arranca en Oscuro.
 - La elección se guarda en el dispositivo (`localStorage`, clave `aspecto`) y un script mínimo en `<head>` la aplica antes de pintar, para que no haya parpadeo.
 - `<meta name="color-scheme" content="dark light">`; al cambiar de aspecto se actualiza también `theme-color`.
 - Todo color va por token. Las clases Tailwind de color fijo (`bg-slate-900`, `text-emerald-400`, `border-slate-700`…) no cambian con el aspecto y hay que migrarlas a tokens.
@@ -122,7 +122,7 @@ Pantallas con override previsto en `pages/`: `login`, `catalogo`, `carrito`, `co
 ### 7.1 Configuración (panel oculto)
 
 Panel oculto, al estilo de Maps y del REPORTEADOR: no aparece en la navegación principal. Tres secciones:
-- **Aspecto:** Claro · Oscuro · Igual que el sistema. Selector de tres opciones que aplica al instante (§3). **Pendiente:** primero hay que migrar los colores fijos de Tailwind a tokens; si no, el tema claro se vería roto.
+- **Aspecto:** Claro · Oscuro · Igual que el sistema. Selector de tres opciones que aplica al instante (§3). **Hecho (17-oct)**, con "Forzar recarga" en Cuenta y versión.
 - **Cuenta y versión:** hecho (17-oct); muestra la versión de la app (`APP_VERSION`).
 - **Cotizaciones:** las mismas funciones que en Maps: historial, consulta, reenviar, cambiar estado (Borrador · Enviada · Aceptada · Rechazada · Cancelada), etc. Hecho en parte (17-oct): lista de las propias, búsqueda, ver líneas, cambiar estado y reenviar por WhatsApp sin número de parte.
 
@@ -198,4 +198,6 @@ Contraste 4.5:1 (texto) y 3:1 (bordes de controles/íconos); foco visible siempr
 **Pendiente (etapa 6):** barra inferior móvil, tarjeta de producto y precio en Rubik, modales como hoja inferior, áreas táctiles ≥ 44 px, botón de contraseña con `tabindex="-1"` (no se alcanza con teclado), campos de cotización (`type="tel"`).
 **Aplicado (16-oct):** botones flotantes: "Cotizar" pasa a ser el principal (72 px, a la derecha, relleno de marca) y "Pendientes" queda secundario a su izquierda (superficie con borde); las etiquetas ya no van en mayúsculas ni desbordan (11–12 px, una línea). Buscar por Foto eliminado. "Cotizar en ruta" en el pie del carrito del cliente.
 **Hecho (17-oct):** captura con ID de cliente primero y sin Agencia (§6); panel Configuración con Cuenta y versión y Cotizaciones (§7.1); hoja de cotización con logo por agencia y botón Hoja PDF (§8), falta probarla en el celular.
-**Sigue pendiente:** Aspecto claro/oscuro/sistema, que exige antes migrar los colores fijos de Tailwind a tokens (hoy unas 235 líneas de `index.html` usan `bg-/text-/border-slate-*` o `emerald-*`, y no hay `data-theme` ni `prefers-color-scheme`); y el rediseño estructural del index (barra inferior móvil, tarjeta de producto, hojas inferiores), que queda para después.
+**Sigue pendiente (17-oct):** revisar cada pantalla en aspecto claro y pulir lo que el remapeo automático deje flojo; migrar poco a poco las clases de color fijo a tokens; barra inferior móvil y rediseño estructural.
+
+**Aplicado (17-oct):** aspecto claro/oscuro/sistema (tokens nuevos `--divider`, `--hover`, `--border-strong`, `--info-*`, `--danger-bg`, `--ok`, `--brand-text`, `--attention-text`), pestaña Aspecto en Configuración y Forzar recarga.

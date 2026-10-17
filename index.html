@@ -30,7 +30,9 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800;900&family=Rubik:wght@500;600;700&display=swap">
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
+    <meta name="color-scheme" content="dark light">
+<script>(function(){try{var p=localStorage.getItem('aspecto')||'oscuro';var l=p==='claro'||(p==='sistema'&&matchMedia('(prefers-color-scheme: light)').matches);document.documentElement.setAttribute('data-theme',l?'light':'dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
+<style>
         /* ── TOKENS DE DISEÑO (MASTER.md §3-§5) ───────── */
         :root {
             /* superficies y texto */
@@ -63,6 +65,8 @@
             --tarjeta: var(--surface);
             --borde: var(--border);
         }
+        :root { color-scheme: dark; --divider: #1e293b; --hover: #334155; --border-strong: #475569; --info-text: #93c5fd; --info-bg: #172554; --danger-bg: #450a0a; --ok: #10b981; --brand-text: #22b14c; --attention-text: #fb923c; }
+
 
         /* ── TIPOGRAFÍA BASE ─────────────────────────── */
         html, body { font-family: var(--font-body); }
@@ -95,12 +99,12 @@
         /* ── DROPDOWN LEGACY ──────────────────────────── */
         .dropdown-content {
             display: none; position: absolute;
-            background-color: #1e293b; min-width: 220px; max-height: 350px;
+            background-color: var(--surface); min-width: 220px; max-height: 350px;
             overflow-y: auto; box-shadow: 0 8px 16px rgba(0,0,0,.5);
-            z-index: 1000; border-radius: 12px; margin-top: 6px; border: 1px solid #334155;
+            z-index: 1000; border-radius: 12px; margin-top: 6px; border: 1px solid var(--border);
         }
         .dropdown-content a {
-            color: #cbd5e1; padding: 10px 16px; text-decoration: none; display: block;
+            color: var(--text-2); padding: 10px 16px; text-decoration: none; display: block;
             font-size: 13px; font-weight: 600; transition: background .2s;
         }
         .dropdown-content a:hover, .dropdown-content .active { background-color: var(--brand); color: var(--on-brand); }
@@ -109,20 +113,20 @@
         /* ── PAGINACIÓN ──────────────────────────────── */
         .paginacion-btn {
             padding: 6px 12px; font-size: 12px; font-weight: bold;
-            background-color: #0f172a; border: 1px solid #334155; color: #cbd5e1;
+            background-color: var(--bg); border: 1px solid var(--border); color: var(--text-2);
             border-radius: 8px; transition: all .2s; cursor: pointer;
         }
-        .paginacion-btn:hover:not(:disabled) { background-color: #334155; color: #fff; }
+        .paginacion-btn:hover:not(:disabled) { background-color: var(--hover); color: #fff; }
         .paginacion-btn:disabled { opacity: .4; cursor: not-allowed; }
         .paginacion-btn.activa { background-color: var(--brand); border-color: var(--brand); color: var(--on-brand); }
 
         /* ── COMPATIBILIDAD MODAL ────────────────────── */
         .compatibilidad-container {
             background-color: #151f32; border-radius: 12px;
-            padding: 16px; border: 1px solid #1e293b;
+            padding: 16px; border: 1px solid var(--divider);
         }
         .compatibilidad-marca {
-            color: #22b14c; font-size: 13px; text-transform: uppercase; font-weight: 800;
+            color: var(--brand-text); font-size: 13px; text-transform: uppercase; font-weight: 800;
             margin: 0 0 10px 0; letter-spacing: .5px; border-bottom: 1px solid #23324d;
             padding-bottom: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
             gap: 8px; overflow-wrap: anywhere; word-break: break-word;
@@ -130,11 +134,11 @@
         .lista-compatibilidad-modal { list-style: none; padding: 0; margin: 0; }
         .lista-compatibilidad-modal li {
             position: relative; padding-left: 1.25rem; margin-bottom: .35rem;
-            color: #cbd5e1; font-size: 13px; font-weight: 500; line-height: 1.4;
+            color: var(--text-2); font-size: 13px; font-weight: 500; line-height: 1.4;
             overflow-wrap: anywhere; word-break: break-word;
         }
         .lista-compatibilidad-modal li::before {
-            content: "•"; color: #22b14c; font-weight: bold; font-size: 1.2rem;
+            content: "•"; color: var(--brand-text); font-weight: bold; font-size: 1.2rem;
             position: absolute; left: 2px; top: -2px;
         }
         .hidden-element { display: none; }
@@ -297,7 +301,7 @@
         /* ── PANEL ADMIN: COTIZACIONES POR USUARIO ───── */
         #panel-cotizaciones-admin {
             position: fixed; top: 0; right: -440px; width: 440px; max-width: 100vw;
-            height: 100vh; background: #1e293b; border-left: 1px solid #334155;
+            height: 100vh; background: var(--surface); border-left: 1px solid var(--border);
             z-index: 300; display: flex; flex-direction: column;
             transition: right .3s cubic-bezier(.4,0,.2,1);
             box-shadow: -8px 0 32px rgba(0,0,0,.4);
@@ -306,25 +310,25 @@
         }
         #panel-cotizaciones-admin.abierto { right: 0; }
         .tarjeta-usuario-admin {
-            background: #0f172a; border: 1px solid #334155; border-radius: 12px;
+            background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
             padding: 12px; margin-bottom: 10px;
         }
         .tarjeta-usuario-admin .encabezado-usuario {
             display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #1e293b;
+            margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--divider);
         }
-        .tarjeta-usuario-admin .nombre-usuario-admin { font-size: 13px; font-weight: 800; color: #f1f5f9; }
+        .tarjeta-usuario-admin .nombre-usuario-admin { font-size: 13px; font-weight: 800; color: var(--text); }
         .tarjeta-usuario-admin .correo-usuario-admin { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
         .tarjeta-usuario-admin .item-linea {
-            font-size: 11px; color: #cbd5e1; display: flex; justify-content: space-between;
-            padding: 3px 0; border-bottom: 1px dashed #1e293b;
+            font-size: 11px; color: var(--text-2); display: flex; justify-content: space-between;
+            padding: 3px 0; border-bottom: 1px dashed var(--divider);
         }
         .tarjeta-usuario-admin .item-linea:last-child { border-bottom: none; }
 
         /* ── PANEL LATERAL CARRITO ───────────────────── */
         #panel-carrito {
             position: fixed; top: 0; right: -420px; width: 420px; max-width: 100vw;
-            height: 100vh; background: #1e293b; border-left: 1px solid #334155;
+            height: 100vh; background: var(--surface); border-left: 1px solid var(--border);
             z-index: 300; display: flex; flex-direction: column;
             transition: right .3s cubic-bezier(.4,0,.2,1);
             box-shadow: -8px 0 32px rgba(0,0,0,.4);
@@ -341,25 +345,25 @@
         /* Item carrito */
         .item-carrito {
             display: flex; align-items: center; gap: 10px;
-            background: #0f172a; border: 1px solid #334155;
+            background: var(--bg); border: 1px solid var(--border);
             border-radius: 12px; padding: 10px; margin-bottom: 8px;
         }
         .item-carrito img { width: 52px; height: 52px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
         .item-carrito .info { flex: 1; min-width: 0; }
-        .item-carrito .info .nombre { font-size: 12px; font-weight: 700; color: #f1f5f9; line-height: 1.3;
+        .item-carrito .info .nombre { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.3;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .item-carrito .info .sku  { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
         .item-carrito .controles  { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
         .btn-qty {
             width: 26px; height: 26px; border-radius: 8px; font-weight: 900;
-            background: #1e293b; border: 1px solid #334155; color: #cbd5e1;
+            background: var(--surface); border: 1px solid var(--border); color: var(--text-2);
             display: flex; align-items: center; justify-content: center; cursor: pointer;
             font-size: 14px; transition: background .15s;
         }
-        .btn-qty:hover { background: #334155; }
+        .btn-qty:hover { background: var(--hover); }
         .qty-input {
             width: 44px; height: 28px; border-radius: 8px;
-            background: #1e293b; border: 1px solid #475569; color: #f1f5f9;
+            background: var(--surface); border: 1px solid var(--border-strong); color: var(--text);
             font-size: 13px; font-weight: 800; text-align: center;
             outline: none; -moz-appearance: textfield;
         }
@@ -367,16 +371,16 @@
         .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .qty-input:focus { border-color: #059669; box-shadow: 0 0 0 2px rgba(5,150,105,.25); }
         .btn-eliminar-item {
-            width: 26px; height: 26px; border-radius: 8px; color: #f87171;
-            background: transparent; border: 1px solid #450a0a; cursor: pointer;
+            width: 26px; height: 26px; border-radius: 8px; color: var(--danger);
+            background: transparent; border: 1px solid var(--danger-bg); cursor: pointer;
             display: flex; align-items: center; justify-content: center; font-size: 12px; transition: background .15s;
         }
-        .btn-eliminar-item:hover { background: #450a0a; }
+        .btn-eliminar-item:hover { background: var(--danger-bg); }
 
         /* Agrupación por agencia */
         .grupo-agencia-label {
             font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .8px;
-            color: #22b14c; padding: 6px 0 4px; border-top: 1px solid #1e293b; margin-top: 4px;
+            color: var(--brand-text); padding: 6px 0 4px; border-top: 1px solid var(--divider); margin-top: 4px;
         }
         .grupo-agencia-label:first-child { border-top: none; margin-top: 0; }
 
@@ -388,7 +392,7 @@
         }
         #modal-cotizacion.visible { opacity: 1; pointer-events: auto; }
         #modal-cotizacion .caja {
-            background: #1e293b; border: 1px solid #334155; border-radius: 20px;
+            background: var(--surface); border: 1px solid var(--border); border-radius: 20px;
             max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 28px;
         }
 
@@ -397,10 +401,10 @@
             font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .5px;
             padding: 2px 6px; border-radius: 6px; display: inline-block; margin-top: 2px;
         }
-        .tag-BAJAJ    { background: #172554; color: #93c5fd; }
+        .tag-BAJAJ    { background: var(--info-bg); color: var(--info-text); }
         .tag-SUZUKI   { background: #1c1917; color: #d6d3d1; }
         .tag-VENTO    { background: #1a1a2e; color: #a78bfa; }
-        .tag-CARABELA { background: #1c0a00; color: #fb923c; }
+        .tag-CARABELA { background: #1c0a00; color: var(--attention-text); }
         .tag-GENERAL  { background: #14532d; color: #86efac; }
 
         /* Indicador de agencia bloqueada (producto no disponible en otra sucursal) */
@@ -423,12 +427,12 @@
         }
         .bloque-cotizacion-general .etiqueta-bloque {
             font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .5px;
-            color: #93c5fd; display: flex; align-items: center; gap: 5px;
+            color: var(--info-text); display: flex; align-items: center; gap: 5px;
         }
         .bloque-cotizacion-general .fecha-bloque { font-size: 11px; color: var(--text-3); }
         .bloque-cotizacion-general .item-bloque {
             display: flex; align-items: center; justify-content: space-between;
-            font-size: 11px; color: #cbd5e1; padding: 4px 0;
+            font-size: 11px; color: var(--text-2); padding: 4px 0;
             border-bottom: 1px dashed rgba(59, 130, 246, 0.2);
         }
         .bloque-cotizacion-general .item-bloque:last-child { border-bottom: none; }
@@ -450,7 +454,7 @@
         }
         .bloque-fecha-admin .etiqueta-fecha-admin {
             font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .4px;
-            color: #94a3b8; display: flex; align-items: center; gap: 5px;
+            color: var(--text-3); display: flex; align-items: center; gap: 5px;
         }
 
         /* ── Variantes de tonalidad para distinguir cada bloque
@@ -460,11 +464,11 @@
         .bloque-fecha-admin.tono-0 { background: rgba(15, 23, 42, 0.55); border-color: rgba(100, 116, 139, 0.35); border-left: 3px solid #64748b; }
         .bloque-fecha-admin.tono-1 { background: rgba(30, 58, 138, 0.20); border-color: rgba(59, 130, 246, 0.4);  border-left: 3px solid #3b82f6; }
         .bloque-fecha-admin.tono-2 { background: rgba(88, 28, 135, 0.20); border-color: rgba(168, 85, 247, 0.4); border-left: 3px solid #a855f7; }
-        .bloque-fecha-admin.tono-3 { background: rgba(6, 78, 59, 0.22);  border-color: rgba(16, 185, 129, 0.4); border-left: 3px solid #10b981; }
+        .bloque-fecha-admin.tono-3 { background: rgba(6, 78, 59, 0.22);  border-color: rgba(16, 185, 129, 0.4); border-left: 3px solid var(--ok); }
         .bloque-fecha-admin.tono-4 { background: rgba(124, 45, 18, 0.22); border-color: rgba(249, 115, 22, 0.4); border-left: 3px solid #f97316; }
         .bloque-fecha-admin.tono-5 { background: rgba(131, 24, 67, 0.22); border-color: rgba(236, 72, 153, 0.4); border-left: 3px solid #ec4899; }
-        .bloque-fecha-admin.tono-0 .etiqueta-fecha-admin { color: #94a3b8; }
-        .bloque-fecha-admin.tono-1 .etiqueta-fecha-admin { color: #93c5fd; }
+        .bloque-fecha-admin.tono-0 .etiqueta-fecha-admin { color: var(--text-3); }
+        .bloque-fecha-admin.tono-1 .etiqueta-fecha-admin { color: var(--info-text); }
         .bloque-fecha-admin.tono-2 .etiqueta-fecha-admin { color: #d8b4fe; }
         .bloque-fecha-admin.tono-3 .etiqueta-fecha-admin { color: #6ee7b7; }
         .bloque-fecha-admin.tono-4 .etiqueta-fecha-admin { color: #fdba74; }
@@ -472,7 +476,7 @@
 
         /* ── Cantidad del carrito: "−" no baja de 1 (para quitar un producto está la papelera) ── */
         .btn-qty:disabled { opacity: .4; cursor: not-allowed; }
-        .btn-qty:disabled:hover { background: #1e293b; }
+        .btn-qty:disabled:hover { background: var(--surface); }
 
         /* ── Diálogos de la app (sustituyen a confirm/alert del navegador) ── */
         .app-dlg-velo { position: fixed; inset: 0; z-index: 700; display: flex; align-items: center; justify-content: center;
@@ -512,7 +516,7 @@
         .cot-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
         .cot-btn { min-height: 40px; padding: 0 12px; border-radius: 10px; font-size: 12px; font-weight: 800; display: inline-flex;
             align-items: center; gap: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
-        .cot-btn:hover { background: #334155; }
+        .cot-btn:hover { background: var(--hover); }
         .cot-btn.pri { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
         .cot-btn.pri:hover { background: var(--brand-hover); }
         .cot-btn.wa { background: #15803d; border-color: #15803d; color: #fff; }
@@ -563,7 +567,7 @@
             width: 100px;
             height: 80px;
             display: block;
-            color: #10b981; /* mismo verde de la portada */
+            color: var(--ok); /* mismo verde de la portada */
         }
         /* Rueda DELANTERA: ya no se tapa con un disco sólido — se deja
            ver la propia llanta del ícono, y solo se dibuja encima su
@@ -640,7 +644,7 @@
             height: 14px;
             margin-top: -6px;
             border-radius: 3px;
-            background: #1e293b;
+            background: var(--surface);
             overflow: hidden;
             position: relative;
             z-index: 1;
@@ -696,7 +700,7 @@
         .cfg-res span { font-size: 12px; color: var(--text-3); }
         .cfg-res:hover { background: var(--surface); }
         .cfg-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
-        .cfg-tab { flex: 1; min-height: 44px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-2); font-weight: 700; cursor: pointer; }
+        .cfg-tab { flex: 1; min-width: 0; padding: 0 6px; font-size: 13px; min-height: 44px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-2); font-weight: 700; cursor: pointer; }
         .cfg-tab[aria-selected="true"] { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
         .cfg-fila { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
         .cfg-fila span:first-child { color: var(--text-3); }
@@ -750,7 +754,35 @@
         .cp-total { display: flex; justify-content: space-between; align-items: baseline; font-family: 'Rubik', sans-serif; font-size: 22px; font-weight: 700; margin: 16px 0 4px; }
         .cp-listo { text-align: center; padding: 8px 0; }
         .cp-folio { font-family: 'Rubik', sans-serif; font-size: 34px; font-weight: 700; color: var(--brand); margin: 8px 0; }
-    </style>
+    
+        /* ── ASPECTO CLARO (data-theme="light"; el oscuro es el de :root) ── */
+        :root[data-theme="light"] {
+            color-scheme: light;
+            --bg: #f8fafc; --surface: #ffffff; --surface-2: #f1f5f9; --border: #cbd5e1;
+            --text: #0f172a; --text-2: #334155; --text-3: #475569;
+            --danger: #b91c1c; --ring: #047857;
+            --divider: #e2e8f0; --hover: #e2e8f0; --border-strong: #64748b;
+            --info-text: #1d4ed8; --info-bg: #dbeafe; --danger-bg: #fee2e2; --ok: #047857;
+            --brand-text: #047857; --attention-text: #b45309;
+            /* Tailwind: escala invertida para lo que aún usa clases de color fijo */
+            --color-slate-950: #f8fafc; --color-slate-900: #f8fafc; --color-slate-800: #ffffff; --color-slate-700: #f1f5f9;
+            --color-slate-600: #e2e8f0; --color-slate-500: #94a3b8; --color-slate-400: #475569; --color-slate-300: #334155;
+            --color-slate-200: #1e293b; --color-slate-100: #0f172a;
+            --color-emerald-300: #047857; --color-emerald-400: #047857; --color-emerald-500: #047857;
+            --color-emerald-800: #a7f3d0; --color-emerald-900: #d1fae5; --color-emerald-950: #ecfdf5;
+            --color-red-300: #991b1b; --color-red-400: #b91c1c; --color-red-900: #fecaca; --color-red-950: #fef2f2;
+            --color-amber-300: #92400e; --color-amber-400: #b45309; --color-amber-900: #fde68a; --color-amber-950: #fffbeb;
+            --color-blue-300: #1e40af; --color-blue-400: #1d4ed8; --color-blue-900: #dbeafe; --color-sky-950: #f0f9ff;
+        }
+        :root[data-theme="light"] [class*="border-slate-"] { border-color: var(--border); }
+        :root[data-theme="light"] .text-white, :root[data-theme="light"] .hover\:text-white:hover { color: var(--text); }
+        :root[data-theme="light"] :is(.bg-blue-600, .bg-amber-600, .bg-red-600, .bg-green-600, .bg-black\/50).text-white,
+        :root[data-theme="light"] :is(.bg-blue-600, .bg-amber-600, .bg-red-600, .bg-green-600, .bg-black\/50) .text-white,
+        :root[data-theme="light"] :is(.hover\:bg-red-800, .hover\:bg-emerald-700, .hover\:bg-blue-500, .hover\:bg-blue-700, .hover\:bg-blue-900, .hover\:bg-red-500, .hover\:bg-green-700):hover.text-white { color: #fff; }
+        :root[data-theme="light"] .bg-slate-900\/90, :root[data-theme="light"] .bg-slate-900\/95 { box-shadow: 0 1px 2px rgba(15,23,42,.08); }
+        .cfg-opcion { flex: 1; min-height: 44px; background: transparent; border: 1px solid var(--border-strong); border-radius: 8px; color: var(--text); font-weight: 700; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; justify-content: center; }
+        .cfg-opcion[aria-checked="true"] { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+</style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
@@ -1444,15 +1476,25 @@
     <div class="cp-cab"><h3 id="cfg-titulo">Configuración</h3>
       <button type="button" class="cp-cerrar" onclick="cfgCerrar()" aria-label="Cerrar configuración"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button></div>
     <div class="cfg-tabs" role="tablist">
-      <button type="button" class="cfg-tab" id="cfg-tab-cuenta" role="tab" aria-selected="true" onclick="cfgTab('cuenta')">Cuenta y versión</button>
+      <button type="button" class="cfg-tab" id="cfg-tab-aspecto" role="tab" aria-selected="true" onclick="cfgTab('aspecto')">Aspecto</button>
+      <button type="button" class="cfg-tab" id="cfg-tab-cuenta" role="tab" aria-selected="false" onclick="cfgTab('cuenta')">Cuenta y versión</button>
       <button type="button" class="cfg-tab" id="cfg-tab-cot" role="tab" aria-selected="false" onclick="cfgTab('cot')" style="display:none">Cotizaciones</button>
     </div>
-    <div id="cfg-cuenta">
+    <div id="cfg-aspecto">
+      <p class="cfg-muted" style="margin:0 0 8px">Elige cómo se ve el catálogo en este dispositivo.</p>
+      <div role="radiogroup" aria-label="Aspecto" style="display:flex;gap:8px">
+        <button type="button" class="cfg-opcion" role="radio" id="asp-claro" onclick="aspectoElegir('claro')"><i aria-hidden="true" class="fa-solid fa-sun"></i> Claro</button>
+        <button type="button" class="cfg-opcion" role="radio" id="asp-oscuro" onclick="aspectoElegir('oscuro')"><i aria-hidden="true" class="fa-solid fa-moon"></i> Oscuro</button>
+        <button type="button" class="cfg-opcion" role="radio" id="asp-sistema" onclick="aspectoElegir('sistema')"><i aria-hidden="true" class="fa-solid fa-circle-half-stroke"></i> Sistema</button>
+      </div>
+    </div>
+    <div id="cfg-cuenta" hidden>
       <div class="cfg-fila"><span>Nombre</span><span id="cfg-nombre"></span></div>
       <div class="cfg-fila"><span>Correo</span><span id="cfg-correo"></span></div>
       <div class="cfg-fila"><span>Tipo de cuenta</span><span id="cfg-tipo"></span></div>
       <div class="cfg-fila"><span>Versión de la app</span><span id="cfg-version"></span></div>
       <button type="button" class="cp-btn-sec" onclick="location.reload()"><i aria-hidden="true" class="fa-solid fa-rotate"></i> Recargar para actualizar</button>
+      <button type="button" class="cp-btn-sec" onclick="forzarRecarga()"><i aria-hidden="true" class="fa-solid fa-broom"></i> Forzar recarga (limpiar caché de esta pestaña)</button>
       <button type="button" class="cp-btn-sec" onclick="cfgCerrar(); cerrarSesion()"><i aria-hidden="true" class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</button>
     </div>
     <div id="cfg-cotizaciones" hidden>
@@ -6326,7 +6368,7 @@ function _cpAgenciaAuto() {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-17';
+const APP_VERSION = '2026-10-17 · aspecto';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -6338,14 +6380,49 @@ function cfgAbrir() {
     _cpEl('cfg-tipo').textContent = esAdmin ? 'Asesor' : 'Cliente';
     _cpEl('cfg-version').textContent = APP_VERSION;
     _cpEl('cfg-tab-cot').style.display = esAdmin ? '' : 'none';
-    cfgTab('cuenta');
+    cfgTab('aspecto');
     _cpEl('cfg-overlay').classList.add('visible');
 }
+function aspectoActual() { try { return localStorage.getItem('aspecto') || 'oscuro'; } catch (e) { return 'oscuro'; } }
+function aspectoAplicar() {
+    const p = aspectoActual();
+    const claro = p === 'claro' || (p === 'sistema' && matchMedia('(prefers-color-scheme: light)').matches);
+    document.documentElement.setAttribute('data-theme', claro ? 'light' : 'dark');
+    const m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', claro ? '#f8fafc' : '#1d293d');
+}
+function aspectoElegir(v) {
+    try { localStorage.setItem('aspecto', v); } catch (e) {}
+    aspectoAplicar(); cfgPintarAspecto();
+}
+function cfgPintarAspecto() {
+    const p = aspectoActual();
+    ['claro', 'oscuro', 'sistema'].forEach(k => _cpEl('asp-' + k).setAttribute('aria-checked', String(k === p)));
+}
+matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => { if (aspectoActual() === 'sistema') aspectoAplicar(); });
+aspectoAplicar();
+
+/** Igual que en el REPORTEADOR: borra las cachés y el service worker de esta pestaña y recarga, para traer la versión nueva desde cualquier dispositivo. */
+async function forzarRecarga() {
+    if (!document.getElementById('velo-recarga')) {
+        const v = document.createElement('div'); v.id = 'velo-recarga';
+        v.style.cssText = 'position:fixed;inset:0;z-index:10002;display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--text-2);font-size:14px';
+        v.innerHTML = '<span><i class="fa-solid fa-spinner fa-spin" aria-hidden="true" style="margin-right:8px"></i>Actualizando…</span>';
+        document.body.appendChild(v);
+    }
+    try {
+        if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.map(k => caches.delete(k))); }
+        if (navigator.serviceWorker) { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map(r => r.unregister())); }
+    } catch (e) { console.error('forzarRecarga', e); }
+    location.reload();
+}
+
 function cfgCerrar() { _cpEl('cfg-overlay').classList.remove('visible'); }
 function cfgTab(t) {
     const cot = t === 'cot' && esAdmin;
-    _cpEl('cfg-cuenta').hidden = cot; _cpEl('cfg-cotizaciones').hidden = !cot;
-    _cpEl('cfg-tab-cuenta').setAttribute('aria-selected', String(!cot));
+    _cpEl('cfg-aspecto').hidden = t !== 'aspecto'; _cpEl('cfg-cuenta').hidden = t !== 'cuenta'; _cpEl('cfg-cotizaciones').hidden = !cot;
+    _cpEl('cfg-tab-aspecto').setAttribute('aria-selected', String(t === 'aspecto'));
+    _cpEl('cfg-tab-cuenta').setAttribute('aria-selected', String(t === 'cuenta'));
+    if (t === 'aspecto') cfgPintarAspecto();
     _cpEl('cfg-tab-cot').setAttribute('aria-selected', String(cot));
     if (cot) cfgCargarCotizaciones();
 }
