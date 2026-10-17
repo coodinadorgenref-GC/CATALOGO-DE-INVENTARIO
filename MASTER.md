@@ -128,11 +128,25 @@ Panel oculto, al estilo de Maps y del REPORTEADOR: no aparece en la navegación 
 
 Hoy el engrane de la cabecera lo ven todos los usuarios con sesión y la pestaña Cotizaciones solo los asesores. Por confirmar: si se deja así o se oculta de otra forma.
 
+### 7.2 Cotizaciones solicitadas por clientes (panel de Pendientes)
+
+Cada solicitud es una tarjeta con un **avance de 4 pasos** (Atender · Revisar · Enviar · Cerrar): hecho = círculo verde con palomita; actual = anillo de marca; pendiente = gris. El estado no depende solo del color (palomita, número y `aria-current`). Debajo, una línea que dice qué toca hacer y los botones del paso:
+- **Sin atender:** solo **Atender** (principal). Quien no la atiende no ve acciones.
+- **En atención (la llevo yo):** Contactar (WhatsApp) · **Marcar revisada** · Liberar. Aparece ✕ para quitar productos no disponibles.
+- **Revisada:** **Enviar por WhatsApp** (o "Marcar como enviada" si no hay teléfono) · Volver a revisar · Liberar.
+- **Enviada:** **Cerrar cotización** · Reenviar · Corregir. Dice hace cuánto se envió.
+- **La lleva otro asesor:** candado con su nombre y el paso (`🔒 La atiende Ana · Revisando`), sin acciones; Zona Valladolid ve "Liberar para reasignar".
+Cerrar abre un diálogo con Pedido listo (principal) · Sin respuesta · Cancelada · Volver. Los botones miden 40 px de alto y el encabezado del cliente resume su avance (Por atender · En atención · Enviada).
+
+**Carga:** al abrir el panel se pinta al instante lo último que se sabe y se actualiza encima (el ícono de "Actualizar lista" gira, sin pantalla en blanco); sin datos previos se ven tarjetas de espera. Las acciones se reflejan al instante y se revierten con aviso si el servidor las rechaza.
+
+**Diálogos y avisos:** se sustituyen `confirm`/`alert` del navegador por un diálogo propio (superficie `--surface`, borde `--border`, icono en cuadro de color, botón principal `--brand` con texto oscuro, peligro en rojo con texto blanco; el foco empieza en la opción segura en acciones peligrosas, Esc cancela, el foco no sale del diálogo). Los errores usan el aviso inferior con borde rojo y duran 6 s.
+
 ## 8. Hoja de cotización (excepción al aspecto de la app: siempre clara)
 
-Documento **claro, tamaño carta, tipo factura**, independiente del tema de la app (se imprime/comparte). Un solo formato; el logo lo define la agencia del asesor (sin selector). **Hecho en código (17-oct)**, falta probarlo en el celular. Encabezado: logo a la izquierda (9 mm de alto) o, sin logo, "LA BARATA DEL HOGAR"; a la derecha "COTIZACIÓN" en verde oscuro `#047857`, folio y fecha; filete verde `#22b14c`. Caja gris claro con cliente (nombre, ID, teléfono) y asesor de ventas, más motocicleta y año si se capturaron. Tabla con encabezado verde oscuro y texto blanco (5.5:1), filas alternadas, columnas cant., SKU, descripción, disponibilidad, precio unitario e importe; el encabezado se repite en cada hoja. Total grande a la derecha. Notas: `*` precio aproximado, partidas sin precio como "Por confirmar" (no suman) y "Precios y existencias sujetos a confirmación." Pie: folio y "Hoja X de N". Sin números de parte de "bajo pedido" ni costos. Referencia: `generarPdfNotaVenta` (Maps). Pendiente: datos de contacto del asesor.
+Documento **claro, tamaño carta, tipo factura**, independiente del tema de la app (se imprime/comparte). Un solo formato; el logo lo define la agencia del asesor (sin selector). **Hecho en código (17-oct)**, falta probarlo en el celular. Encabezado: logo a la izquierda (9 mm de alto) o, sin logo, "LA BARATA DEL HOGAR"; a la derecha "COTIZACIÓN" en verde oscuro `#047857`, folio y fecha; filete verde `#22b14c`. Caja gris claro con cliente (nombre, ID, teléfono) y asesor de ventas, más motocicleta y año si se capturaron. Si la cuenta del asesor es vendedor, bajo su nombre salen su agencia (columna H) y su WhatsApp (columna G); admin y gerente no los llevan. Tabla con encabezado verde oscuro y texto blanco (5.5:1), filas alternadas, columnas cant., SKU, descripción, disponibilidad, precio unitario e importe; el encabezado se repite en cada hoja. Total grande a la derecha. Notas: `*` precio aproximado, partidas sin precio como "Por confirmar" (no suman) y "Precios y existencias sujetos a confirmación." Pie: folio y "Hoja X de N". Sin números de parte de "bajo pedido" ni costos. Referencia: `generarPdfNotaVenta` (Maps).
 
-**Logo por agencia:** salen de `logos-marcas.js` de Maps y viven en el repo como `logo-carabela.png`, `logo-suzuki.png` y `logo-bajaj.png`. Carabela → Carabela, Suzuki → Suzuki, cualquier Bajaj → Bajaj; solo esos tres. Vento, "TODAS" o sin almacén salen sin logo.
+**Logo por agencia:** salen de `logos-marcas.js` de Maps y viven en el repo como `logo-vento.png`, `logo-carabela.png`, `logo-suzuki.png` y `logo-bajaj.png`. Vento → Vento, Carabela → Carabela, Suzuki → Suzuki, cualquier Bajaj → Bajaj; solo esos cuatro. "TODAS", sin almacén u otro almacén es `GENERAL`: sin logo, con "LA BARATA DEL HOGAR".
 
 ## 9. Movimiento
 
@@ -172,9 +186,9 @@ Contraste 4.5:1 (texto) y 3:1 (bordes de controles/íconos); foco visible siempr
 1. **Tres aspectos** (16-oct, sustituye a "solo oscuro"): Claro, Oscuro e Igual que el sistema, elegibles en Configuración → Aspecto. Tokens para ambos en §3.
 2. **Fuentes:** Rubik + Nunito Sans (Google Fonts). Hay que cachearlas en `sw.js` para uso sin conexión.
 3. **Íconos:** se mantiene Font Awesome 6.4; se decide si se migra a SVG en la etapa 6.
-4. **Una sola hoja de cotización**, sin selector de agencia; el logo sale de la agencia del asesor: Carabela, Suzuki o Bajaj (17-oct, ajusta la decisión del 16-oct de un logo único).
+4. **Una sola hoja de cotización**, sin selector de agencia; el logo sale de la agencia del asesor: Vento, Carabela, Suzuki o Bajaj (17-oct, ajusta la decisión del 16-oct de un logo único; Vento se agregó después).
 5. **Toda cotización empieza por el ID del cliente** (16-oct), §6.
-6. **Logo de la hoja** (17-oct): solo Carabela, Suzuki y Bajaj, tomados de `logos-marcas.js` de Maps y guardados en el repo (§8).
+6. **Logo de la hoja** (17-oct): Vento, Carabela, Suzuki y Bajaj, tomados de `logos-marcas.js` de Maps y guardados en el repo (§8).
 7. **Para después** (17-oct, por indicación): barra inferior móvil y rediseño estructural.
 
 ## 14. Estado de aplicación en `index.html` (16-oct-2026)
@@ -184,4 +198,4 @@ Contraste 4.5:1 (texto) y 3:1 (bordes de controles/íconos); foco visible siempr
 **Pendiente (etapa 6):** barra inferior móvil, tarjeta de producto y precio en Rubik, modales como hoja inferior, áreas táctiles ≥ 44 px, botón de contraseña con `tabindex="-1"` (no se alcanza con teclado), campos de cotización (`type="tel"`).
 **Aplicado (16-oct):** botones flotantes: "Cotizar" pasa a ser el principal (72 px, a la derecha, relleno de marca) y "Pendientes" queda secundario a su izquierda (superficie con borde); las etiquetas ya no van en mayúsculas ni desbordan (11–12 px, una línea). Buscar por Foto eliminado. "Cotizar en ruta" en el pie del carrito del cliente.
 **Hecho (17-oct):** captura con ID de cliente primero y sin Agencia (§6); panel Configuración con Cuenta y versión y Cotizaciones (§7.1); hoja de cotización con logo por agencia y botón Hoja PDF (§8), falta probarla en el celular.
-**Sigue pendiente:** Aspecto claro/oscuro/sistema, que exige antes migrar los colores fijos de Tailwind a tokens (hoy unas 235 líneas de `index.html` usan `bg-/text-/border-slate-*` o `emerald-*`, y no hay `data-theme` ni `prefers-color-scheme`); datos de contacto del asesor en la hoja; y el rediseño estructural del index (barra inferior móvil, tarjeta de producto, hojas inferiores), que queda para después.
+**Sigue pendiente:** Aspecto claro/oscuro/sistema, que exige antes migrar los colores fijos de Tailwind a tokens (hoy unas 235 líneas de `index.html` usan `bg-/text-/border-slate-*` o `emerald-*`, y no hay `data-theme` ni `prefers-color-scheme`); y el rediseño estructural del index (barra inferior móvil, tarjeta de producto, hojas inferiores), que queda para después.

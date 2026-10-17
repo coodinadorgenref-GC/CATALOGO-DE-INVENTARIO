@@ -470,14 +470,61 @@
         .bloque-fecha-admin.tono-4 .etiqueta-fecha-admin { color: #fdba74; }
         .bloque-fecha-admin.tono-5 .etiqueta-fecha-admin { color: #f9a8d4; }
 
-        /* ── Botón "Cotización enviada" (estado transitorio de 5s antes
-           de que el bloque se elimine para admin y cliente) ── */
-        .btn-cotizacion-enviada-transitorio {
-            background: #0e7490 !important;
-            color: #fff !important;
-            cursor: default !important;
-            opacity: .9;
-        }
+        /* ── Cantidad del carrito: "−" no baja de 1 (para quitar un producto está la papelera) ── */
+        .btn-qty:disabled { opacity: .4; cursor: not-allowed; }
+        .btn-qty:disabled:hover { background: #1e293b; }
+
+        /* ── Diálogos de la app (sustituyen a confirm/alert del navegador) ── */
+        .app-dlg-velo { position: fixed; inset: 0; z-index: 700; display: flex; align-items: center; justify-content: center;
+            padding: 16px; background: rgba(2, 6, 23, .72); animation: appDlgIn .15s ease-out; }
+        .app-dlg { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+            padding: 20px; box-shadow: 0 20px 50px rgba(0, 0, 0, .5); color: var(--text); font-family: var(--font-body); }
+        .app-dlg-icono { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; margin-bottom: 12px; background: rgba(34, 177, 76, .15); color: var(--brand); }
+        .app-dlg-icono.peligro { background: rgba(248, 113, 113, .15); color: var(--danger); }
+        .app-dlg h2 { font-family: var(--font-display); font-size: 17px; font-weight: 700; margin: 0 0 6px; }
+        .app-dlg p { font-size: 14px; line-height: 1.45; color: var(--text-2); white-space: pre-line; margin: 0 0 18px; }
+        .app-dlg-acciones { display: flex; flex-direction: column-reverse; flex-wrap: wrap; gap: 8px; }
+        @media (min-width: 480px) { .app-dlg-acciones { flex-direction: row; justify-content: flex-end; } }
+        .app-dlg-btn { min-height: 44px; padding: 0 16px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer;
+            border: 1px solid var(--border); background: transparent; color: var(--text-2); }
+        .app-dlg-btn:hover { background: var(--surface-2); }
+        .app-dlg-btn.pri { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+        .app-dlg-btn.pri:hover { background: var(--brand-hover); }
+        .app-dlg-btn.peligro { background: #b91c1c; border-color: #b91c1c; color: #fff; }
+        .app-dlg-btn.peligro:hover { background: #dc2626; }
+        .app-dlg-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+        @keyframes appDlgIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* ── Cotizaciones solicitadas: pasos, acciones y carga ── */
+        .pasos-cot { display: flex; list-style: none; margin: 0 0 8px; padding: 0; }
+        .pasos-cot li { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; position: relative;
+            font-size: 11px; font-weight: 700; color: var(--text-3); text-align: center; }
+        .pasos-cot li::before { content: ""; position: absolute; top: 11px; left: -50%; width: 100%; height: 2px; background: var(--border); }
+        .pasos-cot li:first-child::before { display: none; }
+        .pasos-cot li.hecho::before, .pasos-cot li.actual::before { background: var(--brand-strong); }
+        .paso-num { position: relative; z-index: 1; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; font-size: 11px; font-weight: 800; background: var(--surface-2); border: 2px solid var(--border); color: var(--text-3); }
+        .pasos-cot li.hecho .paso-num { background: var(--brand-strong); border-color: var(--brand-strong); color: #fff; }
+        .pasos-cot li.actual .paso-num { background: var(--bg); border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 3px rgba(34, 177, 76, .2); }
+        .pasos-cot li.actual { color: var(--text); }
+        .cot-aviso { font-size: 12px; line-height: 1.4; color: var(--text-2); margin: 0 0 8px; }
+        .cot-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+        .cot-btn { min-height: 40px; padding: 0 12px; border-radius: 10px; font-size: 12px; font-weight: 800; display: inline-flex;
+            align-items: center; gap: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); }
+        .cot-btn:hover { background: #334155; }
+        .cot-btn.pri { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+        .cot-btn.pri:hover { background: var(--brand-hover); }
+        .cot-btn.wa { background: #15803d; border-color: #15803d; color: #fff; }
+        .cot-btn.wa:hover { background: #166534; }
+        .cot-btn.suave { background: transparent; color: var(--text-3); }
+        .cot-btn.suave:hover { background: var(--surface-2); color: var(--text); }
+        .cot-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+        .cot-candado { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 6px 10px;
+            border-radius: 10px; background: var(--surface-2); color: var(--text-2); margin-bottom: 8px; }
+        .sk-card { height: 128px; border-radius: 12px; background: var(--surface-2); margin-bottom: 10px; animation: skPulse 1.2s ease-in-out infinite; }
+        @keyframes skPulse { 0%, 100% { opacity: .55; } 50% { opacity: .25; } }
+        @media (prefers-reduced-motion: reduce) { .sk-card, .app-dlg-velo { animation: none; } }
         /* ══════════════════════════════════════════
            Animación de carga — diseño original: el MISMO ícono de la
            portada (fa-motorcycle), con ruedas que REALMENTE giran
@@ -1372,9 +1419,9 @@
     </div>
 
     <div class="px-4 pt-3">
-        <button onclick="cargarCotizacionesAdmin()"
+        <button id="btn-actualizar-pend" onclick="cargarCotizacionesAdmin()"
                 class="w-full bg-slate-700 hover:bg-blue-900 text-white text-xs font-bold py-2 rounded-xl transition cursor-pointer flex items-center justify-center gap-2">
-            <i aria-hidden="true" class="fa-solid fa-rotate"></i> Actualizar lista
+            <i id="ico-actualizar-pend" aria-hidden="true" class="fa-solid fa-rotate"></i> Actualizar lista
         </button>
     </div>
 
@@ -2070,7 +2117,7 @@ function verificarSesionGuardada() {
                 const payload = JSON.stringify({ action: "cerrarSesionServidor", correo: s.correo, token: s.token });
                 navigator.sendBeacon(API_URL, new Blob([payload], { type: "text/plain" }));
             } catch {}
-            localStorage.removeItem("sesion_catalogo");
+            localStorage.removeItem("sesion_catalogo"); _olvidarPendCache();
             localStorage.removeItem("inventario_cache"); // NUEVO
             location.reload();
             return;
@@ -2152,7 +2199,7 @@ function cerrarSesionPorInactividad() {
     }
     _liberarSesionEnServidor();
     detenerControlDeSesion();
-    localStorage.removeItem("sesion_catalogo");
+    localStorage.removeItem("sesion_catalogo"); _olvidarPendCache();
     localStorage.removeItem("inventario_cache");
     const minutos = Math.round(duracionSesionActualMs / 60000);
     alert("Tu sesión se cerró automáticamente por " + minutos + " minutos de inactividad.");
@@ -2196,7 +2243,7 @@ window.addEventListener("focus", function () {
  *  cerrar la sesión local y mandar al usuario de vuelta al login. */
 function manejarSesionInvalidaDelServidor(motivo) {
     detenerControlDeSesion();
-    localStorage.removeItem("sesion_catalogo");
+    localStorage.removeItem("sesion_catalogo"); _olvidarPendCache();
     localStorage.removeItem("inventario_cache"); // NUEVO
     alert(motivo || "Tu sesión ha sido cerrada. Vuelve a iniciar sesión.");
     location.reload();
@@ -2231,7 +2278,7 @@ function detenerControlDeSesion() {
 function cerrarSesion() {
     _liberarSesionEnServidor();
     detenerControlDeSesion();
-    localStorage.removeItem("sesion_catalogo");
+    localStorage.removeItem("sesion_catalogo"); _olvidarPendCache();
     localStorage.removeItem("inventario_cache"); // NUEVO
     location.reload();
 }
@@ -3430,13 +3477,25 @@ function cambiarCantidadDesdeBoton(sku, delta) {
         if (!isNaN(valorInput) && valorInput > 0) item.cantidad = valorInput;
     }
     const nueva = item.cantidad + delta;
-    if (nueva < 1) { eliminarDelCarrito(sku); return; }
+    // La cantidad nunca baja de 1: para quitar un producto está la papelera.
+    if (nueva < 1) { if (inputEl) inputEl.value = item.cantidad; _actualizarMenosCantidad(sku); return; }
     item.cantidad = Math.min(nueva, item.stockMax || 9999);
     // Actualizar solo el input visual, no redibujar todo el carrito
     if (inputEl) inputEl.value = item.cantidad;
+    _actualizarMenosCantidad(sku);
     actualizarBadgeCarrito();
     guardarCarritoLocal();
     sincronizarCarritoInstantaneo();
+}
+
+/** Deshabilita el "−" cuando la cantidad es 1 (sin redibujar el carrito, para no perder el foco al teclear). */
+function _actualizarMenosCantidad(sku) {
+    const item = carrito.find(c => String(c.sku) === String(sku));
+    const input = document.getElementById(`qty-${sku}`);
+    const menos = input && input.previousElementSibling;
+    if (!item || !menos || !menos.classList.contains("btn-qty")) return;
+    menos.disabled = item.cantidad <= 1;
+    menos.setAttribute("aria-disabled", String(item.cantidad <= 1));
 }
 
 function establecerCantidadCarrito(sku, valor) {
@@ -3452,6 +3511,7 @@ function establecerCantidadCarrito(sku, valor) {
     // ya se encarga de dejar la cantidad en 1 como mínimo si la deja vacía.
     if (isNaN(nueva) || nueva < 1) { return; }
     item.cantidad = Math.min(nueva, item.stockMax || 9999);
+    _actualizarMenosCantidad(sku);
     // NO redibujar el carrito — solo actualizar el array, el badge y sincronizar.
     // Redibujar causaría que el input pierda el foco en iOS mientras el usuario escribe.
     actualizarBadgeCarrito();
@@ -3481,8 +3541,8 @@ function eliminarDelCarrito(sku) {
     actualizarUICarrito();
 }
 
-function vaciarCarrito() {
-    if (!confirm("¿Vaciar todo el carrito?")) return;
+async function vaciarCarrito() {
+    if (!(await confirmarApp({ titulo: "Vaciar el carrito", mensaje: "Se quitarán todos los productos de tu carrito.", confirmar: "Vaciar carrito", cancelar: "Conservarlo", tipo: "peligro", icono: "fa-trash-can" }))) return;
     _versionCarritoLocal++;
     carrito = [];
     guardarCarritoLocal();
@@ -3495,8 +3555,14 @@ function vaciarCarrito() {
    no editable, visible desde este momento para el admin.
 ══════════════════════════════════════════ */
 async function solicitarCotizacionGeneral() {
-    if (carrito.length === 0) { alert("Tu carrito está vacío. Agrega productos antes de solicitar una cotización general."); return; }
-    if (!confirm("Se enviará TODO lo que tienes en tu carrito como una cotización general. Una vez enviada, esos productos ya no se podrán editar. ¿Continuar?")) return;
+    if (carrito.length === 0) { mostrarToastInfo("Tu carrito está vacío. Agrega productos antes de enviar la cotización.", "error"); return; }
+    const lineas = carrito.length, piezas = totalItemsCarrito();
+    const seguir = await confirmarApp({
+        titulo: "Enviar cotización general",
+        mensaje: `Vas a enviar ${lineas} ${lineas === 1 ? "producto" : "productos"} (${piezas} ${piezas === 1 ? "pieza" : "piezas"}) como una cotización general.\nUna vez enviada, esos productos ya no se podrán editar.`,
+        confirmar: "Enviar cotización", cancelar: "Seguir editando", icono: "fa-paper-plane"
+    });
+    if (!seguir) return;
 
     const btn = document.getElementById("btn-cotizacion-general");
     const textoOriginal = btn.innerHTML;
@@ -3524,10 +3590,10 @@ async function solicitarCotizacionGeneral() {
             actualizarUICarrito();
             mostrarToastInfo("Tu cotización general fue enviada. El equipo la revisará pronto.");
         } else {
-            alert("No se pudo enviar: " + (rs.message || "Error desconocido."));
+            mostrarToastInfo("No se pudo enviar: " + (rs.message || "Error desconocido."), "error");
         }
     } catch {
-        alert("Error de conexión al enviar la cotización general.");
+        mostrarToastInfo("Error de conexión al enviar la cotización general.", "error");
     } finally {
         btn.disabled = false; btn.innerHTML = textoOriginal;
     }
@@ -3666,15 +3732,65 @@ async function reconciliarCarritoConServidor() {
     } catch { /* sin conexión: se reintenta en el siguiente ciclo */ }
 }
 
-/** Toast genérico (no ligado al texto fijo "Agregado:" de mostrarToastCarrito). */
-function mostrarToastInfo(mensaje) {
+/** Toast genérico (no ligado al texto fijo "Agregado:" de mostrarToastCarrito). tipo "error": borde rojo y dura más. */
+function mostrarToastInfo(mensaje, tipo) {
+    const error = tipo === "error";
     const t = document.createElement("div");
-    t.setAttribute("role", "status");
-    t.setAttribute("aria-live", "polite");
-    t.className = "fixed bottom-24 right-6 bg-slate-800 border border-emerald-600 text-white text-xs font-bold px-4 py-3 rounded-xl shadow-lg z-[500] flex items-center gap-2 max-w-[280px]";
-    t.innerHTML = `<i aria-hidden="true" class="fa-solid fa-circle-info text-emerald-400"></i> <span>${mensaje}</span>`;
+    t.setAttribute("role", error ? "alert" : "status");
+    t.setAttribute("aria-live", error ? "assertive" : "polite");
+    t.className = `fixed bottom-24 right-6 bg-slate-800 border ${error ? "border-red-500" : "border-emerald-600"} text-white text-xs font-bold px-4 py-3 rounded-xl shadow-lg z-[500] flex items-center gap-2 max-w-[280px]`;
+    t.innerHTML = `<i aria-hidden="true" class="fa-solid ${error ? "fa-triangle-exclamation text-red-400" : "fa-circle-info text-emerald-400"}"></i> <span>${escaparHTML(String(mensaje))}</span>`;
     document.body.appendChild(t);
-    setTimeout(() => t.remove(), 4000);
+    setTimeout(() => t.remove(), error ? 6000 : 4000);
+}
+
+/** Diálogo de la app (reemplaza confirm/alert del navegador, con la paleta del catálogo).
+ *  botones: [{ valor, texto, estilo: "pri" | "peligro" | "" }]. Devuelve el valor elegido, o null si se cancela (Esc o tocar fuera). */
+function dialogoApp({ titulo, mensaje, icono = "fa-circle-question", tipo = "", botones }) {
+    return new Promise(resolve => {
+        const previo = document.activeElement;
+        const velo = document.createElement("div");
+        velo.className = "app-dlg-velo";
+        velo.innerHTML = `<div class="app-dlg" role="alertdialog" aria-modal="true" aria-labelledby="app-dlg-t" aria-describedby="app-dlg-m">
+            <div class="app-dlg-icono ${tipo}" aria-hidden="true"><i class="fa-solid ${icono}"></i></div>
+            <h2 id="app-dlg-t">${escaparHTML(titulo)}</h2>
+            <p id="app-dlg-m">${escaparHTML(mensaje)}</p>
+            <div class="app-dlg-acciones">${botones.map((b, i) => `<button type="button" class="app-dlg-btn ${b.estilo || ""}" data-i="${i}">${escaparHTML(b.texto)}</button>`).join("")}</div>
+        </div>`;
+        const cerrar = valor => {
+            document.removeEventListener("keydown", alTeclear, true);
+            velo.remove();
+            if (previo && previo.focus) previo.focus();
+            resolve(valor);
+        };
+        const alTeclear = e => {
+            if (e.key === "Escape") { e.preventDefault(); cerrar(null); return; }
+            if (e.key === "Tab") {   // el foco se queda dentro del diálogo
+                const bs = [...velo.querySelectorAll("button")];
+                const pos = bs.indexOf(document.activeElement);
+                const sig = e.shiftKey ? (pos <= 0 ? bs.length - 1 : pos - 1) : (pos === bs.length - 1 ? 0 : pos + 1);
+                e.preventDefault(); bs[sig].focus();
+            }
+        };
+        velo.addEventListener("click", e => {
+            if (e.target === velo) { cerrar(null); return; }
+            const b = e.target.closest("button[data-i]");
+            if (b) cerrar(botones[Number(b.dataset.i)].valor);
+        });
+        document.addEventListener("keydown", alTeclear, true);
+        document.body.appendChild(velo);
+        // El foco empieza en la opción segura: "cancelar" si la acción es peligrosa; si no, en la principal.
+        const bs = [...velo.querySelectorAll("button")];
+        (tipo === "peligro" ? bs[0] : (bs.find(b => b.classList.contains("pri")) || bs[bs.length - 1])).focus();
+    });
+}
+
+/** Sí/No con la paleta del catálogo. Devuelve true solo si se confirma. */
+function confirmarApp(op) {
+    return dialogoApp({ ...op, botones: [
+        { valor: false, texto: op.cancelar || "Cancelar" },
+        { valor: true,  texto: op.confirmar || "Aceptar", estilo: op.tipo === "peligro" ? "peligro" : "pri" }
+    ] }).then(v => v === true);
 }
 // Al volver a primer plano (cambiar de pestaña/app y regresar), reconciliamos
 // de inmediato en vez de esperar al próximo tick del intervalo de 12s.
@@ -3761,7 +3877,7 @@ function actualizarUICarrito() {
                     </div>
                 </div>
                 <div class="controles">
-                    <button class="btn-qty" aria-label="Disminuir cantidad" onclick="cambiarCantidadDesdeBoton('${item.sku}', -1)">−</button>
+                    <button class="btn-qty" aria-label="Disminuir cantidad" ${item.cantidad <= 1 ? 'disabled aria-disabled="true"' : ''} onclick="cambiarCantidadDesdeBoton('${item.sku}', -1)">−</button>
                     <input type="number" class="qty-input" id="qty-${item.sku}" value="${item.cantidad}" min="1" max="${item.stockMax}"
                            oninput="this.value=this.value.replace(/[^0-9]/g,''); establecerCantidadCarrito('${item.sku}', this.value)"
                            onblur="if(!this.value||this.value<1) this.value=1; establecerCantidadCarrito('${item.sku}', this.value)"
@@ -3936,7 +4052,6 @@ let idPeticionCotizacionesAdmin = 0;    // secuencia para descartar respuestas f
 let peticionAdminEnCurso = false;       // evita disparar una carga si ya hay una en curso
 let totalBloquesPendientesPrevio = null; // para detectar cuándo llegan cotizaciones nuevas
 let intervaloPollingAdmin = null;        // sondeo automático de fondo (notificación + numeración)
-let gruposEnTransicion = new Set();      // claves "correo::grupo" con el borrado de 5s ya programado
 
 /** Arranca el sondeo automático de cotizaciones para el admin: además de
  *  actualizarse al abrir el panel y al presionar "Actualizar lista", el
@@ -3945,6 +4060,7 @@ let gruposEnTransicion = new Set();      // claves "correo::grupo" con el borrad
  *  solos cada 15s mientras la pestaña esté visible. */
 function iniciarPollingAdminCotizaciones() {
     if (!esAdmin) return;
+    _cargarPendCacheLocal();
     clearInterval(intervaloPollingAdmin);
     intervaloPollingAdmin = setInterval(() => {
         if (document.visibilityState === "hidden") return;
@@ -3966,249 +4082,234 @@ function toggleCotizacionesAdmin() {
     }
 }
 
-async function cargarCotizacionesAdmin(silencioso) {
-    // Evita disparar una segunda carga si ya hay una en curso (p. ej. el
-    // admin presiona "Actualizar lista" varias veces seguidas).
-    if (peticionAdminEnCurso) return;
+let _pendCache = null;              // última respuesta buena del servidor: se pinta al instante al abrir el panel
+let _pendRecargaPendiente = false;   // una acción pidió recargar mientras había otra carga en curso
+const PEND_CACHE_KEY = "pend_cache_v1";
+
+/** Se guarda en sessionStorage (no en localStorage): son datos de clientes y se borran al cerrar la pestaña. */
+function _guardarPendCache(rs) {
+    try { const txt = JSON.stringify({ u: usuarioActual, t: Date.now(), rs }); if (txt.length < 400000) sessionStorage.setItem(PEND_CACHE_KEY, txt); } catch (e) {}
+}
+function _cargarPendCacheLocal() {
+    try {
+        const o = JSON.parse(sessionStorage.getItem(PEND_CACHE_KEY) || "null");
+        if (o && o.u === usuarioActual && Date.now() - o.t < 10 * 60 * 1000 && !_pendCache) _pendCache = o.rs;
+    } catch (e) {}
+}
+function _olvidarPendCache() { try { _pendCache = null; sessionStorage.removeItem(PEND_CACHE_KEY); } catch (e) {} }   // a prueba de errores: también corre al cerrar sesión durante el arranque
+
+function _pendIndicador(cargando) {
+    const ico = document.getElementById("ico-actualizar-pend"), btn = document.getElementById("btn-actualizar-pend");
+    if (ico) ico.classList.toggle("fa-spin", cargando);
+    if (btn) btn.setAttribute("aria-busy", String(cargando));
+}
+
+/** Trae las cotizaciones solicitadas. Al abrir el panel se pinta de inmediato lo último que se sabe y se actualiza encima
+ *  (sin pantalla de carga); sin nada previo se muestran tarjetas de espera. forzar: si hay otra carga en curso, repite al terminar. */
+async function cargarCotizacionesAdmin(silencioso, forzar) {
+    if (peticionAdminEnCurso) { if (forzar) _pendRecargaPendiente = true; return; }
     peticionAdminEnCurso = true;
     const idEstaPeticion = ++idPeticionCotizacionesAdmin;
 
     const contenedor = document.getElementById("lista-cotizaciones-admin");
-    // En modo silencioso (sondeo automático de fondo) no mostramos el
-    // spinner de carga para no interrumpir al admin si está leyendo el
-    // panel — solo se reemplaza el contenido cuando ya llegó la respuesta.
     if (!silencioso) {
-        contenedor.innerHTML = `<div class="flex flex-col items-center justify-center h-full gap-3 text-slate-400 py-12">
-            <i aria-hidden="true" class="fa-solid fa-spinner fa-spin text-3xl opacity-40"></i>
-            <p class="text-xs font-semibold text-center">Cargando cotizaciones...</p>
-        </div>`;
+        if (_pendCache) pintarCotizacionesAdmin(_pendCache);
+        else contenedor.innerHTML = `<div aria-hidden="true"><div class="sk-card"></div><div class="sk-card"></div><div class="sk-card"></div></div><p class="sr-only" role="status">Cargando cotizaciones…</p>`;
     }
+    _pendIndicador(true);
     try {
         const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
             body: JSON.stringify({ action:"obtenerCarritosActivos", token:tokenActual, correo:usuarioActual }) });
         const rs = await r.json();
 
-        // Descarta respuestas que hayan quedado obsoletas por una carga
-        // más reciente (p. ej. clics rápidos y repetidos en "Actualizar").
+        // Descarta respuestas que hayan quedado obsoletas por una carga o una acción más reciente.
         if (idEstaPeticion !== idPeticionCotizacionesAdmin) return;
 
         if (!rs.success) {
-            contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">${rs.message||"No autorizado."}</p>`;
+            if (!_pendCache) contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">${escaparHTML(rs.message || "No autorizado.")}</p>`;
+            else if (!silencioso) mostrarToastInfo(rs.message || "No se pudo actualizar la lista.", "error");
             return;
         }
-        const usuarios = rs.data || [];
-        ultimosCarritosAdminCargados = usuarios;
+        _pendCache = rs;
+        _guardarPendCache(rs);
+        pintarCotizacionesAdmin(rs);
+    } catch (err) {
+        if (idEstaPeticion !== idPeticionCotizacionesAdmin) return;
+        if (_pendCache) { if (!silencioso) mostrarToastInfo("Sin conexión: se muestran las últimas cotizaciones.", "error"); }
+        else contenedor.innerHTML = `<div class="flex flex-col items-center gap-3 py-10 text-slate-400"><p class="text-xs font-semibold">No se pudo cargar. Revisa tu conexión.</p>
+            <button type="button" class="cot-btn" onclick="cargarCotizacionesAdmin()"><i aria-hidden="true" class="fa-solid fa-rotate"></i> Reintentar</button></div>`;
+    } finally {
+        peticionAdminEnCurso = false;
+        if (idEstaPeticion === idPeticionCotizacionesAdmin) _pendIndicador(false);
+        if (_pendRecargaPendiente) { _pendRecargaPendiente = false; cargarCotizacionesAdmin(true); }
+    }
+}
 
-        // Badge: número TOTAL de cotizaciones solicitadas pendientes
-        // (cada bloque "Cotización solicitada" cuenta como una, no cada
-        // usuario) — así, si hay 2 cotizaciones esperando, se ve "#2".
-        const totalBloquesPendientes = usuarios.reduce((suma, u) => {
-            const idsBloque = new Set((u.items || []).map(it => it._bloqueId || it._fechaSolicitud || "sin-fecha"));
-            return suma + idsBloque.size;
-        }, 0);
+/** Dibuja la lista de cotizaciones solicitadas, la insignia y la notificación de nuevas. */
+function pintarCotizacionesAdmin(rs) {
+    const contenedor = document.getElementById("lista-cotizaciones-admin");
+    const usuarios = rs.data || [];
+    ultimosCarritosAdminCargados = usuarios;
 
-        const badge = document.getElementById("badge-cotizaciones-admin");
-        if (badge) {
-            badge.innerText = totalBloquesPendientes;
-            badge.classList.toggle("hidden", totalBloquesPendientes === 0);
-            badge.style.display = totalBloquesPendientes > 0 ? "flex" : "none";
-        }
+    // Badge: número TOTAL de cotizaciones solicitadas pendientes
+    // (cada bloque "Cotización solicitada" cuenta como una, no cada
+    // usuario) — así, si hay 2 cotizaciones esperando, se ve "#2".
+    const totalBloquesPendientes = usuarios.reduce((suma, u) => {
+        const idsBloque = new Set((u.items || []).map(it => it._bloqueId || it._fechaSolicitud || "sin-fecha"));
+        return suma + idsBloque.size;
+    }, 0);
 
-        // Notificación al admin cuando llega(n) nueva(s) cotización(es),
-        // incluso si el panel está cerrado (pantalla principal del catálogo).
-        if (totalBloquesPendientesPrevio !== null && totalBloquesPendientes > totalBloquesPendientesPrevio) {
-            mostrarToastInfo(`Nueva cotización recibida. Pendientes: #${totalBloquesPendientes}`);
-            _notificarNuevaCotizacionEnPantalla(totalBloquesPendientes - totalBloquesPendientesPrevio);
-        }
-        totalBloquesPendientesPrevio = totalBloquesPendientes;
+    const badge = document.getElementById("badge-cotizaciones-admin");
+    if (badge) {
+        badge.innerText = totalBloquesPendientes;
+        badge.classList.toggle("hidden", totalBloquesPendientes === 0);
+        badge.style.display = totalBloquesPendientes > 0 ? "flex" : "none";
+    }
 
-        const esZonaValladolidPanel = _normalizarAlmacenJS(rs.almacenAdmin).includes("TODAS");
-        const etAlmacen = rs.almacenAdmin
-            ? (esZonaValladolidPanel
-                ? `<i aria-hidden="true" class="fa-solid fa-globe mr-1"></i> Todos los almacenes (Zona Valladolid)`
-                : `<i aria-hidden="true" class="fa-solid fa-warehouse mr-1"></i> Almacén: <strong>${rs.almacenAdmin}</strong>`)
-            : `<i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> Sin almacén asignado`;
-        let html = `<div class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 mb-3 text-[11px] text-blue-300 font-bold">${etAlmacen}</div>`;
+    // Notificación al admin cuando llega(n) nueva(s) cotización(es),
+    // incluso si el panel está cerrado (pantalla principal del catálogo).
+    if (totalBloquesPendientesPrevio !== null && totalBloquesPendientes > totalBloquesPendientesPrevio) {
+        mostrarToastInfo(`Nueva cotización recibida. Pendientes: #${totalBloquesPendientes}`);
+        _notificarNuevaCotizacionEnPantalla(totalBloquesPendientes - totalBloquesPendientesPrevio);
+    }
+    totalBloquesPendientesPrevio = totalBloquesPendientes;
 
-        if (!usuarios.length) {
-            html += `<div class="flex flex-col items-center justify-center gap-3 text-slate-400 py-12">
-                <i aria-hidden="true" class="fa-solid fa-inbox text-4xl opacity-30"></i>
-                <p class="text-xs font-semibold text-center">Sin cotizaciones pendientes.</p></div>`;
-            contenedor.innerHTML = html; return;
-        }
+    const esZonaValladolidPanel = _normalizarAlmacenJS(rs.almacenAdmin).includes("TODAS");
+    const etAlmacen = rs.almacenAdmin
+        ? (esZonaValladolidPanel
+            ? `<i aria-hidden="true" class="fa-solid fa-globe mr-1"></i> Todos los almacenes (Zona Valladolid)`
+            : `<i aria-hidden="true" class="fa-solid fa-warehouse mr-1"></i> Almacén: <strong>${rs.almacenAdmin}</strong>`)
+        : `<i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> Sin almacén asignado`;
+    let html = `<div class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 mb-3 text-[11px] text-blue-300 font-bold">${etAlmacen}</div>`;
 
-        usuarios.forEach(u => {
-            const fecha = u.ultimaActualizacion
-                ? new Date(u.ultimaActualizacion).toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"}) : "—";
-            const estadoGen    = u.estado || "Pendiente";
-            const esEnviadaTodo = estadoGen === "Cotización enviada" || estadoGen === "Pedido listo";
-            const estadosPG    = u.estadosPorGrupo || {};
-            const correoSeg    = escaparHTML(String(u.correo)).replace(/'/g,"\\'");
-            const nombreSeg    = escaparHTML(u.nombre || "Sin nombre");
+    if (!usuarios.length) {
+        html += `<div class="flex flex-col items-center justify-center gap-3 text-slate-400 py-12">
+            <i aria-hidden="true" class="fa-solid fa-inbox text-4xl opacity-30"></i>
+            <p class="text-xs font-semibold text-center">Sin cotizaciones pendientes.</p></div>`;
+        contenedor.innerHTML = html; return;
+    }
 
-            // ── PASO 1: agrupar los items por BLOQUE DE SOLICITUD (fecha/hora
-            // en la que el cliente presionó "Solicitar cotización general").
-            // Cada bloque se muestra como una tarjeta separada, igual que en
-            // "MI COTIZACIÓN" del lado del cliente. Se preserva el orden
-            // cronológico en el que llegaron desde el backend.
-            const bloquesPorFecha = new Map();
-            (u.items||[]).forEach(it => {
-                const claveBloque = it._bloqueId || it._fechaSolicitud || "sin-fecha";
-                if (!bloquesPorFecha.has(claveBloque)) {
-                    bloquesPorFecha.set(claveBloque, { id: claveBloque, fecha: it._fechaSolicitud || null, items: [] });
-                }
-                bloquesPorFecha.get(claveBloque).items.push(it);
+    usuarios.forEach(u => {
+        const fecha = u.ultimaActualizacion
+            ? new Date(u.ultimaActualizacion).toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"}) : "—";
+        // Resumen para el encabezado del cliente: hasta dónde va su atención.
+        const pasosUsuario = (u.items || []).map(it => it._paso || "SOLICITADA");
+        const chipCliente = pasosUsuario.includes("ENVIADA") ? ["bg-cyan-950 text-cyan-300", "fa-paper-plane", "Enviada"]
+            : pasosUsuario.some(p => p === "EN_ATENCION" || p === "REVISADA") ? ["bg-blue-950 text-blue-300", "fa-user-check", "En atención"]
+            : ["bg-orange-950 text-orange-300", "fa-hourglass-half", "Por atender"];
+        const correoSeg    = escaparHTML(String(u.correo)).replace(/'/g,"\\'");
+        const nombreSeg    = escaparHTML(u.nombre || "Sin nombre");
+
+        // ── PASO 1: agrupar los items por BLOQUE DE SOLICITUD (fecha/hora
+        // en la que el cliente presionó "Solicitar cotización general").
+        // Cada bloque se muestra como una tarjeta separada, igual que en
+        // "MI COTIZACIÓN" del lado del cliente. Se preserva el orden
+        // cronológico en el que llegaron desde el backend.
+        const bloquesPorFecha = new Map();
+        (u.items||[]).forEach(it => {
+            const claveBloque = it._bloqueId || it._fechaSolicitud || "sin-fecha";
+            if (!bloquesPorFecha.has(claveBloque)) {
+                bloquesPorFecha.set(claveBloque, { id: claveBloque, fecha: it._fechaSolicitud || null, items: [] });
+            }
+            bloquesPorFecha.get(claveBloque).items.push(it);
+        });
+
+        // ── PASO 2: dentro de cada bloque de fecha, sub-agrupar por
+        // almacén/grupo (BAJAJ, SUZUKI, VENTO, CARABELA, GENERAL) para
+        // mostrar los productos separados por almacén.
+        const bloques = [...bloquesPorFecha.values()].map((bloqueFecha, idxBloque) => {
+            const tonoClase = "tono-" + (idxBloque % 6);
+            // Seguimiento de esta solicitud: quién la lleva y en qué paso va.
+            const primero     = bloqueFecha.items[0] || {};
+            const atendidoPor = primero._atendidoPor || null;
+            const paso        = primero._paso || (atendidoPor ? "EN_ATENCION" : "SOLICITADA");
+            const loAtiendoYo = !!atendidoPor && atendidoPor.correo === usuarioActual;
+            const puedeEditar = loAtiendoYo && (paso === "EN_ATENCION" || paso === "REVISADA");
+            const grupos = {};
+            bloqueFecha.items.forEach(it => {
+                const ags = it.agenciasDisponibles||[];
+                if (!ags.length) { if(!grupos.GENERAL) grupos.GENERAL={suc:new Set(),items:[]}; return; }
+                ags.forEach(ag => {
+                    const g = detectarGrupoSucursal(ag.sucursal);
+                    if (!grupos[g]) grupos[g]={suc:new Set(),items:[]};
+                    grupos[g].suc.add(ag.sucursal);
+                });
+            });
+            bloqueFecha.items.forEach(it => {
+                const ags = it.agenciasDisponibles||[];
+                const gs = ags.length ? [...new Set(ags.map(a=>detectarGrupoSucursal(a.sucursal)))] : ["GENERAL"];
+                gs.forEach(g => { if(grupos[g]) grupos[g].items.push(it); });
             });
 
-            // ── PASO 2: dentro de cada bloque de fecha, sub-agrupar por
-            // almacén/grupo (BAJAJ, SUZUKI, VENTO, CARABELA, GENERAL) para
-            // conservar el botón "Enviar / Marcar pendiente" por almacén.
-            const bloques = [...bloquesPorFecha.values()].map((bloqueFecha, idxBloque) => {
-                const tonoClase = "tono-" + (idxBloque % 6);
-                const grupos = {};
-                bloqueFecha.items.forEach(it => {
-                    const ags = it.agenciasDisponibles||[];
-                    if (!ags.length) { if(!grupos.GENERAL) grupos.GENERAL={suc:new Set(),items:[]}; return; }
-                    ags.forEach(ag => {
-                        const g = detectarGrupoSucursal(ag.sucursal);
-                        if (!grupos[g]) grupos[g]={suc:new Set(),items:[]};
-                        grupos[g].suc.add(ag.sucursal);
-                    });
-                });
-                bloqueFecha.items.forEach(it => {
-                    const ags = it.agenciasDisponibles||[];
-                    const gs = ags.length ? [...new Set(ags.map(a=>detectarGrupoSucursal(a.sucursal)))] : ["GENERAL"];
-                    gs.forEach(g => { if(grupos[g]) grupos[g].items.push(it); });
-                });
-
-                const subBloques = Object.entries(grupos).map(([grupo, datos]) => {
-                    const info      = GRUPOS_AGENCIA[grupo]||{nombre:grupo,emoji: '<i class="fa-solid fa-box" aria-hidden="true"></i>'};
-                    const sucTxt    = escaparHTML([...datos.suc].join(", "))||"Sin sucursal";
-                    const idBloqueSeg = String(bloqueFecha.id).replace(/'/g,"\\'");
-                    // Clave compuesta BLOQUE+GRUPO: así el estado de este
-                    // almacén en ESTA solicitud nunca se confunde con el de
-                    // otra solicitud distinta que use el mismo almacén.
-                    const claveEstado = `${bloqueFecha.id}::${grupo}`;
-                    const estGrupo  = estadosPG[claveEstado] || "Por cotizar";
-                    // Estado transitorio: el admin ya presionó "Por cotizar" y el
-                    // botón está mostrando "Cotización enviada" (5s) antes de
-                    // que el bloque desaparezca para admin y cliente.
-                    const enTransicion = estGrupo === "Cotización enviada";
-                    // Si ya está en transición (por ejemplo, tras recargar el
-                    // panel o un sondeo automático a mitad del conteo de 5s),
-                    // reanudamos el borrado programado sin re-enviar el estado.
-                    if (enTransicion) reanudarTransicionSiCorresponde(correoSeg, grupo, bloqueFecha.id);
-                    const botonHtml = enTransicion
-                        ? `<button disabled data-correo="${correoSeg}" data-grupo="${grupo}" data-bloque="${idBloqueSeg}"
-                                    class="btn-cotizacion-enviada-transitorio text-[11px] font-bold px-2 py-1 rounded-lg flex items-center gap-1">
-                               <i aria-hidden="true" class="fa-solid fa-paper-plane"></i> Cotización enviada
-                           </button>`
-                        : `<button onclick="iniciarTransicionCotizacionEnviada('${correoSeg}','${grupo}','${idBloqueSeg}')"
-                                    data-correo="${correoSeg}" data-grupo="${grupo}" data-bloque="${idBloqueSeg}"
-                                    class="bg-orange-600 hover:bg-orange-500 text-white text-[11px] font-bold px-2 py-1 rounded-lg cursor-pointer transition flex items-center gap-1">
-                               <i aria-hidden="true" class="fa-solid fa-clock"></i> Por cotizar
-                           </button>`;
-                    return `<div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2 mb-2">
-                        <div class="flex items-center justify-between mb-1">
-                            <p class="text-[11px] font-black uppercase flex items-center gap-1">
-                                <span class="tag-agencia tag-${grupo}">${info.emoji} ${info.nombre}</span>
-                                <span class="text-slate-400 font-normal normal-case text-[11px]">${sucTxt}</span>
-                            </p>
-                            ${botonHtml}
-                        </div>
-                           ${datos.items.map(it=>`
-                                <div class="item-linea">
-                                    <span>${escaparHTML(it.nombre)} <span class="text-slate-400">(${escaparHTML(it.sku)})</span>
-                                    ${it.enLiquidacion ? `<span class="text-[10px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded ml-1 uppercase"><i aria-hidden="true" class="fa-solid fa-flag"></i> Liquidación</span>` : ""}
-                                    </span>
-                                <span class="flex items-center gap-2">
-                                    <span class="font-bold text-emerald-400">x${it.cantidad}</span>
-                                    <button onclick="eliminarItemCarritoUsuarioAdmin('${correoSeg}','${escaparHTML(String(it.sku)).replace(/'/g,"\\'")}' )"
-                                            title="Eliminar (ya entregado)"
-                                            class="text-red-400 hover:text-red-300 cursor-pointer" aria-label="Eliminar (ya entregado)"><i aria-hidden="true" class="fa-solid fa-circle-xmark"></i></button>
+            const subBloques = Object.entries(grupos).map(([grupo, datos]) => {
+                const info      = GRUPOS_AGENCIA[grupo]||{nombre:grupo,emoji: '<i class="fa-solid fa-box" aria-hidden="true"></i>'};
+                const sucTxt    = escaparHTML([...datos.suc].join(", "))||"Sin sucursal";
+                const idBloqueSeg = String(bloqueFecha.id).replace(/'/g,"\\'");
+                return `<div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2 mb-2">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="text-[11px] font-black uppercase flex items-center gap-1">
+                            <span class="tag-agencia tag-${grupo}">${info.emoji} ${info.nombre}</span>
+                            <span class="text-slate-400 font-normal normal-case text-[11px]">${sucTxt}</span>
+                        </p>
+                    </div>
+                       ${datos.items.map(it=>`
+                            <div class="item-linea">
+                                <span>${escaparHTML(it.nombre)} <span class="text-slate-400">(${escaparHTML(it.sku)})</span>
+                                ${it.enLiquidacion ? `<span class="text-[10px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded ml-1 uppercase"><i aria-hidden="true" class="fa-solid fa-flag"></i> Liquidación</span>` : ""}
                                 </span>
-                            </div>`).join("")}
-                    </div>`;
-                }).join("");
-
-                const fechaBloqueTxt = bloqueFecha.fecha
-                    ? new Date(bloqueFecha.fecha).toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"})
-                    : "";
-
-                // NUEVO: "Atender prospecto" — evita que dos agencias le
-                // contesten al mismo cliente. Se guarda a nivel BLOQUE.
-                const atendidoPor = (bloqueFecha.items[0] || {})._atendidoPor || null;
-                const idBloqueCardSeg = String(bloqueFecha.id).replace(/'/g,"\\'");
-                const loAtiendoYo = atendidoPor && atendidoPor.correo === usuarioActual;
-
-                let htmlAtencion;
-                if (!atendidoPor) {
-                    htmlAtencion = `<button onclick="atenderCotizacionAdmin('${correoSeg}','${idBloqueCardSeg}')"
-                            class="text-[11px] font-bold px-2 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white cursor-pointer flex items-center gap-1">
-                        <i aria-hidden="true" class="fa-solid fa-hand"></i> Atender
-                    </button>`;
-                } else if (loAtiendoYo) {
-                    htmlAtencion = `<button onclick="liberarCotizacionAdmin('${correoSeg}','${idBloqueCardSeg}')"
-                            title="Liberar (dejar que otro asesor la pueda atender)"
-                            class="text-[11px] font-bold px-2 py-1 rounded-lg bg-emerald-700 hover:bg-red-900 text-emerald-100 hover:text-red-200 cursor-pointer flex items-center gap-1">
-                        <i aria-hidden="true" class="fa-solid fa-user-check"></i> La atiendes tú
-                    </button>`;
-                } else {
-                    htmlAtencion = `<span class="text-[11px] font-bold px-2 py-1 rounded-lg bg-slate-700 text-slate-300 flex items-center gap-1">
-                        <i aria-hidden="true" class="fa-solid fa-lock"></i> Atiende: ${escaparHTML(atendidoPor.nombre)}
-                    </span>`;
-                }
-
-                const telClienteSeg = escaparHTML(String(u.telefono || "")).replace(/'/g,"\\'");
-                const htmlWhatsApp = u.telefono ? `
-                    <button onclick="contactarClientePorWhatsApp('${telClienteSeg}','${nombreSeg.replace(/'/g,"\\'")}')"
-                            class="text-[11px] font-bold px-2 py-1 rounded-lg bg-green-700 hover:bg-green-600 text-white cursor-pointer flex items-center gap-1">
-                        <i aria-hidden="true" class="fa-brands fa-whatsapp"></i> Contactar
-                    </button>` : "";
-
-
-                return `<div class="bloque-fecha-admin ${tonoClase} ${atendidoPor && !loAtiendoYo ? 'opacity-70' : ''}">
-                    <div class="encabezado-fecha-admin">
-                        <span class="etiqueta-fecha-admin"><i aria-hidden="true" class="fa-solid fa-paper-plane"></i> Cotización solicitada <span class="opacity-70">#${idxBloque + 1}</span></span>
-                        ${fechaBloqueTxt ? `<span class="text-[11px] text-slate-400"><i aria-hidden="true" class="fa-regular fa-clock mr-0.5"></i> ${fechaBloqueTxt}</span>` : ""}
-                    </div>
-                    <div class="flex items-center gap-2 mb-2">
-                        ${htmlAtencion}
-                        ${htmlWhatsApp}
-                    </div>
-                    <div ${atendidoPor && !loAtiendoYo ? 'style="pointer-events:none;"' : ''}>${subBloques}</div>
+                            <span class="flex items-center gap-2">
+                                <span class="font-bold text-emerald-400">x${it.cantidad}</span>
+                                ${puedeEditar ? `<button onclick="eliminarItemCarritoUsuarioAdmin('${correoSeg}','${escaparHTML(String(it.sku)).replace(/'/g,"\\'")}' )"
+                                        title="Eliminar (ya entregado)"
+                                        class="text-red-400 hover:text-red-300 cursor-pointer" aria-label="Eliminar (ya entregado)"><i aria-hidden="true" class="fa-solid fa-circle-xmark"></i></button>` : ""}
+                            </span>
+                        </div>`).join("")}
                 </div>`;
             }).join("");
 
-            const idClienteSeg = escaparHTML(u.idCliente || "");
-            html += `<div class="tarjeta-usuario-admin" data-correo-tarjeta="${correoSeg}">
-                <div class="encabezado-usuario">
-                    <div>
-                        <div class="nombre-usuario-admin"><i aria-hidden="true" class="fa-solid fa-user text-blue-400 mr-1"></i> ${nombreSeg}
-                            ${idClienteSeg ? `<span class="text-[11px] font-mono bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded ml-1">ID: ${idClienteSeg}</span>` : ""}
-                        </div>
-                        <div class="correo-usuario-admin">${escaparHTML(u.correo)}</div>
-                    </div>
-                    <span class="${esEnviadaTodo?'bg-emerald-950 text-emerald-300':'bg-orange-950 text-orange-300'} text-[11px] font-black px-2 py-1 rounded-md">
-                        ${esEnviadaTodo?'<i class="fa-solid fa-check" aria-hidden="true"></i> Pedido listo':'<i class="fa-regular fa-hourglass-half" aria-hidden="true"></i> Por cotizar'}
-                    </span>
+            const fechaBloqueTxt = bloqueFecha.fecha
+                ? new Date(bloqueFecha.fecha).toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"})
+                : "";
+
+            const idBloqueCardSeg = String(bloqueFecha.id).replace(/'/g, "\\'");
+            const htmlAcciones = _htmlAccionesCot({
+                correo: correoSeg, bloque: idBloqueCardSeg, paso, atendidoPor, yo: loAtiendoYo, pasoFecha: primero._pasoFecha,
+                tel: !!u.telefono, telSeg: escaparHTML(String(u.telefono || "")).replace(/'/g, "\\'"), nombreSeg: nombreSeg.replace(/'/g, "\\'"),
+                zona: esZonaValladolidPanel
+            });
+
+            return `<div class="bloque-fecha-admin ${tonoClase} ${atendidoPor && !loAtiendoYo ? "opacity-80" : ""}">
+                <div class="encabezado-fecha-admin">
+                    <span class="etiqueta-fecha-admin"><i aria-hidden="true" class="fa-solid fa-paper-plane"></i> Cotización solicitada <span class="opacity-70">#${idxBloque + 1}</span></span>
+                    ${fechaBloqueTxt ? `<span class="text-[11px] text-slate-400"><i aria-hidden="true" class="fa-regular fa-clock mr-0.5"></i> ${fechaBloqueTxt}</span>` : ""}
                 </div>
-                <div class="flex flex-col gap-0.5 mb-2">${bloques}</div>
-                <p class="text-[11px] text-slate-400 mb-2"><i aria-hidden="true" class="fa-regular fa-clock mr-1"></i> Última solicitud: ${fecha}</p>
-                ${esZonaValladolidPanel ? `
-                <button onclick="eliminarCarritoCompletoAdmin('${correoSeg}')"
-                        class="w-full bg-slate-700 hover:bg-red-950 text-slate-300 hover:text-red-400 text-[11px] font-bold py-1.5 rounded-lg cursor-pointer transition flex items-center justify-center gap-2">
-                    <i aria-hidden="true" class="fa-solid fa-trash"></i> Eliminar cotización completa
-                </button>` : ``}
+                ${_htmlPasosCot(paso)}
+                ${htmlAcciones}
+                <div>${subBloques}</div>
             </div>`;
-        });
-        contenedor.innerHTML = html;
-    } catch(err) {
-        if (idEstaPeticion !== idPeticionCotizacionesAdmin) return;
-        contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">Error de conexión.</p>`;
-    } finally {
-        peticionAdminEnCurso = false;
-    }
+        }).join("");
+
+        const idClienteSeg = escaparHTML(u.idCliente || "");
+        html += `<div class="tarjeta-usuario-admin" data-correo-tarjeta="${correoSeg}">
+            <div class="encabezado-usuario">
+                <div>
+                    <div class="nombre-usuario-admin"><i aria-hidden="true" class="fa-solid fa-user text-blue-400 mr-1"></i> ${nombreSeg}
+                        ${idClienteSeg ? `<span class="text-[11px] font-mono bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded ml-1">ID: ${idClienteSeg}</span>` : ""}
+                    </div>
+                    <div class="correo-usuario-admin">${escaparHTML(u.correo)}</div>
+                </div>
+                <span class="${chipCliente[0]} text-[11px] font-black px-2 py-1 rounded-md"><i class="fa-solid ${chipCliente[1]}" aria-hidden="true"></i> ${chipCliente[2]}</span>
+            </div>
+            <div class="flex flex-col gap-0.5 mb-2">${bloques}</div>
+            <p class="text-[11px] text-slate-400 mb-2"><i aria-hidden="true" class="fa-regular fa-clock mr-1"></i> Última solicitud: ${fecha}</p>
+            ${esZonaValladolidPanel ? `
+            <button onclick="eliminarCarritoCompletoAdmin('${correoSeg}')"
+                    class="w-full bg-slate-700 hover:bg-red-950 text-slate-300 hover:text-red-400 text-[11px] font-bold py-1.5 rounded-lg cursor-pointer transition flex items-center justify-center gap-2">
+                <i aria-hidden="true" class="fa-solid fa-trash"></i> Eliminar cotización completa
+            </button>` : ``}
+        </div>`;
+    });
+    contenedor.innerHTML = html;
 }
 
 /** Cliente: "Cotizar en ruta" abre Maps (venta en ruta). Es el único enlace del catálogo a Maps. */
@@ -4217,33 +4318,176 @@ function abrirCotizarEnRuta() {
     window.open(URL_MAPS_APP, "_blank", "noopener");
 }
 
-/** Admin: "Atender" un bloque de cotización — evita que otra agencia le
- *  conteste al mismo cliente. Si alguien más ya lo atiende, el backend
- *  responde con el nombre de esa persona. */
-async function atenderCotizacionAdmin(correoUsuario, bloqueId) {
-    try {
-        const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-            body: JSON.stringify({ action:"atenderCotizacion", token:tokenActual, correo:usuarioActual, correoUsuario, bloqueId }) });
-        const rs = await r.json();
-        if (!rs.success) { mostrarToastInfo(rs.message || "No se pudo tomar esta cotización."); }
-        cargarCotizacionesAdmin(true);
-    } catch (err) {
-        mostrarToastInfo("Error de conexión.");
-    }
+/* ═══════════════════════════════════════════════════════════════
+   SEGUIMIENTO DE LA COTIZACIÓN SOLICITADA POR EL CLIENTE
+
+     SOLICITADA → EN_ATENCION → REVISADA → ENVIADA → (cerrada)
+       Atender      Revisar       Enviar      Cerrar
+
+   Atender toma al cliente: nadie más puede tomarlo (el servidor lo garantiza).
+   Solo quien la atiende puede avanzarla, quitar productos, enviar y cerrar.
+   Los cambios se ven al instante y se confirman con el servidor; si falla, se revierten.
+   ═══════════════════════════════════════════════════════════════ */
+const PASOS_COT = [ { k: "SOLICITADA", t: "Atender" }, { k: "EN_ATENCION", t: "Revisar" }, { k: "REVISADA", t: "Enviar" }, { k: "ENVIADA", t: "Cerrar" } ];
+const ETIQUETA_PASO_COT = { SOLICITADA: "Sin atender", EN_ATENCION: "Revisando", REVISADA: "Lista para enviar", ENVIADA: "Enviada" };
+
+function _hace(iso) {
+    const t = iso ? new Date(iso).getTime() : NaN;
+    if (isNaN(t)) return "hace un momento";
+    const m = Math.max(0, Math.round((Date.now() - t) / 60000));
+    if (m < 1) return "hace un momento";
+    if (m < 60) return `hace ${m} min`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `hace ${h} h`;
+    const d = Math.floor(h / 24);
+    return `hace ${d} ${d === 1 ? "día" : "días"}`;
 }
 
-/** Admin: libera un bloque que estaba atendiendo (o que un admin de
- *  Zona Valladolid está reasignando). */
-async function liberarCotizacionAdmin(correoUsuario, bloqueId) {
-    try {
-        const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-            body: JSON.stringify({ action:"liberarCotizacion", token:tokenActual, correo:usuarioActual, correoUsuario, bloqueId }) });
-        const rs = await r.json();
-        if (!rs.success) { mostrarToastInfo(rs.message || "No se pudo liberar."); }
-        cargarCotizacionesAdmin(true);
-    } catch (err) {
-        mostrarToastInfo("Error de conexión.");
+function _htmlPasosCot(paso) {
+    const actual = Math.max(0, PASOS_COT.findIndex(p => p.k === paso));
+    return `<ol class="pasos-cot" aria-label="Seguimiento de la cotización">${PASOS_COT.map((p, i) => {
+        const clase = i < actual ? "hecho" : i === actual ? "actual" : "";
+        return `<li class="${clase}"${i === actual ? ' aria-current="step"' : ""}><span class="paso-num" aria-hidden="true">${i < actual ? '<i class="fa-solid fa-check"></i>' : i + 1}</span><span>${p.t}</span></li>`;
+    }).join("")}</ol>`;
+}
+
+/** Qué se le ofrece al asesor según el paso. c: { correo, bloque (ya escapados para onclick), paso, atendidoPor, yo, pasoFecha, tel, telSeg, nombreSeg, zona } */
+function _htmlAccionesCot(c) {
+    const a = `'${c.correo}','${c.bloque}'`;
+    const btn = (clase, onclick, icono, texto) => `<button type="button" class="cot-btn ${clase}" onclick="${onclick}"><i aria-hidden="true" class="${icono}"></i> ${texto}</button>`;
+    if (!c.atendidoPor) {
+        return `<p class="cot-aviso">Toma esta cotización para atender al cliente. Mientras la atiendas, nadie más podrá tomarla.</p>
+            <div class="cot-acciones">${btn("pri", `atenderCotizacionAdmin(${a})`, "fa-solid fa-hand", "Atender")}</div>`;
     }
+    if (!c.yo) {
+        return `<div class="cot-candado"><i aria-hidden="true" class="fa-solid fa-lock"></i> La atiende ${escaparHTML(c.atendidoPor.nombre || "otro asesor")} · ${ETIQUETA_PASO_COT[c.paso] || ""}</div>
+            ${c.zona ? `<div class="cot-acciones">${btn("suave", `liberarCotizacionAdmin(${a})`, "fa-solid fa-unlock", "Liberar para reasignar")}</div>` : ""}`;
+    }
+    const liberar = btn("suave", `liberarCotizacionAdmin(${a})`, "fa-solid fa-unlock", "Liberar");
+    if (c.paso === "EN_ATENCION") {
+        const contactar = c.tel ? btn("wa", `contactarClientePorWhatsApp('${c.telSeg}','${c.nombreSeg}')`, "fa-brands fa-whatsapp", "Contactar") : "";
+        return `<p class="cot-aviso"><strong>Revisa los productos.</strong> Si alguno ya no está disponible, quítalo con la ✕.</p>
+            <div class="cot-acciones">${contactar}${btn("pri", `avanzarPasoAdmin(${a},'REVISADA')`, "fa-solid fa-clipboard-check", "Marcar revisada")}${liberar}</div>`;
+    }
+    if (c.paso === "REVISADA") {
+        return `<p class="cot-aviso"><strong>Todo revisado.</strong> Envía la cotización al cliente.</p>
+            <div class="cot-acciones">${btn("pri", `enviarCotizacionAdmin(${a},false)`, c.tel ? "fa-brands fa-whatsapp" : "fa-solid fa-paper-plane", c.tel ? "Enviar por WhatsApp" : "Marcar como enviada")}${btn("", `avanzarPasoAdmin(${a},'EN_ATENCION')`, "fa-solid fa-rotate-left", "Volver a revisar")}${liberar}</div>`;
+    }
+    return `<p class="cot-aviso"><strong>Enviada ${_hace(c.pasoFecha)}.</strong> Cuando el cliente responda, cierra la cotización.</p>
+        <div class="cot-acciones">${btn("pri", `cerrarCotizacionAdmin(${a})`, "fa-solid fa-flag-checkered", "Cerrar cotización")}${c.tel ? btn("wa", `enviarCotizacionAdmin(${a},true)`, "fa-brands fa-whatsapp", "Reenviar") : ""}${btn("suave", `avanzarPasoAdmin(${a},'REVISADA')`, "fa-solid fa-rotate-left", "Corregir")}</div>`;
+}
+
+/** Llamada al servidor del seguimiento (nunca lanza: devuelve { success:false } si no hay conexión). */
+async function _pendLlamar(cuerpo) {
+    try {
+        const r = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" },
+            body: JSON.stringify({ token: tokenActual, correo: usuarioActual, ...cuerpo }) });
+        return await r.json();
+    } catch (e) { return { success: false, message: "Error de conexión." }; }
+}
+
+/** Cambio optimista sobre la lista en memoria: se redibuja al instante. fn recibe cada producto del cliente. */
+function _pendAplicar(correoUsuario, fn) {
+    if (!_pendCache) return;
+    idPeticionCotizacionesAdmin++;   // una carga que ya venía en camino quedaría vieja: se descarta
+    const u = (_pendCache.data || []).find(x => String(x.correo) === String(correoUsuario));
+    if (u) (u.items || []).forEach(fn);
+    pintarCotizacionesAdmin(_pendCache);
+}
+function _pendRestaurar(respaldo) { if (respaldo) { _pendCache = JSON.parse(respaldo); pintarCotizacionesAdmin(_pendCache); } }
+
+/** Atender: toma al cliente. */
+async function atenderCotizacionAdmin(correoUsuario, bloqueId) {
+    const respaldo = _pendCache ? JSON.stringify(_pendCache) : null;
+    const yo = { correo: usuarioActual, nombre: (document.getElementById("nombre-usuario")?.innerText || "Tú").trim(), fecha: new Date().toISOString() };
+    _pendAplicar(correoUsuario, it => { if (!it._atendidoPor) { it._atendidoPor = yo; it._paso = "EN_ATENCION"; it._pasoFecha = yo.fecha; } });
+    const rs = await _pendLlamar({ action: "atenderCotizacion", correoUsuario, bloqueId });
+    if (!rs.success) { _pendRestaurar(respaldo); mostrarToastInfo(rs.message || "No se pudo tomar esta cotización.", "error"); }
+    cargarCotizacionesAdmin(true, true);
+}
+
+/** Liberar: devuelve al cliente a "sin atender" para que otro asesor pueda tomarlo. */
+async function liberarCotizacionAdmin(correoUsuario, bloqueId) {
+    const ok = await confirmarApp({ titulo: "Liberar este cliente", mensaje: "Otro asesor podrá tomarlo y se perderá tu avance en esta cotización.", confirmar: "Liberar", cancelar: "Seguir atendiendo", icono: "fa-unlock" });
+    if (!ok) return;
+    const respaldo = _pendCache ? JSON.stringify(_pendCache) : null;
+    const dueno = (() => {
+        const u = (_pendCache?.data || []).find(x => String(x.correo) === String(correoUsuario));
+        const it = u && (u.items || []).find(i => i._bloqueId === bloqueId);
+        return it && it._atendidoPor ? it._atendidoPor.correo : null;
+    })();
+    _pendAplicar(correoUsuario, it => { if (it._atendidoPor && it._atendidoPor.correo === dueno) { it._atendidoPor = null; it._paso = "SOLICITADA"; it._pasoFecha = null; } });
+    const rs = await _pendLlamar({ action: "liberarCotizacion", correoUsuario, bloqueId });
+    if (!rs.success) { _pendRestaurar(respaldo); mostrarToastInfo(rs.message || "No se pudo liberar.", "error"); }
+    cargarCotizacionesAdmin(true, true);
+}
+
+/** Avanza (o regresa) un paso de la solicitud que el asesor está atendiendo. */
+async function avanzarPasoAdmin(correoUsuario, bloqueId, paso) {
+    const respaldo = _pendCache ? JSON.stringify(_pendCache) : null;
+    const ahora = new Date().toISOString();
+    _pendAplicar(correoUsuario, it => { if (it._bloqueId === bloqueId) { it._paso = paso; it._pasoFecha = ahora; } });
+    const rs = await _pendLlamar({ action: "avanzarPasoCotizacion", correoUsuario, bloqueId, paso });
+    if (!rs.success) { _pendRestaurar(respaldo); mostrarToastInfo(rs.message || "No se pudo avanzar.", "error"); }
+    cargarCotizacionesAdmin(true, true);
+}
+
+/** Enviar (o reenviar) la cotización al cliente por WhatsApp. Enviar además pasa la solicitud a "Enviada". */
+async function enviarCotizacionAdmin(correoUsuario, bloqueId, soloReenviar) {
+    const u = (_pendCache?.data || []).find(x => String(x.correo) === String(correoUsuario));
+    if (!u) return;
+    const productos = (u.items || []).filter(it => it._bloqueId === bloqueId);
+    const url = _urlWhatsAppCliente(u.telefono, _mensajeCotizacionWhatsApp(u.nombre, productos));
+    // WhatsApp se abre primero, dentro del clic, para que el navegador no bloquee la ventana.
+    if (url) window.open(url, "_blank", "noopener");
+    if (!soloReenviar) await avanzarPasoAdmin(correoUsuario, bloqueId, "ENVIADA");
+}
+
+/** Cerrar: Pedido listo, Sin respuesta o Cancelada. Quita la solicitud de la lista y queda registrada en el seguimiento. */
+async function cerrarCotizacionAdmin(correoUsuario, bloqueId) {
+    const resultado = await dialogoApp({
+        titulo: "Cerrar cotización",
+        mensaje: "¿Cómo terminó? Se quitará de la lista y quedará registrada en el seguimiento.",
+        icono: "fa-flag-checkered",
+        botones: [
+            { valor: null, texto: "Volver" },
+            { valor: "Cancelada", texto: "Cancelada", estilo: "peligro" },
+            { valor: "Sin respuesta", texto: "Sin respuesta" },
+            { valor: "Pedido listo", texto: "Pedido listo", estilo: "pri" }
+        ]
+    });
+    if (!resultado) return;
+    const respaldo = _pendCache ? JSON.stringify(_pendCache) : null;
+    if (_pendCache) {
+        idPeticionCotizacionesAdmin++;
+        const u = (_pendCache.data || []).find(x => String(x.correo) === String(correoUsuario));
+        if (u) {
+            u.items = (u.items || []).filter(it => it._bloqueId !== bloqueId);
+            if (!u.items.length) _pendCache.data = _pendCache.data.filter(x => x !== u);
+        }
+        pintarCotizacionesAdmin(_pendCache);
+    }
+    const rs = await _pendLlamar({ action: "cerrarCotizacion", correoUsuario, bloqueId, resultado });
+    if (!rs.success) { _pendRestaurar(respaldo); mostrarToastInfo(rs.message || "No se pudo cerrar.", "error"); }
+    else mostrarToastInfo(`Cotización cerrada: ${resultado}.`);
+    cargarCotizacionesAdmin(true, true);
+}
+
+/** Enlace de WhatsApp (México por omisión) o null si no hay teléfono. */
+function _urlWhatsAppCliente(telefono, mensaje) {
+    const telLimpio = String(telefono || "").replace(/\D/g, "");
+    if (!telLimpio) return null;
+    const tel10 = telLimpio.length > 10 ? telLimpio.slice(-10) : telLimpio;
+    const telConLada = tel10.length === 10 ? "52" + tel10 : telLimpio; // ajusta si tu operación no es en México
+    return `https://wa.me/${telConLada}?text=${encodeURIComponent(mensaje)}`;
+}
+
+function _mensajeCotizacionWhatsApp(nombreCliente, productos) {
+    const primerNombre = (nombreCliente || "Cliente").trim().split(/\s+/)[0];
+    const nombreAsesor = (document.getElementById("nombre-usuario")?.innerText || "Asesor").trim();
+    const rolAsesor    = (document.getElementById("rol-usuario")?.innerText || "Asesor de Refacciones").trim();
+    const lineas = (productos || []).map(it => `• ${it.cantidad}× ${it.nombre} (SKU ${it.sku})`).join("\n");
+    return `Hola ${primerNombre}, soy ${nombreAsesor} ${rolAsesor}. Te comparto la cotización de los productos que solicitaste:\n\n${lineas}\n\nCualquier duda con gusto te ayudo.`;
 }
 
 /** Abre WhatsApp Web/App con el mensaje de plantilla ya escrito, listo
@@ -4259,10 +4503,7 @@ function contactarClientePorWhatsApp(telefono, nombreCliente) {
 
     const mensaje = `Hola ${primerNombre}, soy ${nombreAsesor} ${rolAsesor}, me pongo en contacto con usted para compartirle su cotización.`;
 
-    const tel10 = telLimpio.length > 10 ? telLimpio.slice(-10) : telLimpio;
-    const telConLada = tel10.length === 10 ? "52" + tel10 : telLimpio; // ajusta si tu operación no es en México
-
-    window.open(`https://wa.me/${telConLada}?text=${encodeURIComponent(mensaje)}`, "_blank");
+    window.open(_urlWhatsAppCliente(telefono, mensaje), "_blank", "noopener");
 }
 
 /** Notificación de escritorio (fuera del navegador) + sonido cuando
@@ -4305,107 +4546,22 @@ function pedirPermisoNotificacionesEscritorio() {
 }
 
 
-async function cambiarEstadoGrupoAdmin(correoUsuario, grupo, nuevoEstado) {
-    try {
-        const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-            body: JSON.stringify({ action:"marcarCotizacionEnviada", token:tokenActual, correo:usuarioActual,
-                                   correoUsuario, estado:nuevoEstado, grupo }) });
-        const rs = await r.json();
-        if (rs.success) { cargarCotizacionesAdmin(); }
-        else { alert("No se pudo actualizar: " + (rs.message||"Error.")); }
-    } catch { alert("Error de conexión al actualizar estado."); }
-}
-
-
-
-/** Admin presiona "Por cotizar": el botón cambia de inmediato a
- *  "Cotización enviada" (estado transitorio, 5 segundos) y luego el
- *  bloque de ese grupo/almacén DENTRO DE ESA SOLICITUD específica se
- *  elimina para el admin y para el cliente (equivalente a "Pedido
- *  listo", pero con el aviso visual intermedio que pidió el negocio).
- *  bloqueId asegura que SOLO esa cotización solicitada se vea afectada,
- *  sin tocar otras solicitudes del mismo cliente que usen el mismo
- *  almacén/grupo. */
-async function iniciarTransicionCotizacionEnviada(correoUsuario, grupo, bloqueId) {
-    const clave = correoUsuario + "::" + bloqueId + "::" + grupo;
-    if (gruposEnTransicion.has(clave)) return; // ya en proceso, evita doble clic
-    gruposEnTransicion.add(clave);
-
-    // Actualización visual optimista e inmediata, solo del botón de
-    // este bloque específico (no de otros bloques con el mismo grupo).
-    _pintarBotonesComoTransicion(correoUsuario, grupo, bloqueId);
-
-    try {
-        const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-            body: JSON.stringify({ action:"marcarCotizacionEnviada", token:tokenActual, correo:usuarioActual,
-                                   correoUsuario, estado:"Cotización enviada", grupo, bloqueId }) });
-        const rs = await r.json();
-        if (!rs.success) {
-            gruposEnTransicion.delete(clave);
-            alert("No se pudo actualizar: " + (rs.message||"Error."));
-            cargarCotizacionesAdmin();
-            return;
-        }
-    } catch {
-        gruposEnTransicion.delete(clave);
-        alert("Error de conexión al actualizar estado.");
-        return;
-    }
-
-    _programarBorradoTrasTransicion(correoUsuario, grupo, bloqueId, clave);
-}
-
-/** Si el panel se recarga (poll automático, reapertura, u otro
- *  dispositivo admin) y encuentra un grupo ya en "Cotización enviada"
- *  que esta pestaña no esté vigilando todavía, retoma el conteo de 5s
- *  para completar el borrado de ESE bloque — sin volver a persistir el
- *  estado. */
-function reanudarTransicionSiCorresponde(correoUsuario, grupo, bloqueId) {
-    const clave = correoUsuario + "::" + bloqueId + "::" + grupo;
-    if (gruposEnTransicion.has(clave)) return;
-    gruposEnTransicion.add(clave);
-    _programarBorradoTrasTransicion(correoUsuario, grupo, bloqueId, clave);
-}
-
-function _pintarBotonesComoTransicion(correoUsuario, grupo, bloqueId) {
-    document.querySelectorAll(
-        `button[data-correo="${CSS.escape(correoUsuario)}"][data-grupo="${CSS.escape(grupo)}"][data-bloque="${CSS.escape(bloqueId)}"]`
-    ).forEach(btn => {
-        btn.disabled = true;
-        btn.onclick = null;
-        btn.classList.remove("bg-orange-600", "hover:bg-orange-500", "cursor-pointer");
-        btn.classList.add("btn-cotizacion-enviada-transitorio");
-        btn.innerHTML = `<i aria-hidden="true" class="fa-solid fa-paper-plane"></i> Cotización enviada`;
-    });
-}
-
-function _programarBorradoTrasTransicion(correoUsuario, grupo, bloqueId, clave) {
-    setTimeout(async () => {
-        try {
-            await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-                body: JSON.stringify({ action:"marcarCotizacionEnviada", token:tokenActual, correo:usuarioActual,
-                                       correoUsuario, estado:"Pedido listo", grupo, bloqueId }) });
-        } catch { /* si falla, el próximo sondeo/actualización lo reintentará visualmente */ }
-        gruposEnTransicion.delete(clave);
-        cargarCotizacionesAdmin();
-    }, 5000);
-}
-
 /** Admin: elimina UN producto de la cotización general de un usuario */
 async function eliminarItemCarritoUsuarioAdmin(correoUsuario, sku) {
     try {
         const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
             body: JSON.stringify({ action:"eliminarItemCarritoUsuario", token:tokenActual, correo:usuarioActual, correoUsuario, sku }) });
         const rs = await r.json();
-        if (rs.success) { cargarCotizacionesAdmin(); }
-        else { alert("No se pudo eliminar: " + (rs.message||"Error.")); }
-    } catch { alert("Error de conexión al eliminar."); }
+        if (rs.success) { cargarCotizacionesAdmin(false, true); }
+        else { mostrarToastInfo("No se pudo quitar el producto: " + (rs.message||"Error."), "error"); }
+    } catch { mostrarToastInfo("Error de conexión al quitar el producto.", "error"); }
 }
 
 /** Admin: elimina TODA la cotización general (todos los bloques) de un
  *  usuario en un solo request. NO afecta su carrito editable/privado. */
 async function eliminarCarritoCompletoAdmin(correoUsuario) {
-    if (!confirm(`¿Eliminar TODA la cotización general de ${correoUsuario}?\nHaz esto solo después de contactar y cerrar el pedido.`)) return;
+    const seguro = await confirmarApp({ titulo: "Eliminar toda la cotización", mensaje: `Se eliminará TODA la cotización general de ${correoUsuario}.\nHazlo solo después de contactar y cerrar el pedido.`, confirmar: "Eliminar todo", cancelar: "Conservarla", tipo: "peligro", icono: "fa-trash" });
+    if (!seguro) return;
 
     // Marcar tarjeta como cargando
     const tarjeta = document.querySelector(`[data-correo-tarjeta="${CSS.escape(correoUsuario)}"]`);
@@ -4415,11 +4571,11 @@ async function eliminarCarritoCompletoAdmin(correoUsuario) {
         const r = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
             body: JSON.stringify({ action:"eliminarCarritoCompleto", token:tokenActual, correo:usuarioActual, correoUsuario }) });
         const rs = await r.json();
-        if (!rs.success) { alert("No se pudo eliminar: " + (rs.message||"Error.")); }
-        cargarCotizacionesAdmin();
+        if (!rs.success) { mostrarToastInfo("No se pudo eliminar: " + (rs.message||"Error."), "error"); }
+        cargarCotizacionesAdmin(false, true);
     } catch {
-        alert("Error de conexión al eliminar.");
-        cargarCotizacionesAdmin();
+        mostrarToastInfo("Error de conexión al eliminar.", "error");
+        cargarCotizacionesAdmin(false, true);
     }
 }
 
@@ -6162,10 +6318,11 @@ function _cpError(msg) {
 }
 function _cpAviso(msg) { _cpEl('cp-aviso').textContent = msg || ''; }
 
-/** Sin selector de Agencia: se deduce del almacén del asesor. Define el logo de la hoja (Carabela, Suzuki o Bajaj; Vento va sin logo). */
+/** Sin selector de Agencia: se deduce del almacén del asesor. Define el logo de la hoja (Vento, Carabela, Suzuki o Bajaj);
+ *  con "TODAS", vacío u otro almacén queda GENERAL: sin logo, con el nombre de la empresa. */
 function _cpAgenciaAuto() {
     const h = String(almacenAdminActual || '').toUpperCase();
-    return h.includes('BAJAJ') ? 'BAJAJ' : h.includes('SUZUKI') ? 'SUZUKI' : h.includes('CARABELA') ? 'CARABELA' : 'VENTO';
+    return h.includes('BAJAJ') ? 'BAJAJ' : h.includes('SUZUKI') ? 'SUZUKI' : h.includes('CARABELA') ? 'CARABELA' : h.includes('VENTO') ? 'VENTO' : 'GENERAL';
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
@@ -6244,6 +6401,7 @@ function cfgReenviar(folio) {
    Logo según la agencia del asesor (Carabela, Suzuki, Bajaj); sin logo, lleva el nombre de la empresa.
    Nunca lleva número de parte de lo bajo pedido ni costos. jsPDF se carga solo la primera vez que se usa. */
 const HOJA_LOGOS = {
+    VENTO:    { archivo: 'logo-vento.png',    w: 444, h: 90 },
     CARABELA: { archivo: 'logo-carabela.png', w: 472, h: 90 },
     SUZUKI:   { archivo: 'logo-suzuki.png',   w: 470, h: 90 },
     BAJAJ:    { archivo: 'logo-bajaj.png',    w: 437, h: 90 }
@@ -6313,6 +6471,10 @@ function hojaCotizacionConstruir(jsPDF, cot, logo) {
     if (txt(cot.idCliente)) izq.push(['', 'ID de cliente: ' + txt(cot.idCliente), false]);
     if (telTxt) izq.push(['', 'Teléfono: ' + telTxt, false]);
     const der = [['ASESOR DE VENTAS', txt(cot.vendedorNombre) || '—', true]];
+    // Contacto del asesor: solo viene si su cuenta es "vendedor" (el servidor no lo manda para admin ni gerente).
+    if (txt(cot.vendedorAgencia)) der.push(['', 'Agencia: ' + txt(cot.vendedorAgencia).replace(/\s*[,;|]\s*/g, ' · '), false]);
+    const wa = txt(cot.vendedorWhats).replace(/\D/g, '');
+    if (wa) der.push(['', 'WhatsApp: ' + (wa.length === 10 ? wa.slice(0, 3) + ' ' + wa.slice(3, 6) + ' ' + wa.slice(6) : wa), false]);
     const moto = [txt(cot.moto), txt(cot.anio) ? 'Año ' + txt(cot.anio) : ''].filter(Boolean).join(' · ');
     if (moto) der.push(['MOTOCICLETA', moto, true]);
     const alturaCol = col => col.reduce((h, f) => h + (f[0] ? 4 : 0) + 4.6, 0);
@@ -6618,7 +6780,7 @@ async function cotPisoGuardar() {
         if (!rs.success) { _cpError(rs.message || 'No se pudo guardar la cotización.'); return; }
         _cpGuardada = true;
         _cpUltima = { folio: rs.folio, fecha: rs.fecha, agencia: datos.agencia, cliente: datos.cliente, telefono: datos.telefono, idCliente: datos.idCliente,
-            moto: datos.moto, anio: datos.anio, vendedorNombre: (document.getElementById('nombre-usuario')?.textContent || '').trim(), total: rs.total, items: rs.items };
+            moto: datos.moto, anio: datos.anio, vendedorAgencia: rs.vendedorAgencia, vendedorWhats: rs.vendedorWhats, vendedorNombre: (document.getElementById('nombre-usuario')?.textContent || '').trim(), total: rs.total, items: rs.items };
         _cpEl('cp-form').hidden = true; _cpEl('cp-listo').hidden = false;
         _cpEl('cp-folio').textContent = rs.folio;
         _cpEl('cp-listo-detalle').textContent = rs.items.length + (rs.items.length === 1 ? ' producto' : ' productos') + ' · Total ' + _cpMoneda(rs.total) + ' · Estado: ' + rs.estado;
