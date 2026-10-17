@@ -54,7 +54,7 @@ Base conservada de la app actual (`#0f172a / #1e293b / #334155 / #22b14c`), con 
 ### Aspectos: Oscuro, Claro e Igual que el sistema
 
 Los tres se eligen en Configuración → Aspecto (§7.1). Mecanismo:
-- Atributo `data-theme="dark|light"` en `<html>`, puesto por un script antes de pintar. "Igual que el sistema" se resuelve con `matchMedia` y se vuelve a resolver si el sistema cambia. Sin preferencia guardada arranca en Oscuro.
+- Atributo `data-theme="dark|light"` en `<html>`, puesto por un script antes de pintar. "Igual que el sistema" se resuelve con `matchMedia` y se vuelve a resolver si el sistema cambia. Sin preferencia guardada arranca en Sistema.
 - La elección se guarda en el dispositivo (`localStorage`, clave `aspecto`) y un script mínimo en `<head>` la aplica antes de pintar, para que no haya parpadeo.
 - `<meta name="color-scheme" content="dark light">`; al cambiar de aspecto se actualiza también `theme-color`.
 - Todo color va por token. Las clases Tailwind de color fijo (`bg-slate-900`, `text-emerald-400`, `border-slate-700`…) no cambian con el aspecto y hay que migrarlas a tokens.

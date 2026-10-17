@@ -57,16 +57,18 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 7. **Hecho en `index.html` (16-oct), falta probar en celular** — fallos visibles: el botón "Cotizar" se pierde entre los demás botones flotantes, y las etiquetas "Pendientes" y "Cotización" se desbordan del ícono. Reglas de corrección en `MASTER.md` §7.
 8. **Hecho (16-oct)**: captura con ID de cliente primero (autollena nombre y teléfono desde la hoja `Mecanicos`: B = ID, C = nombre, E = teléfono; `buscarMecanico` en `Cotizaciones.js`) y sin selector de Agencia (se deduce del almacén del asesor; define el logo de la hoja). Falta subir `Código.js` y `Cotizaciones.js` a Apps Script.
 9. **Hecho (16-oct)**: Buscar por Foto quitado del index y de `Código.js` (`analizarFotoProducto` y su ruta). Falta subir `Código.js` a Apps Script y borrar `GROQ_API_KEY` de las Propiedades del script.
-10. **Hecho (17-oct)**: panel Configuración (engrane en la cabecera) con **Aspecto** (Claro, Oscuro, Sistema; se guarda en el dispositivo; arranca en Oscuro), **Cuenta y versión** (con "Forzar recarga", igual que el REPORTEADOR) y **Cotizaciones** (lista de las tuyas, búsqueda, ver líneas, cambiar estado, reenviar por WhatsApp sin número de parte). El aspecto claro funciona con tokens en el CSS propio y con una escala de colores de Tailwind invertida (`:root[data-theme="light"]`); las clases de color fijo del HTML no se tocaron. Falta revisar pantalla por pantalla en claro.
+10. **Hecho (17-oct)**: panel Configuración (engrane en la cabecera) con **Aspecto** (Claro, Oscuro, Sistema; se guarda en el dispositivo; arranca en Sistema), **Cuenta y versión** (con "Forzar recarga", igual que el REPORTEADOR) y **Cotizaciones** (lista de las tuyas, búsqueda, ver líneas, cambiar estado, reenviar por WhatsApp sin número de parte). El aspecto claro funciona con tokens en el CSS propio y con una escala de colores de Tailwind invertida (`:root[data-theme="light"]`); las clases de color fijo del HTML no se tocaron. Falta revisar pantalla por pantalla en claro.
 11. **Hecho (16-oct)**: botón "Cotizar en Maps" quitado de Pendientes, enlace a Maps quitado del mensaje de Telegram, y botón "Cotizar en ruta" en el pie del carrito del cliente (abre Maps sin datos). Falta subir `Código.js` a Apps Script.
 12. **Hecho en código (17-oct), falta probar en el celular y desplegar `Código.js`**: seguimiento paso a paso de las cotizaciones solicitadas por clientes (Atender → Revisar → Enviar → Cerrar, candado por cliente, hoja `Seguimiento_Solicitudes`), lista de pendientes más rápida, diálogos con la paleta del catálogo y cantidad del carrito que nunca elimina el producto. Ver «Seguimiento de la cotización solicitada por el cliente».
 
 ## Por confirmar
-- Configuración: hoy el engrane lo ven todos los usuarios con sesión y la pestaña Cotizaciones solo los asesores; ¿se deja así o se oculta de otra forma? ¿Con qué aspecto arranca?
-- "Cotizar en ruta": ¿lleva el carrito del cliente a Maps o solo abre Maps?
-- Lista de precios "de otra fuente": ¿es la que se sube en el REPORTEADOR o una hoja distinta?
-- Maps: confirmar que `esVendedor`, `esAdminReal` y `validarSesion` se quedan, porque los usa para su propio acceso.
-- Hoja de cotización: ¿se agrega también dirección o teléfono de la agencia, además de la agencia y el WhatsApp del vendedor?
+- **Hoja de cotización: dirección y teléfono de cada agencia.** Pásame los datos de Vento, Carabela, Suzuki y Bajaj para agregarlos; mientras tanto la hoja lleva el logo de la agencia y el WhatsApp del vendedor.
+
+## Decisiones tomadas (17-oct, antes por confirmar)
+- **Configuración:** el engrane lo ven todos los usuarios con sesión; la pestaña Cotizaciones solo los asesores. El aspecto arranca en **Sistema** (sigue el modo del teléfono o la computadora) hasta que cada quien elija.
+- **Cotizar en ruta:** solo abre Maps (no lleva el carrito).
+- **Lista de precios:** es la que se sube en el REPORTEADOR (hoja `LISTA_PRECIOS`).
+- **Maps:** `esVendedor`, `esAdminReal` y `validarSesion` se quedan; Maps los usa para su propio acceso.
 
 - **Letras y áreas táctiles (17-oct):** piso de texto de 12 px (antes 11) y 11 px en lo más chico (antes 10), botones de la cabecera de 44 px (antes 38), título de tarjeta de 13 px en Rubik semibold; el botón verde de Pendientes pasa a `btn-primary` y la insignia ámbar de guardado a texto oscuro (el blanco no pasaba 4.5:1); el nombre de marca sobre fondo blanco usa un color fijo para que no desaparezca en el aspecto claro.
 
@@ -113,7 +115,7 @@ Logos tomados de `logos-marcas.js` del repo Maps (PNG de 90 px de alto) y guarda
 En Cotizar, el campo "Cliente" busca en la hoja `Mecanicos` por ID, nombre (todas las palabras, sin acentos) o teléfono (4+ dígitos) y muestra hasta 8 coincidencias con su ID (`buscarMecanico(correo, consulta)` en `Cotizaciones.js`).
 
 ## Aspecto claro/oscuro (17-oct)
-- `data-theme` en `<html>` lo pone un script antes de pintar (preferencia `aspecto` en `localStorage`: claro, oscuro o sistema; sin preferencia arranca oscuro). `matchMedia` lo sigue cuando está en Sistema y se actualiza `theme-color`.
+- `data-theme` en `<html>` lo pone un script antes de pintar (preferencia `aspecto` en `localStorage`: claro, oscuro o sistema; sin preferencia arranca en Sistema). `matchMedia` lo sigue cuando está en Sistema y se actualiza `theme-color`.
 - Los colores fijos del CSS propio (51 declaraciones) pasaron a tokens: `--divider`, `--hover`, `--border-strong`, `--info-text`, `--info-bg`, `--danger-bg`, `--ok`, `--brand-text`, `--attention-text`.
 - Para las ~560 clases de color fijo de Tailwind en el HTML no se reescribió nada: en claro se invierte la escala `--color-slate-*` y se ajustan emerald/red/amber/blue; `border-slate-*` usa `--border`; `text-white` pasa a `--text` salvo sobre fondos de color sólido.
 - `sw.js` no lleva número de versión (caché primero, actualiza detrás); para traer una versión nueva al instante está **Forzar recarga**.
@@ -130,6 +132,13 @@ En Cotizar, el campo "Cliente" busca en la hoja `Mecanicos` por ID, nombre (toda
 - **Toda cotización lleva IVA.** Los SKU que no estén en la lista salen "sin precio" y los captura el vendedor (precio aproximado), como antes con Bajaj y Suzuki.
 - Hasta que se suba la lista, el catálogo no mostrará precios: hay que cargarla antes de usar Cotizar.
 
-## Historial de cotizaciones en un sheet aparte (pendiente, 17-oct)
-Decisión: el historial vivirá en otro libro (ID `11jrqAsndSQRS6yQBOLyZZZF1OB-rGn0GnvCLS-CRqk8`), dividido en pestañas por marca. Aún no está implementado: la hoja `COTIZACIONES` sigue en el libro del API.
-Por confirmar: nombres de las pestañas (¿Vento, Bajaj, Suzuki, Carabela?) y qué hacer cuando una cotización mezcla marcas (¿una fila por marca con solo sus líneas, o la cotización completa en cada pestaña?).
+## Historial de cotizaciones (17-oct)
+Vive en otro libro (ID `11jrqAsndSQRS6yQBOLyZZZF1OB-rGn0GnvCLS-CRqk8`), con **una pestaña por agencia**: VENTO, CARABELA, BAJAJ, SUZUKI y GENERAL (las mismas del logo de la hoja). Se crean solas la primera vez.
+- **Una cotización = una fila**, en la pestaña de su agencia (la del asesor que la emite). Si mezcla marcas no se duplica: las partidas, de cualquier marca, van dentro de la fila. Así no hay totales repetidos ni estados desincronizados.
+- Columnas legibles en Sheets: folio, fecha, estado, origen, vendedor, agencia, cliente, teléfono, ID, moto, año, **resumen** (cantidad × producto), **subtotal, IVA, total**; y aparte `items` (JSON con número de parte, para el vendedor), `bloqueId`, contacto y `actualizado`.
+- **Es la única fuente**: guardar, cambiar de estado y consultar leen y escriben ahí (`Cotizaciones.js`). Folio consecutivo con el contador existente.
+- **Consulta** (Configuración › Cotizaciones): busca por folio, cliente, teléfono o ID, y filtra por estado, agencia y fechas; 30 por página. Admin real ve todas; vendedor y gerente, solo las suyas.
+- **Migración (una vez):** correr `migrarCotizacionesAlHistorial()` desde el editor de Apps Script; copia lo que haya en la hoja `COTIZACIONES` del libro del API (que queda como respaldo) y no repite folios.
+- Requisito: el dueño del Apps Script debe tener permiso de edición sobre ese libro.
+
+- **Hoja de cotización (17-oct):** ahora desglosa Subtotal, IVA (16 %) y Total; los precios de la lista ya traen IVA.

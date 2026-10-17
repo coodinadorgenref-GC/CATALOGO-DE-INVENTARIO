@@ -31,7 +31,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <meta name="color-scheme" content="dark light">
-<script>(function(){try{var p=localStorage.getItem('aspecto')||'oscuro';var l=p==='claro'||(p==='sistema'&&matchMedia('(prefers-color-scheme: light)').matches);document.documentElement.setAttribute('data-theme',l?'light':'dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
+<script>(function(){try{var p=localStorage.getItem('aspecto')||'sistema';var l=p==='claro'||(p==='sistema'&&matchMedia('(prefers-color-scheme: light)').matches);document.documentElement.setAttribute('data-theme',l?'light':'dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
 <style>
         /* ── TOKENS DE DISEÑO (MASTER.md §3-§5) ───────── */
         :root {
@@ -664,6 +664,8 @@
         .cfg-est { font-size: 12px; font-weight: 700; display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); }
         .cfg-muted { color: var(--text-3); font-size: 12px; }
         .cfg-cot ul { margin: 8px 0 0; padding-left: 18px; color: var(--text-2); }
+        .cfg-filtros { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .cfg-filtros select, .cfg-filtros input { width: 100%; min-height: 44px; }
         .cfg-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         .cfg-acciones select { flex-basis: 100%; }
         .cfg-acciones button:disabled { opacity: .6; cursor: progress; }
@@ -1460,9 +1462,19 @@
     </div>
     <div id="cfg-cotizaciones" hidden>
       <div class="cp-campo"><label for="cfg-buscar">Buscar por folio, cliente, teléfono o ID</label>
-        <input id="cfg-buscar" type="search" autocomplete="off" oninput="cfgPintarCotizaciones()"></div>
+        <input id="cfg-buscar" type="search" autocomplete="off" enterkeyhint="search" onkeydown="if(event.key==='Enter'){event.preventDefault();cfgCargarCotizaciones(1);}"></div>
+      <div class="cfg-filtros">
+        <div class="cp-campo"><label for="cfg-f-estado">Estado</label>
+          <select id="cfg-f-estado"><option value="">Todos</option><option>Borrador</option><option>Enviada</option><option>Aceptada</option><option>Rechazada</option><option>Cancelada</option></select></div>
+        <div class="cp-campo"><label for="cfg-f-agencia">Agencia</label>
+          <select id="cfg-f-agencia"><option value="">Todas</option><option>VENTO</option><option>CARABELA</option><option>BAJAJ</option><option>SUZUKI</option><option>GENERAL</option></select></div>
+        <div class="cp-campo"><label for="cfg-f-desde">Desde</label><input id="cfg-f-desde" type="date"></div>
+        <div class="cp-campo"><label for="cfg-f-hasta">Hasta</label><input id="cfg-f-hasta" type="date"></div>
+      </div>
+      <button type="button" class="cp-btn-sec" onclick="cfgCargarCotizaciones(1)"><i aria-hidden="true" class="fa-solid fa-magnifying-glass"></i> Buscar</button>
       <p id="cfg-cot-estado" class="cp-ayuda" role="status" aria-live="polite"></p>
       <div id="cfg-cot-lista"></div>
+      <div id="cfg-cot-pag" class="cfg-acciones"></div>
     </div>
   </div>
 </div>
@@ -6344,7 +6356,7 @@ function cfgAbrir() {
     cfgTab('aspecto');
     _cpEl('cfg-overlay').classList.add('visible');
 }
-function aspectoActual() { try { return localStorage.getItem('aspecto') || 'oscuro'; } catch (e) { return 'oscuro'; } }
+function aspectoActual() { try { return localStorage.getItem('aspecto') || 'sistema'; } catch (e) { return 'sistema'; } }
 function aspectoAplicar() {
     const p = aspectoActual();
     const claro = p === 'claro' || (p === 'sistema' && matchMedia('(prefers-color-scheme: light)').matches);
@@ -6387,19 +6399,22 @@ function cfgTab(t) {
     _cpEl('cfg-tab-cot').setAttribute('aria-selected', String(cot));
     if (cot) cfgCargarCotizaciones();
 }
-async function cfgCargarCotizaciones() {
+let _cfgPag = 1, _cfgTotal = 0, _cfgPorPag = 30;
+async function cfgCargarCotizaciones(pag) {
+    _cfgPag = Math.max(1, Number(pag) || 1);
     const est = _cpEl('cfg-cot-estado'); est.textContent = 'Cargando…';
+    const v = id => (_cpEl(id).value || '').trim();
     try {
-        const rs = await _cpApi('listarCotizaciones');
+        const rs = await _cpApi('consultarCotizaciones', { filtros: { texto: v('cfg-buscar'), estado: v('cfg-f-estado'), agencia: v('cfg-f-agencia'), desde: v('cfg-f-desde'), hasta: v('cfg-f-hasta'), pagina: _cfgPag } });
         if (!rs.success) { est.textContent = rs.message || 'No se pudieron cargar.'; return; }
-        _cfgCots = rs.cotizaciones || [];
+        _cfgCots = rs.cotizaciones || []; _cfgTotal = rs.total || 0; _cfgPorPag = rs.porPagina || 30;
         cfgPintarCotizaciones();
     } catch (e) { est.textContent = 'No se pudieron cargar. Revisa tu conexión.'; }
 }
 function cfgPintarCotizaciones() {
-    const q = (_cpEl('cfg-buscar').value || '').trim().toLowerCase();
-    const lista = _cfgCots.filter(c => !q || [c.folio, c.cliente, c.telefono, c.idCliente].join(' ').toLowerCase().includes(q));
-    _cpEl('cfg-cot-estado').textContent = lista.length ? lista.length + ' cotización(es)' : 'Sin cotizaciones.';
+    const lista = _cfgCots, pags = Math.max(1, Math.ceil(_cfgTotal / _cfgPorPag));
+    _cpEl('cfg-cot-estado').textContent = _cfgTotal ? _cfgTotal + ' cotización(es) · página ' + _cfgPag + ' de ' + pags : 'Sin cotizaciones con esos filtros.';
+    _cpEl('cfg-cot-pag').innerHTML = pags > 1 ? `<button type="button" ${_cfgPag <= 1 ? 'disabled' : ''} onclick="cfgCargarCotizaciones(${_cfgPag - 1})">Anterior</button><button type="button" ${_cfgPag >= pags ? 'disabled' : ''} onclick="cfgCargarCotizaciones(${_cfgPag + 1})">Siguiente</button>` : '';
     _cpEl('cfg-cot-lista').innerHTML = lista.map(c => {
         const lineas = (c.items || []).map(it => `<li>${it.cantidad} × ${escaparHTML(it.descripcion || '')}${it.sku ? ' (' + escaparHTML(it.sku) + ')' : ''}${it.tipo === 'pedido' ? ' · bajo pedido, parte ' + escaparHTML(it.numeroParte || '') : ''} — ${_cfgMoneda(it.importe)}</li>`).join('');
         const opciones = ESTADOS_COT.map(e => `<option${e === c.estado ? ' selected' : ''}>${e}</option>`).join('');
@@ -6568,9 +6583,17 @@ function hojaCotizacionConstruir(jsPDF, cot, logo) {
     });
 
     // ── Total y notas
-    if (y + 34 > LIM) { doc.addPage(); y = 14; }
+    if (y + 46 > LIM) { doc.addPage(); y = 14; }
     y += 6;
     const wT = 78, xT = PW - MX - wT;
+    // Los precios de la lista ya traen IVA: se desglosa Subtotal e IVA (16 %) y el total queda igual.
+    const tot = Number(cot.total) || 0;
+    const sub = (cot.subtotal !== undefined && cot.subtotal !== null && cot.subtotal !== '') ? Number(cot.subtotal) : Math.round(tot / 1.16 * 100) / 100;
+    const iva = (cot.iva !== undefined && cot.iva !== null && cot.iva !== '') ? Number(cot.iva) : Math.round((tot - sub) * 100) / 100;
+    fuente('normal', 9, GRIS);
+    doc.text('Subtotal', xT + 2, y + 3); doc.text(moneda(sub), PW - MX - 2, y + 3, { align: 'right' });
+    doc.text('IVA (16 %)', xT + 2, y + 8); doc.text(moneda(iva), PW - MX - 2, y + 8, { align: 'right' });
+    y += 11;
     doc.setDrawColor(VERDE_TXT[0], VERDE_TXT[1], VERDE_TXT[2]); doc.setLineWidth(0.5); doc.line(xT, y, PW - MX, y);
     fuente('bold', 11, OSC); doc.text('TOTAL', xT + 2, y + 7);
     fuente('bold', 14, VERDE_TXT); doc.text(moneda(cot.total || 0), PW - MX - 2, y + 7.4, { align: 'right' });
