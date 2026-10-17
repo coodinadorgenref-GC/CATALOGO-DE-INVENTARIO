@@ -54,7 +54,7 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 5. Hoja de cotización tipo factura por agencia (el catálogo aún no carga jsPDF ni tiene hoja carta).
 6. Reestructura de la interfaz.
 7. **Hecho en `index.html` (16-oct), falta probar en celular** — fallos visibles: el botón "Cotizar" se pierde entre los demás botones flotantes, y las etiquetas "Pendientes" y "Cotización" se desbordan del ícono. Reglas de corrección en `MASTER.md` §7.
-8. Cotización: nuevo orden de captura con ID de cliente primero (autollenado) y sin Agencia, logo predeterminado en la hoja (decisión 7).
+8. **Hecho (16-oct)**: captura con ID de cliente primero (autollena nombre y teléfono desde la hoja `Mecanicos`: B = ID, C = nombre, E = teléfono; `buscarMecanico` en `Cotizaciones.js`) y sin selector de Agencia (se deduce del almacén del asesor solo para el registro). Falta: logo predeterminado en la hoja de cotización (no existe aún) y subir `Código.js` y `Cotizaciones.js` a Apps Script.
 9. **Hecho (16-oct)**: Buscar por Foto quitado del index y de `Código.js` (`analizarFotoProducto` y su ruta). Falta subir `Código.js` a Apps Script y borrar `GROQ_API_KEY` de las Propiedades del script.
 10. Panel oculto Configuración: Aspecto, Cuenta y versión, Cotizaciones (decisión 9), con tema claro/oscuro/sistema.
 11. **Hecho (16-oct)**: botón "Cotizar en Maps" quitado de Pendientes, enlace a Maps quitado del mensaje de Telegram, y botón "Cotizar en ruta" en el pie del carrito del cliente (abre Maps sin datos). Falta subir `Código.js` a Apps Script.
@@ -62,7 +62,6 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 ## Por confirmar
 - Configuración: ¿la ven todos los roles o solo admin, vendedor y gerente? ¿Cómo se abre (ícono oculto, gesto, otra forma)? ¿Con qué aspecto arranca?
 - "Cotizar en ruta": ¿lleva el carrito del cliente a Maps o solo abre Maps?
-- ID de cliente: ¿de dónde se traen sus datos (hoja de clientes, `Usuarios_Autorizados`, Maps)?
 - Lista de precios "de otra fuente": ¿es la que se sube en el REPORTEADOR o una hoja distinta?
 - Maps: confirmar que `esVendedor`, `esAdminReal` y `validarSesion` se quedan, porque los usa para su propio acceso.
 

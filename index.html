@@ -1384,6 +1384,9 @@
         <div id="cp-error" class="cp-error" role="alert" aria-live="polite"></div>
         <div id="cp-form">
             <div class="cp-grid">
+                <div class="cp-campo"><label for="cp-idcliente">ID de cliente (si ya existe)</label>
+                    <input id="cp-idcliente" type="text" autocomplete="off" enterkeyhint="search" onchange="cotPisoBuscarCliente()" onkeydown="if(event.key==='Enter'){event.preventDefault();cotPisoBuscarCliente();}">
+                    <p id="cp-id-estado" class="cp-ayuda" role="status" aria-live="polite"></p></div>
                 <div class="cp-campo"><label for="cp-cliente">Nombre del cliente</label>
                     <input id="cp-cliente" type="text" autocomplete="off" enterkeyhint="next"></div>
                 <div class="cp-campo"><label for="cp-telefono">Teléfono</label>
@@ -1392,10 +1395,6 @@
                     <input id="cp-moto" type="text" autocomplete="off" enterkeyhint="next"></div>
                 <div class="cp-campo"><label for="cp-anio">Año (opcional)</label>
                     <input id="cp-anio" type="text" inputmode="numeric" maxlength="4" autocomplete="off" enterkeyhint="next"></div>
-                <div class="cp-campo"><label for="cp-idcliente">ID de cliente del catálogo (opcional)</label>
-                    <input id="cp-idcliente" type="text" autocomplete="off" enterkeyhint="next"></div>
-                <div class="cp-campo"><label for="cp-agencia">Agencia (logos de la hoja)</label>
-                    <select id="cp-agencia"><option value="VENTO">Vento</option><option value="BAJAJ">Bajaj</option><option value="SUZUKI">Suzuki</option></select></div>
             </div>
             <div class="cp-campo" style="margin-top:16px">
                 <label for="cp-buscador">Producto: SKU, nombre o número de parte</label>
@@ -6114,11 +6113,33 @@ function _cpError(msg) {
 }
 function _cpAviso(msg) { _cpEl('cp-aviso').textContent = msg || ''; }
 
+/** Sin selector de Agencia: se deduce del almacén del asesor (solo para el registro; la hoja lleva logo predeterminado). */
+function _cpAgenciaAuto() {
+    const h = String(almacenAdminActual || '').toUpperCase();
+    return h.includes('BAJAJ') ? 'BAJAJ' : h.includes('SUZUKI') ? 'SUZUKI' : 'VENTO';
+}
+
+/** ID de cliente (hoja Mecanicos): si existe, trae nombre y teléfono; siguen editables. */
+async function cotPisoBuscarCliente() {
+    const id = _cpEl('cp-idcliente').value.trim();
+    const est = _cpEl('cp-id-estado');
+    if (!id) { est.textContent = ''; return; }
+    est.textContent = 'Buscando…';
+    try {
+        const rs = await _cpApi('buscarMecanico', { id });
+        if (!rs.success) { est.textContent = rs.message || 'No se pudo buscar el ID.'; return; }
+        if (!rs.encontrado) { est.textContent = 'No se encontró ese ID. Captura nombre y teléfono.'; _cpEl('cp-cliente').focus(); return; }
+        _cpEl('cp-cliente').value = rs.nombre || '';
+        _cpEl('cp-telefono').value = rs.telefono || '';
+        est.textContent = 'Cliente encontrado: ' + (rs.nombre || id);
+        _cpEl('cp-moto').focus();
+    } catch (e) { est.textContent = 'No se pudo buscar el ID. Revisa tu conexión.'; }
+}
+
 function _cpReiniciar() {
     _cpLineas = []; _cpGuardada = false;
     ['cp-cliente', 'cp-telefono', 'cp-moto', 'cp-anio', 'cp-idcliente', 'cp-buscador'].forEach(id => { _cpEl(id).value = ''; });
-    const h = String(almacenAdminActual || '').toUpperCase();
-    _cpEl('cp-agencia').value = h.includes('BAJAJ') ? 'BAJAJ' : h.includes('SUZUKI') ? 'SUZUKI' : 'VENTO';
+    _cpEl('cp-id-estado').textContent = '';
     _cpEl('cp-resultados').hidden = true;
     _cpEl('cp-form').hidden = false; _cpEl('cp-listo').hidden = true;
     _cpError(''); _cpAviso('');
@@ -6130,7 +6151,7 @@ function cotPisoAbrir() {
     _cpReiniciar();
     _cpEl('cp-overlay').classList.add('visible');
     document.body.style.overflow = 'hidden';
-    setTimeout(() => _cpEl('cp-cliente').focus(), 60);
+    setTimeout(() => _cpEl('cp-idcliente').focus(), 60);
     _cpCargarPrecios().then(() => _cpPintarLineas()).catch(e => _cpAviso('No se pudieron mostrar los precios (' + e.message + '). Puedes capturar la cotización: el servidor calcula los precios al guardar.'));
 }
 
@@ -6140,7 +6161,7 @@ function cotPisoCerrar(forzar) {
     document.body.style.overflow = '';
 }
 function cotPisoClickFuera(e) { if (e.target.id === 'cp-overlay') cotPisoCerrar(); }
-function cotPisoNueva() { _cpReiniciar(); setTimeout(() => _cpEl('cp-cliente').focus(), 60); }
+function cotPisoNueva() { _cpReiniciar(); setTimeout(() => _cpEl('cp-idcliente').focus(), 60); }
 document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && _cpEl('cp-overlay') && _cpEl('cp-overlay').classList.contains('visible')) cotPisoCerrar();
 });
@@ -6274,7 +6295,7 @@ async function cotPisoGuardar() {
     try {
         const datos = {
             cliente: _cpEl('cp-cliente').value.trim(), telefono: _cpEl('cp-telefono').value, idCliente: _cpEl('cp-idcliente').value.trim(),
-            moto: _cpEl('cp-moto').value.trim(), anio: _cpEl('cp-anio').value.trim(), agencia: _cpEl('cp-agencia').value, origen: 'PISO',
+            moto: _cpEl('cp-moto').value.trim(), anio: _cpEl('cp-anio').value.trim(), agencia: _cpAgenciaAuto(), origen: 'PISO',
             lineas: _cpLineas.map(l => l.tipo === 'pedido'
                 ? { tipo: 'pedido', cantidad: l.cantidad, numeroParte: l.numeroParte, descripcion: l.descripcion, precioAprox: l.precioAprox }
                 : { tipo: 'catalogo', sku: l.sku, cantidad: l.cantidad, descripcion: l.descripcion, disponibilidad: l.disponibilidad, precioAprox: l.precioAprox })
