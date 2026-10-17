@@ -250,7 +250,7 @@
         #btn-carrito-flotante:focus-visible .btn-flotante-icon, #btn-cotizaciones-admin:focus-visible .btn-flotante-icon, #btn-cotizar-piso:focus-visible .btn-flotante-icon { outline: 2px solid var(--ring); outline-offset: 3px; }
         .btn-flotante-label {
             display: block; width: fit-content; max-width: 100%; margin: 0 auto; padding: 2px 8px; border-radius: 999px;
-            font-size: 11px; font-weight: 800; line-height: 1.25; letter-spacing: 0; text-transform: none; white-space: nowrap;
+            font-size: 12px; font-weight: 800; line-height: 1.25; letter-spacing: 0; text-transform: none; white-space: nowrap;
             color: var(--text);
             background: color-mix(in srgb, var(--surface) 88%, transparent);
             -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
@@ -286,9 +286,9 @@
             margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--divider);
         }
         .tarjeta-usuario-admin .nombre-usuario-admin { font-size: 13px; font-weight: 800; color: var(--text); }
-        .tarjeta-usuario-admin .correo-usuario-admin { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
+        .tarjeta-usuario-admin .correo-usuario-admin { font-size: 12px; color: var(--text-3); font-family: var(--font-mono); }
         .tarjeta-usuario-admin .item-linea {
-            font-size: 11px; color: var(--text-2); display: flex; justify-content: space-between;
+            font-size: 12px; color: var(--text-2); display: flex; justify-content: space-between;
             padding: 3px 0; border-bottom: 1px dashed var(--divider);
         }
         .tarjeta-usuario-admin .item-linea:last-child { border-bottom: none; }
@@ -320,7 +320,7 @@
         .item-carrito .info { flex: 1; min-width: 0; }
         .item-carrito .info .nombre { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.3;
             white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .item-carrito .info .sku  { font-size: 11px; color: var(--text-3); font-family: var(--font-mono); }
+        .item-carrito .info .sku  { font-size: 12px; color: var(--text-3); font-family: var(--font-mono); }
         .item-carrito .controles  { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
         .btn-qty {
             width: 26px; height: 26px; border-radius: 8px; font-weight: 900;
@@ -347,7 +347,7 @@
 
         /* Agrupación por agencia */
         .grupo-agencia-label {
-            font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .8px;
+            font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .8px;
             color: var(--brand-text); padding: 6px 0 4px; border-top: 1px solid var(--divider); margin-top: 4px;
         }
         .grupo-agencia-label:first-child { border-top: none; margin-top: 0; }
@@ -366,7 +366,7 @@
 
         /* Tag de agencia en tarjeta del carrito */
         .tag-agencia {
-            font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .5px;
+            font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .5px;
             padding: 2px 6px; border-radius: 6px; display: inline-block; margin-top: 2px;
         }
         .tag-BAJAJ    { background: var(--info-bg); color: var(--info-text); }
@@ -378,7 +378,7 @@
         /* Indicador de agencia bloqueada (producto no disponible en otra sucursal) */
         .alerta-agencia {
             background: #431407; border: 1px solid #7c2d12; border-radius: 8px;
-            padding: 8px 12px; font-size: 11px; color: #fdba74; margin-top: 6px;
+            padding: 8px 12px; font-size: 12px; color: #fdba74; margin-top: 6px;
         }
 
         /* Bloque "Por cotizar" (Cotización General ya enviada, no editable) */
@@ -394,13 +394,13 @@
             margin-bottom: 8px;
         }
         .bloque-cotizacion-general .etiqueta-bloque {
-            font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .5px;
+            font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .5px;
             color: var(--info-text); display: flex; align-items: center; gap: 5px;
         }
-        .bloque-cotizacion-general .fecha-bloque { font-size: 11px; color: var(--text-3); }
+        .bloque-cotizacion-general .fecha-bloque { font-size: 12px; color: var(--text-3); }
         .bloque-cotizacion-general .item-bloque {
             display: flex; align-items: center; justify-content: space-between;
-            font-size: 11px; color: var(--text-2); padding: 4px 0;
+            font-size: 12px; color: var(--text-2); padding: 4px 0;
             border-bottom: 1px dashed rgba(59, 130, 246, 0.2);
         }
         .bloque-cotizacion-general .item-bloque:last-child { border-bottom: none; }
@@ -421,7 +421,7 @@
             border-bottom: 1px dashed rgba(100, 116, 139, 0.35);
         }
         .bloque-fecha-admin .etiqueta-fecha-admin {
-            font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .4px;
+            font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .4px;
             color: var(--text-3); display: flex; align-items: center; gap: 5px;
         }
 
@@ -471,12 +471,12 @@
         /* ── Cotizaciones solicitadas: pasos, acciones y carga ── */
         .pasos-cot { display: flex; list-style: none; margin: 0 0 8px; padding: 0; }
         .pasos-cot li { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; position: relative;
-            font-size: 11px; font-weight: 700; color: var(--text-3); text-align: center; }
+            font-size: 12px; font-weight: 700; color: var(--text-3); text-align: center; }
         .pasos-cot li::before { content: ""; position: absolute; top: 11px; left: -50%; width: 100%; height: 2px; background: var(--border); }
         .pasos-cot li:first-child::before { display: none; }
         .pasos-cot li.hecho::before, .pasos-cot li.actual::before { background: var(--brand-strong); }
         .paso-num { position: relative; z-index: 1; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center;
-            justify-content: center; font-size: 11px; font-weight: 800; background: var(--surface-2); border: 2px solid var(--border); color: var(--text-3); }
+            justify-content: center; font-size: 12px; font-weight: 800; background: var(--surface-2); border: 2px solid var(--border); color: var(--text-3); }
         .pasos-cot li.hecho .paso-num { background: var(--brand-strong); border-color: var(--brand-strong); color: #fff; }
         .pasos-cot li.actual .paso-num { background: var(--bg); border-color: var(--brand); color: var(--brand); box-shadow: 0 0 0 3px rgba(34, 177, 76, .2); }
         .pasos-cot li.actual { color: var(--text); }
@@ -741,7 +741,9 @@
         :root[data-theme="light"] .bg-slate-900\/90, :root[data-theme="light"] .bg-slate-900\/95 { box-shadow: 0 1px 2px rgba(15,23,42,.08); }
         .cfg-opcion { flex: 1; min-height: 44px; background: transparent; border: 1px solid var(--border-strong); border-radius: 8px; color: var(--text); font-weight: 700; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; justify-content: center; }
         .cfg-opcion[aria-checked="true"] { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
-</style>
+        /* Insignias sobre fotos: el fondo sigue siendo negro translúcido, el texto sigue claro en cualquier aspecto */
+        html[data-theme="light"] .sobre-foto { color: #e2e8f0; }
+    </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
 
@@ -815,8 +817,8 @@
                             class="text-sm lg:text-lg font-black tracking-tight uppercase leading-tight whitespace-nowrap cursor-pointer hover:text-emerald-400 transition">La Barata del Hogar</h2>
                         <!-- Botón Actualizar — junto al logo, siempre visible -->
                         <button id="btn-actualizar-inventario" onclick="forzarSincronizacionDatos()" title="Actualizar inventario"
-                                class="flex items-center gap-1 bg-slate-700 hover:bg-emerald-400 text-white hover:text-slate-900 text-[11px] font-bold px-2 py-1 rounded-lg transition cursor-pointer shrink-0 h-[26px]">
-                            <i aria-hidden="true" class="fa-solid fa-rotate text-[11px]" id="icono-sincronizar"></i>
+                                class="flex items-center gap-1 bg-slate-700 hover:bg-emerald-400 text-white hover:text-slate-900 text-[12px] font-bold px-2 py-1 rounded-lg transition cursor-pointer shrink-0 h-[26px]">
+                            <i aria-hidden="true" class="fa-solid fa-rotate text-[12px]" id="icono-sincronizar"></i>
                             <span id="texto-sincronizar" class="hidden sm:inline">Actualizar</span>
                         </button>
                     </div>
@@ -825,12 +827,12 @@
                         <p class="text-xs text-slate-400 leading-tight">
                             Usuario: <span id="nombre-usuario" class="text-emerald-400 font-bold">---</span>
                         </p>
-                        <p class="text-[11px] text-slate-400 font-bold uppercase tracking-wide" id="rol-usuario-wrapper">
+                        <p class="text-[12px] text-slate-400 font-bold uppercase tracking-wide" id="rol-usuario-wrapper">
                             <span id="rol-usuario" class="text-slate-300">---</span>
                         </p>
                     </div>
                     <!-- Info móvil: nombre + rol en una línea compacta -->
-                    <p class="lg:hidden text-[11px] leading-tight truncate max-w-[180px]">
+                    <p class="lg:hidden text-[12px] leading-tight truncate max-w-[180px]">
                         <span id="nombre-usuario-movil" class="text-emerald-400 font-bold"></span>
                         <span id="rol-usuario-movil" class="text-slate-400 ml-1"></span>
                     </p>
@@ -846,7 +848,7 @@
                     <input type="text" id="buscador" oninput="ejecutarBusquedaCombinada()"
                            onkeydown="manejarTecladoBuscador(event)"
                            placeholder="Buscar por SKU, refacción..."
-                           class="w-full pl-10 pr-10 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm h-[38px]">
+                           class="w-full pl-10 pr-10 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm h-11">
                     <span id="btn-limpiar-buscador" onclick="limpiarBuscadorTexto()"
                           class="hidden absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-red-400 transition-colors cursor-pointer z-10 text-base">
                         <i aria-hidden="true" class="fa-solid fa-circle-xmark"></i>
@@ -856,10 +858,10 @@
                      super admin (almacén = TODAS). Se muestra/oculta según
                      el rol en _continuarDespuesDeAnimacionCarga(). -->
                 <button id="btn-usuarios-conectados" onclick="abrirModalUsuariosConectados()" title="Usuarios conectados"
-                        class="hidden shrink-0 relative bg-slate-900 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl h-[38px] w-[38px] items-center justify-center cursor-pointer transition">
+                        class="hidden shrink-0 relative bg-slate-900 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl h-11 w-11 items-center justify-center cursor-pointer transition">
                     <i aria-hidden="true" class="fa-solid fa-signal"></i>
                     <span id="badge-usuarios-conectados"
-                          class="hidden absolute -top-1.5 -right-1.5 badge-brand text-[11px] font-black rounded-full min-w-[16px] h-4 px-1 items-center justify-center leading-none">0</span>
+                          class="hidden absolute -top-1.5 -right-1.5 badge-brand text-[12px] font-black rounded-full min-w-[16px] h-4 px-1 items-center justify-center leading-none">0</span>
                 </button>
             </div>
 
@@ -868,18 +870,18 @@
                  navigator.onLine y los eventos online/offline (ver
                  actualizarIndicadorConexion en el JS). -->
             <span id="indicador-conexion" title="Estado de conexión"
-                  class="shrink-0 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide px-2.5 rounded-xl h-[38px] border bg-slate-800/60 border-slate-700 text-slate-400">
+                  class="shrink-0 flex items-center gap-1.5 text-[12px] font-black uppercase tracking-wide px-2.5 rounded-xl h-11 border bg-slate-800/60 border-slate-700 text-slate-400">
                 <span id="punto-indicador-conexion" class="w-2 h-2 rounded-full shrink-0 bg-slate-500"></span>
                 <span id="texto-indicador-conexion" class="hidden sm:inline">Sin conexión</span>
             </span>
 
             <button type="button" onclick="cfgAbrir()" aria-label="Configuración" title="Configuración"
-                    class="shrink-0 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center w-[38px] h-[38px]">
+                    class="shrink-0 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center w-11 h-11">
                 <i aria-hidden="true" class="fa-solid fa-gear"></i>
             </button>
             <!-- Cerrar sesión — punto 3: más grande y siempre visible -->
             <button onclick="cerrarSesion()"
-                    class="shrink-0 bg-slate-700 hover:bg-red-800 text-white text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1.5 h-[38px]">
+                    class="shrink-0 bg-slate-700 hover:bg-red-800 text-white text-xs font-bold py-2 px-3 rounded-xl transition cursor-pointer flex items-center gap-1.5 h-11">
                 <i aria-hidden="true" class="fa-solid fa-right-from-bracket"></i>
                 <span class="hidden sm:inline">Cerrar Sesión</span>
             </button>
@@ -896,7 +898,7 @@
                        oninput="sincronizarBuscadorMovil(this.value)"
                        onkeydown="manejarTecladoBuscador(event)"
                        placeholder="Buscar SKU, refacción..."
-                       class="w-full pl-8 pr-8 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs h-[38px]">
+                       class="w-full pl-8 pr-8 py-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs h-11">
                 <span id="btn-limpiar-buscador-movil" onclick="limpiarBuscadorMovil()"
                       class="hidden absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-red-400 cursor-pointer z-10">
                     <i aria-hidden="true" class="fa-solid fa-circle-xmark text-sm"></i>
@@ -906,18 +908,18 @@
                  SOLO super admin (almacén = TODAS). Se muestra/oculta según
                  el rol en _continuarDespuesDeAnimacionCarga(). -->
             <button id="btn-usuarios-conectados-movil" onclick="abrirModalUsuariosConectados()" title="Usuarios conectados"
-                    class="hidden shrink-0 relative bg-slate-900 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl h-[38px] w-[38px] items-center justify-center cursor-pointer transition">
+                    class="hidden shrink-0 relative bg-slate-900 hover:bg-slate-700 border border-slate-700 text-emerald-400 rounded-xl h-11 w-11 items-center justify-center cursor-pointer transition">
                 <i aria-hidden="true" class="fa-solid fa-signal"></i>
                 <span id="badge-usuarios-conectados-movil"
-                      class="hidden absolute -top-1.5 -right-1.5 badge-brand text-[11px] font-black rounded-full min-w-[16px] h-4 px-1 items-center justify-center leading-none">0</span>
+                      class="hidden absolute -top-1.5 -right-1.5 badge-brand text-[12px] font-black rounded-full min-w-[16px] h-4 px-1 items-center justify-center leading-none">0</span>
             </button>
             <!-- Botón Filtros — a la DERECHA del buscador (punto 1) -->
             <button onclick="abrirDrawerFiltros()" id="btn-abrir-filtros"
-                    class="flex items-center gap-1.5 bg-slate-700 hover:bg-emerald-700 text-white text-xs font-bold px-3 rounded-xl transition cursor-pointer shrink-0 h-[38px]">
+                    class="flex items-center gap-1.5 bg-slate-700 hover:bg-emerald-700 text-white text-xs font-bold px-3 rounded-xl transition cursor-pointer shrink-0 h-11">
                 <i aria-hidden="true" class="fa-solid fa-sliders text-emerald-400 text-sm"></i>
                 <span>Filtros</span>
                 <span id="badge-filtros-activos" style="display:none"
-                      class="badge-brand text-[11px] font-black rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center leading-none">0</span>
+                      class="badge-brand text-[12px] font-black rounded-full min-w-[16px] h-4 px-1 flex items-center justify-center leading-none">0</span>
             </button>
         </div>
 
@@ -995,7 +997,7 @@
                 </h3>
                 <div class="flex items-center gap-2">
                     <button onclick="limpiarPanelFiltros()" title="Borrar todos los filtros"
-                            class="text-[11px] font-bold uppercase tracking-wide text-slate-400 hover:text-red-400 cursor-pointer bg-slate-700 hover:bg-slate-600 px-2.5 h-8 rounded-lg flex items-center gap-1.5 transition">
+                            class="text-[12px] font-bold uppercase tracking-wide text-slate-400 hover:text-red-400 cursor-pointer bg-slate-700 hover:bg-slate-600 px-2.5 h-8 rounded-lg flex items-center gap-1.5 transition">
                         <i aria-hidden="true" class="fa-solid fa-broom"></i> <span class="hidden sm:inline">Borrar todos</span>
                     </button>
                     <button onclick="cerrarDrawerFiltros()" id="btn-cerrar-filtros"
@@ -1016,7 +1018,7 @@
 
                 <!-- Agencia -->
                 <div id="filtro-agencia-wrapper">
-                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Sucursal / Agencia</label>
+                    <label class="text-[12px] font-bold text-slate-400 uppercase tracking-wide">Sucursal / Agencia</label>
                     <select id="filtro-agencia" onchange="filtrarProductos(); actualizarChipsFiltros()"
                             class="w-full mt-2 p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer">
                         <option value="">Todas las agencias</option>
@@ -1025,7 +1027,7 @@
 
                 <!-- Orden -->
                 <div>
-                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Dirección Alfabética</label>
+                    <label class="text-[12px] font-bold text-slate-400 uppercase tracking-wide">Dirección Alfabética</label>
                     <select id="orden-alfabetico" onchange="filtrarProductos(); actualizarChipsFiltros()"
                             class="w-full mt-2 p-2.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-100 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer">
                         <option value="AZ">Nombre: A → Z</option>
@@ -1037,7 +1039,7 @@
 
                 <!-- Familia -->
                 <div>
-                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Filtrar por Familia</label>
+                    <label class="text-[12px] font-bold text-slate-400 uppercase tracking-wide">Filtrar por Familia</label>
                     <div class="relative w-full mt-2">
                         <input type="text" id="busqueda-familia" placeholder="Buscar familia..."
                                oninput="filtrarListaFamilias()"
@@ -1047,7 +1049,7 @@
                             <i aria-hidden="true" class="fa-solid fa-circle-xmark"></i>
                         </span>
                     </div>
-                    <button onclick="limpiarSeleccionFamilias(); actualizarChipsFiltros()" class="text-[11px] text-emerald-500 font-bold uppercase mt-1 hover:underline">
+                    <button onclick="limpiarSeleccionFamilias(); actualizarChipsFiltros()" class="text-[12px] text-emerald-500 font-bold uppercase mt-1 hover:underline">
                         Borrar selecciones
                     </button>
                     <div id="filter-familia-container" class="mt-2 bg-slate-900 border border-slate-700 rounded-xl max-h-[180px] overflow-y-auto p-2"></div>
@@ -1055,7 +1057,7 @@
 
                 <!-- Marca -->
                 <div>
-                    <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Filtrar por Marca</label>
+                    <label class="text-[12px] font-bold text-slate-400 uppercase tracking-wide">Filtrar por Marca</label>
                     <div class="relative w-full mt-2">
                         <input type="text" id="busqueda-marca" placeholder="Buscar marca..." oninput="filtrarListaMarcas()"
                                class="w-full p-2 pr-8 bg-slate-950 border border-slate-700 rounded-lg text-xs text-white focus:ring-1 focus:ring-emerald-500 outline-none">
@@ -1064,7 +1066,7 @@
                             <i aria-hidden="true" class="fa-solid fa-circle-xmark"></i>
                         </span>
                     </div>
-                    <button onclick="limpiarSeleccionMarcas(); actualizarChipsFiltros()" class="text-[11px] text-emerald-500 font-bold uppercase mt-1 hover:underline">
+                    <button onclick="limpiarSeleccionMarcas(); actualizarChipsFiltros()" class="text-[12px] text-emerald-500 font-bold uppercase mt-1 hover:underline">
                         Borrar selecciones
                     </button>
                     <div id="filter-marca-container" class="mt-2 bg-slate-900 border border-slate-700 rounded-xl max-h-[180px] overflow-y-auto p-2"></div>
@@ -1160,7 +1162,7 @@
                  colores/tipografía reales, sin dominar visualmente la
                  pantalla oscura. -->
                 <footer class="mt-4 pt-5 pb-5 border-t border-slate-800">
-    <p class="text-center text-[11px] uppercase tracking-widest text-slate-400 font-bold mb-3">Nuestras marcas</p>
+    <p class="text-center text-[12px] uppercase tracking-widest text-slate-400 font-bold mb-3">Nuestras marcas</p>
     <div class="relative">
         <button onclick="moverCarruselMarcas(-1)"
                 class="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-slate-800 hover:bg-slate-700 text-white w-8 h-8 rounded-full flex items-center justify-center cursor-pointer shadow-lg border border-slate-700" aria-label="Marca anterior"><i aria-hidden="true" class="fa-solid fa-chevron-left text-xs"></i></button>
@@ -1288,7 +1290,7 @@
      verse a la vez si el admin está subiendo fotos y editando
      compatibilidad al mismo tiempo. -->
 <div id="badge-guardando-compat"
-     class="hidden flex fixed bottom-[76px] left-6 z-[70] bg-amber-600 text-white text-xs font-bold pl-3 pr-4 py-3 rounded-full shadow-2xl items-center gap-2.5"
+     class="hidden flex fixed bottom-[76px] left-6 z-[70] bg-amber-500 text-[#0f172a] text-xs font-bold pl-3 pr-4 py-3 rounded-full shadow-2xl items-center gap-2.5"
      style="box-shadow:0 6px 20px rgba(180,83,9,.55), 0 2px 6px rgba(0,0,0,.3)">
     <i aria-hidden="true" class="fa-solid fa-circle-notch fa-spin"></i>
     <span id="texto-badge-guardando-compat">Guardando compatibilidad...</span>
@@ -1323,7 +1325,7 @@
         <div class="flex items-center gap-2">
             <button onclick="guardarCambiosCarritoManual()" id="btn-guardar-carrito"
                     title="Guardar cambios"
-                    class="text-[11px] font-bold uppercase btn-primary px-2.5 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition">
+                    class="text-[12px] font-bold uppercase btn-primary px-2.5 py-1.5 rounded-lg flex items-center gap-1 cursor-pointer transition">
                 <i aria-hidden="true" class="fa-solid fa-floppy-disk"></i> <span class="hidden sm:inline">Guardar</span>
             </button>
             <button onclick="toggleCarrito()" class="text-slate-400 hover:text-white text-xl cursor-pointer" aria-label="Cerrar carrito"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button>
@@ -1378,15 +1380,15 @@
         <div class="px-4 py-3 border-b border-slate-700 grid grid-cols-3 gap-2 shrink-0">
             <div class="bg-slate-900 rounded-xl p-2 text-center">
                 <p id="uc-total" class="text-lg font-black text-emerald-400">0</p>
-                <p class="text-[11px] font-bold text-slate-400 uppercase">Total</p>
+                <p class="text-[12px] font-bold text-slate-400 uppercase">Total</p>
             </div>
             <div class="bg-slate-900 rounded-xl p-2 text-center">
                 <p id="uc-total-admins" class="text-lg font-black text-blue-400">0</p>
-                <p class="text-[11px] font-bold text-slate-400 uppercase">Admins</p>
+                <p class="text-[12px] font-bold text-slate-400 uppercase">Admins</p>
             </div>
             <div class="bg-slate-900 rounded-xl p-2 text-center">
                 <p id="uc-total-clientes" class="text-lg font-black text-amber-400">0</p>
-                <p class="text-[11px] font-bold text-slate-400 uppercase">Clientes</p>
+                <p class="text-[12px] font-bold text-slate-400 uppercase">Clientes</p>
             </div>
         </div>
         <div id="uc-lista" class="flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-2">
@@ -1840,7 +1842,7 @@ function renderizarGaleria() {
       <img src="${urlActual}" alt="Foto del producto" decoding="async" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
            onclick="abrirZoomImagen()"
            class="absolute inset-0 w-full h-full object-cover cursor-zoom-in transition duration-300">
-      <div class="absolute bottom-2 right-2 bg-black/60 text-slate-300 text-[11px] font-bold py-1 px-2 rounded-md pointer-events-none opacity-70">
+      <div class="absolute bottom-2 right-2 bg-black/60 text-slate-300 text-[12px] font-bold py-1 px-2 rounded-md pointer-events-none opacity-70 sobre-foto">
           <i aria-hidden="true" class="fa-solid fa-magnifying-glass-plus mr-1"></i> Clic para ampliar
       </div>
       ${flechas}`;
@@ -1902,14 +1904,14 @@ function renderizarGaleria() {
                      class="w-14 h-14 object-cover rounded-lg cursor-pointer border-2 ${i===galeriaIndiceActual?'border-emerald-500':'border-slate-700'}">
                 <button onclick="event.stopPropagation(); eliminarFotoGaleria('${urlCruda}')"
                         title="Eliminar esta foto"
-                        class="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[11px] cursor-pointer" aria-label="Eliminar esta foto"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button>
-                ${i===0 ? `<span class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 badge-brand text-[10px] font-black px-1 py-0.5 rounded uppercase whitespace-nowrap">Portada</span>` : ""}
+                        class="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[12px] cursor-pointer" aria-label="Eliminar esta foto"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button>
+                ${i===0 ? `<span class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 badge-brand text-[11px] font-black px-1 py-0.5 rounded uppercase whitespace-nowrap">Portada</span>` : ""}
             </div>
             <div class="flex gap-1">
                 <button onclick="event.stopPropagation(); moverFotoGaleria(${i}, -1)" ${i===0?"disabled":""}
-                        class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[11px] flex items-center justify-center cursor-pointer" aria-label="Mover foto a la izquierda"><i aria-hidden="true" class="fa-solid fa-chevron-left"></i></button>
+                        class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[12px] flex items-center justify-center cursor-pointer" aria-label="Mover foto a la izquierda"><i aria-hidden="true" class="fa-solid fa-chevron-left"></i></button>
                 <button onclick="event.stopPropagation(); moverFotoGaleria(${i}, 1)" ${i===galeriaReal.length-1?"disabled":""}
-                        class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[11px] flex items-center justify-center cursor-pointer" aria-label="Mover foto a la derecha"><i aria-hidden="true" class="fa-solid fa-chevron-right"></i></button>
+                        class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[12px] flex items-center justify-center cursor-pointer" aria-label="Mover foto a la derecha"><i aria-hidden="true" class="fa-solid fa-chevron-right"></i></button>
             </div>
         </div>`).join("");
   } else {
@@ -2074,11 +2076,11 @@ function actualizarIndicadorConexion() {
     if (!cont || !punto || !texto) return;
 
     if (navigator.onLine) {
-        cont.className  = "shrink-0 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide px-2.5 rounded-xl h-[38px] border bg-emerald-950/60 border-emerald-800 text-emerald-400";
+        cont.className  = "shrink-0 flex items-center gap-1.5 text-[12px] font-black uppercase tracking-wide px-2.5 rounded-xl h-11 border bg-emerald-950/60 border-emerald-800 text-emerald-400";
         punto.className = "w-2 h-2 rounded-full shrink-0 bg-emerald-400";
         texto.textContent = "En línea";
     } else {
-        cont.className  = "shrink-0 flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wide px-2.5 rounded-xl h-[38px] border bg-slate-800/60 border-slate-700 text-slate-400";
+        cont.className  = "shrink-0 flex items-center gap-1.5 text-[12px] font-black uppercase tracking-wide px-2.5 rounded-xl h-11 border bg-slate-800/60 border-slate-700 text-slate-400";
         punto.className = "w-2 h-2 rounded-full shrink-0 bg-slate-500";
         texto.textContent = "Sin conexión";
     }
@@ -2734,7 +2736,7 @@ function ejecutarBusquedaCombinada() {
  *  nombre en vez de un ícono de imagen rota. */
 function _crearBadgeMarca(nombre) {
     const span = document.createElement("span");
-    span.className = "text-[11px] font-black tracking-widest text-slate-400 border border-slate-700 rounded-lg px-3 py-1.5";
+    span.className = "text-[12px] font-black tracking-widest text-slate-400 border border-slate-700 rounded-lg px-3 py-1.5";
     span.innerText = nombre;
     return span;
 }
@@ -2914,7 +2916,7 @@ function renderPanelCompatibilidadNP(resultadoNP) {
             .sort((a, b) => a.modelo.localeCompare(b.modelo) || a.anio.localeCompare(b.anio));
 
         const chipsModelos = modelos.map(m =>
-            `<span class="inline-block bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-slate-300 mr-1 mb-1">${escaparHTML(m.modelo)} ${escaparHTML(m.anio)}</span>`
+            `<span class="inline-block bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[12px] text-slate-300 mr-1 mb-1">${escaparHTML(m.modelo)} ${escaparHTML(m.anio)}</span>`
         ).join("");
 
         return `
@@ -2923,7 +2925,7 @@ function renderPanelCompatibilidadNP(resultadoNP) {
                 <span class="font-mono font-bold text-emerald-400 text-sm">${escaparHTML(codigo)}</span>
                 <span class="text-slate-300 text-xs">${escaparHTML(entry.descripcion || "")}</span>
             </div>
-            <div class="flex flex-wrap">${chipsModelos || '<span class="text-[11px] text-slate-400 italic">Sin modelos vigentes</span>'}</div>
+            <div class="flex flex-wrap">${chipsModelos || '<span class="text-[12px] text-slate-400 italic">Sin modelos vigentes</span>'}</div>
         </div>`;
     }).join("");
 
@@ -2933,7 +2935,7 @@ function renderPanelCompatibilidadNP(resultadoNP) {
             <span class="text-xs font-bold text-emerald-400 uppercase tracking-wide">Compatibilidad (índice NP)</span>
         </div>
         ${bloques}
-        <div class="mt-2 pt-2 border-t border-slate-700/50 text-[11px] ${skusMatch.length ? "text-emerald-400" : "text-slate-400"}">
+        <div class="mt-2 pt-2 border-t border-slate-700/50 text-[12px] ${skusMatch.length ? "text-emerald-400" : "text-slate-400"}">
             ${skusMatch.length
                 ? `<i aria-hidden="true" class="fa-solid fa-circle-check mr-1"></i>${skusMatch.length} producto${skusMatch.length!==1?"s":""} en catálogo con este número de parte`
                 : `<i aria-hidden="true" class="fa-solid fa-circle-info mr-1"></i>Compatibilidad encontrada, pero sin SKU asociado en el inventario todavía`}
@@ -3004,15 +3006,15 @@ function renderPanelKitsProveedor(kits) {
 
     const bloques = kits.map(kit => {
         const chipsCodigos = (kit.codigos_vento || []).map(c =>
-            `<span class="inline-block bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] font-mono text-slate-300 mr-1 mb-1">${escaparHTML(c)}</span>`
+            `<span class="inline-block bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[12px] font-mono text-slate-300 mr-1 mb-1">${escaparHTML(c)}</span>`
         ).join("");
         return `
         <div class="mb-3 last:mb-0">
             <div class="flex items-center gap-2 flex-wrap mb-1">
                 <span class="font-bold text-amber-300 text-sm">${escaparHTML(kit.nombre || "")}</span>
-                ${kit.articulo ? `<span class="text-[11px] text-slate-400">Art. ${escaparHTML(kit.articulo)}</span>` : ""}
+                ${kit.articulo ? `<span class="text-[12px] text-slate-400">Art. ${escaparHTML(kit.articulo)}</span>` : ""}
             </div>
-            ${kit.proveedor ? `<div class="text-[11px] text-slate-400 mb-1">${escaparHTML(kit.proveedor)}</div>` : ""}
+            ${kit.proveedor ? `<div class="text-[12px] text-slate-400 mb-1">${escaparHTML(kit.proveedor)}</div>` : ""}
             <div class="flex flex-wrap">${chipsCodigos}</div>
         </div>`;
     }).join("");
@@ -3137,19 +3139,19 @@ function renderizarTarjetasProductos(lista) {
         // existencia, simplemente no ve ningún badge de cantidad — así
         // no se le anuncia explícitamente que está agotado.
         const stockBadge = totalStock > 0
-            ? `<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-emerald-900/80 text-emerald-300 text-[11px] font-black px-1.5 lg:px-2 py-0.5 rounded-md z-10">${totalStock} pzas</span>`
+            ? `<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-emerald-900/80 text-emerald-300 text-[12px] font-black px-1.5 lg:px-2 py-0.5 rounded-md z-10">${totalStock} pzas</span>`
             : (esAdmin
-                ? `<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-red-900/80 text-red-300 text-[11px] font-black px-1.5 lg:px-2 py-0.5 rounded-md z-10">Sin stock</span>`
+                ? `<span class="absolute top-2 left-2 lg:top-3 lg:left-3 bg-red-900/80 text-red-300 text-[12px] font-black px-1.5 lg:px-2 py-0.5 rounded-md z-10">Sin stock</span>`
                 : "");
         // Si también hay badge de Liquidación (franja inferior de ancho
         // completo), el badge de tránsito se recorre un poco hacia arriba
         // para no encimarse con ella.
         const enLiquidacionVisible = _itemTieneLiquidacionVisible(item);
         const transitoBadge = totalTransito > 0
-            ? `<span class="absolute ${enLiquidacionVisible ? "bottom-9" : "bottom-2"} right-2 bg-amber-900/80 text-amber-300 text-[11px] font-black px-2 py-0.5 rounded-md z-10 whitespace-nowrap"><i aria-hidden="true" class="fa-solid fa-truck-fast mr-1"></i>${totalTransito} en camino</span>`
+            ? `<span class="absolute ${enLiquidacionVisible ? "bottom-9" : "bottom-2"} right-2 bg-amber-900/80 text-amber-300 text-[12px] font-black px-2 py-0.5 rounded-md z-10 whitespace-nowrap"><i aria-hidden="true" class="fa-solid fa-truck-fast mr-1"></i>${totalTransito} en camino</span>`
             : "";
         const liquidacionBadge = enLiquidacionVisible
-            ? `<span class="absolute bottom-2 left-2 right-2 bg-red-600 text-white text-[11px] font-black px-2 py-1 rounded-md z-10 text-center uppercase tracking-wide flex items-center justify-center gap-1"><i aria-hidden="true" class="fa-solid fa-flag"></i> Liquidación</span>`
+            ? `<span class="absolute bottom-2 left-2 right-2 bg-red-600 text-white text-[12px] font-black px-2 py-1 rounded-md z-10 text-center uppercase tracking-wide flex items-center justify-center gap-1"><i aria-hidden="true" class="fa-solid fa-flag"></i> Liquidación</span>`
             : "";
 
         div.innerHTML = `
@@ -3160,17 +3162,17 @@ function renderizarTarjetasProductos(lista) {
                         ${stockBadge}
                         ${transitoBadge}
                         ${liquidacionBadge}
-                        <span class="absolute top-2 right-2 lg:top-3 lg:right-3 bg-slate-950/80 text-emerald-400 text-[11px] lg:text-[11px] font-black px-1.5 lg:px-2 py-0.5 lg:py-1 rounded-md tracking-wider uppercase z-10">${escaparHTML(item.Marca)||"GENÉRICO"}</span>
+                        <span class="absolute top-2 right-2 lg:top-3 lg:right-3 bg-slate-950/80 text-emerald-400 text-[12px] lg:text-[12px] font-black px-1.5 lg:px-2 py-0.5 lg:py-1 rounded-md tracking-wider uppercase z-10">${escaparHTML(item.Marca)||"GENÉRICO"}</span>
                     </div>
                     <div class="p-3 lg:p-4 flex flex-col gap-1">
-                        <span class="text-[11px] lg:text-[11px] font-mono font-bold text-slate-400 tracking-wide">SKU: ${escaparHTML(item.SKU)||"---"}</span>
-                        <h3 class="text-xs lg:text-sm font-bold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition">${escaparHTML(item.Producto)||"Sin Nombre"}</h3>
+                        <span class="text-[12px] lg:text-[12px] font-mono font-bold text-slate-400 tracking-wide">SKU: ${escaparHTML(item.SKU)||"---"}</span>
+                        <h3 class="text-[13px] lg:text-sm font-semibold text-white line-clamp-2 leading-snug group-hover:text-emerald-400 transition">${escaparHTML(item.Producto)||"Sin Nombre"}</h3>
                     </div>
                 </div>
                 ${!esAdmin && totalStock > 0 ? `
                 <div class="px-3 pb-3 lg:px-4 lg:pb-4">
                     <button onclick="event.stopPropagation(); agregarAlCarrito(${JSON.stringify(item).replace(/"/g,"&quot;")})"
-                            class="w-full btn-primary font-bold py-1.5 lg:py-2 rounded-xl text-[11px] lg:text-xs flex items-center justify-center gap-2 transition cursor-pointer">
+                            class="w-full btn-primary font-bold py-1.5 lg:py-2 rounded-xl text-[12px] lg:text-xs flex items-center justify-center gap-2 transition cursor-pointer">
                         <i aria-hidden="true" class="fa-solid fa-cart-plus"></i> Agregar al carrito
                     </button>
                 </div>` : ""}
@@ -3998,7 +4000,7 @@ function actualizarChipsFiltros() {
     // Chips cortos, en la barra móvil (solo familia/marca/agencia, como antes)
     if (contenedor) {
         contenedor.innerHTML = chips.filter(c => ["familia","marca","agencia"].includes(c.tipo)).map(c => `
-            <span class="flex items-center gap-1 bg-emerald-900/60 text-emerald-300 text-[11px] font-bold px-2 py-1 rounded-lg">
+            <span class="flex items-center gap-1 bg-emerald-900/60 text-emerald-300 text-[12px] font-bold px-2 py-1 rounded-lg">
                 ${c.valor}
                 <button onclick="eliminarChip('${c.tipo}','${String(c.valor).replace(/'/g,"\\'")}'); actualizarChipsFiltros()"
                         class="text-emerald-400 hover:text-white cursor-pointer ml-0.5">×</button>
@@ -4013,10 +4015,10 @@ function actualizarChipsFiltros() {
         } else {
             resumen.classList.remove("hidden");
             resumen.innerHTML = `
-                <p class="text-[11px] font-bold uppercase tracking-wide text-slate-400 mb-2">Filtros aplicados (${chips.length})</p>
+                <p class="text-[12px] font-bold uppercase tracking-wide text-slate-400 mb-2">Filtros aplicados (${chips.length})</p>
                 <ol class="space-y-1.5 mb-1">
                     ${chips.map((c,i) => `
-                        <li class="flex items-center justify-between gap-2 text-[11px] text-slate-300 bg-slate-900/60 rounded-lg px-2.5 py-1.5">
+                        <li class="flex items-center justify-between gap-2 text-[12px] text-slate-300 bg-slate-900/60 rounded-lg px-2.5 py-1.5">
                             <span class="truncate"><span class="text-emerald-500 font-bold mr-1">${i+1}.</span>${escaparHTML(c.label)}</span>
                             <button onclick="eliminarChip('${c.tipo}','${String(c.valor).replace(/'/g,"\\'")}'); actualizarChipsFiltros()"
                                     title="Quitar" class="text-slate-400 hover:text-red-400 cursor-pointer shrink-0" aria-label="Quitar"><i aria-hidden="true" class="fa-solid fa-circle-xmark"></i></button>
@@ -4181,7 +4183,7 @@ function pintarCotizacionesAdmin(rs) {
             ? `<i aria-hidden="true" class="fa-solid fa-globe mr-1"></i> Todos los almacenes (Zona Valladolid)`
             : `<i aria-hidden="true" class="fa-solid fa-warehouse mr-1"></i> Almacén: <strong>${rs.almacenAdmin}</strong>`)
         : `<i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> Sin almacén asignado`;
-    let html = `<div class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 mb-3 text-[11px] text-blue-300 font-bold">${etAlmacen}</div>`;
+    let html = `<div class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 mb-3 text-[12px] text-blue-300 font-bold">${etAlmacen}</div>`;
 
     if (!usuarios.length) {
         html += `<div class="flex flex-col items-center justify-center gap-3 text-slate-400 py-12">
@@ -4248,15 +4250,15 @@ function pintarCotizacionesAdmin(rs) {
                 const idBloqueSeg = String(bloqueFecha.id).replace(/'/g,"\\'");
                 return `<div class="bg-slate-800/60 border border-slate-700/60 rounded-lg p-2 mb-2">
                     <div class="flex items-center justify-between mb-1">
-                        <p class="text-[11px] font-black uppercase flex items-center gap-1">
+                        <p class="text-[12px] font-black uppercase flex items-center gap-1">
                             <span class="tag-agencia tag-${grupo}">${info.emoji} ${info.nombre}</span>
-                            <span class="text-slate-400 font-normal normal-case text-[11px]">${sucTxt}</span>
+                            <span class="text-slate-400 font-normal normal-case text-[12px]">${sucTxt}</span>
                         </p>
                     </div>
                        ${datos.items.map(it=>`
                             <div class="item-linea">
                                 <span>${escaparHTML(it.nombre)} <span class="text-slate-400">(${escaparHTML(it.sku)})</span>
-                                ${it.enLiquidacion ? `<span class="text-[10px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded ml-1 uppercase"><i aria-hidden="true" class="fa-solid fa-flag"></i> Liquidación</span>` : ""}
+                                ${it.enLiquidacion ? `<span class="text-[11px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded ml-1 uppercase"><i aria-hidden="true" class="fa-solid fa-flag"></i> Liquidación</span>` : ""}
                                 </span>
                             <span class="flex items-center gap-2">
                                 <span class="font-bold text-emerald-400">x${it.cantidad}</span>
@@ -4282,7 +4284,7 @@ function pintarCotizacionesAdmin(rs) {
             return `<div class="bloque-fecha-admin ${tonoClase} ${atendidoPor && !loAtiendoYo ? "opacity-80" : ""}">
                 <div class="encabezado-fecha-admin">
                     <span class="etiqueta-fecha-admin"><i aria-hidden="true" class="fa-solid fa-paper-plane"></i> Cotización solicitada <span class="opacity-70">#${idxBloque + 1}</span></span>
-                    ${fechaBloqueTxt ? `<span class="text-[11px] text-slate-400"><i aria-hidden="true" class="fa-regular fa-clock mr-0.5"></i> ${fechaBloqueTxt}</span>` : ""}
+                    ${fechaBloqueTxt ? `<span class="text-[12px] text-slate-400"><i aria-hidden="true" class="fa-regular fa-clock mr-0.5"></i> ${fechaBloqueTxt}</span>` : ""}
                 </div>
                 ${_htmlPasosCot(paso)}
                 ${htmlAcciones}
@@ -4295,17 +4297,17 @@ function pintarCotizacionesAdmin(rs) {
             <div class="encabezado-usuario">
                 <div>
                     <div class="nombre-usuario-admin"><i aria-hidden="true" class="fa-solid fa-user text-blue-400 mr-1"></i> ${nombreSeg}
-                        ${idClienteSeg ? `<span class="text-[11px] font-mono bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded ml-1">ID: ${idClienteSeg}</span>` : ""}
+                        ${idClienteSeg ? `<span class="text-[12px] font-mono bg-slate-700 text-slate-300 px-1.5 py-0.5 rounded ml-1">ID: ${idClienteSeg}</span>` : ""}
                     </div>
                     <div class="correo-usuario-admin">${escaparHTML(u.correo)}</div>
                 </div>
-                <span class="${chipCliente[0]} text-[11px] font-black px-2 py-1 rounded-md"><i class="fa-solid ${chipCliente[1]}" aria-hidden="true"></i> ${chipCliente[2]}</span>
+                <span class="${chipCliente[0]} text-[12px] font-black px-2 py-1 rounded-md"><i class="fa-solid ${chipCliente[1]}" aria-hidden="true"></i> ${chipCliente[2]}</span>
             </div>
             <div class="flex flex-col gap-0.5 mb-2">${bloques}</div>
-            <p class="text-[11px] text-slate-400 mb-2"><i aria-hidden="true" class="fa-regular fa-clock mr-1"></i> Última solicitud: ${fecha}</p>
+            <p class="text-[12px] text-slate-400 mb-2"><i aria-hidden="true" class="fa-regular fa-clock mr-1"></i> Última solicitud: ${fecha}</p>
             ${esZonaValladolidPanel ? `
             <button onclick="eliminarCarritoCompletoAdmin('${correoSeg}')"
-                    class="w-full bg-slate-700 hover:bg-red-950 text-slate-300 hover:text-red-400 text-[11px] font-bold py-1.5 rounded-lg cursor-pointer transition flex items-center justify-center gap-2">
+                    class="w-full bg-slate-700 hover:bg-red-950 text-slate-300 hover:text-red-400 text-[12px] font-bold py-1.5 rounded-lg cursor-pointer transition flex items-center justify-center gap-2">
                 <i aria-hidden="true" class="fa-solid fa-trash"></i> Eliminar cotización completa
             </button>` : ``}
         </div>`;
@@ -4626,7 +4628,7 @@ function abrirModalCotizacion() {
         html += `
         <div class="bg-slate-900 border border-slate-700 rounded-xl p-4">
             <p class="text-xs font-black uppercase text-emerald-400 mb-3">${info.emoji} ${info.nombre}</p>
-            ${info.exclusivo ? `<p class="text-[11px] text-amber-400 mb-2"><i aria-hidden="true" class="fa-solid fa-lock mr-1"></i> Solo disponible en sucursales ${info.nombre}</p>` : ""}
+            ${info.exclusivo ? `<p class="text-[12px] text-amber-400 mb-2"><i aria-hidden="true" class="fa-solid fa-lock mr-1"></i> Solo disponible en sucursales ${info.nombre}</p>` : ""}
             <div class="flex flex-col gap-2">`;
 
         // Agrupar Vento+Carabela como un solo grupo (mismo almacén)
@@ -4650,14 +4652,14 @@ function abrirModalCotizacion() {
             <div class="flex items-center justify-between bg-slate-800 rounded-lg px-3 py-2">
                 <div>
                     <p class="text-xs font-bold text-white"><i aria-hidden="true" class="fa-solid fa-location-dot text-emerald-500 mr-1"></i>${sucursal}</p>
-                    ${telefono ? `<p class="text-[11px] text-slate-400 font-mono">${telefono}</p>` : `<p class="text-[11px] text-red-400">Sin teléfono registrado</p>`}
+                    ${telefono ? `<p class="text-[12px] text-slate-400 font-mono">${telefono}</p>` : `<p class="text-[12px] text-red-400">Sin teléfono registrado</p>`}
                 </div>
                 ${url
                     ? `<a href="${url}" target="_blank" rel="noopener noreferrer"
-                           class="bg-green-600 hover:bg-green-700 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer no-underline">
+                           class="btn-primary font-bold text-[12px] px-3 py-1.5 rounded-lg flex items-center gap-1 transition cursor-pointer no-underline">
                            <i aria-hidden="true" class="fa-brands fa-whatsapp"></i> Cotizar
                        </a>`
-                    : `<span class="text-[11px] text-red-400 italic">Sin WhatsApp</span>`}
+                    : `<span class="text-[12px] text-red-400 italic">Sin WhatsApp</span>`}
             </div>`;
         });
 
@@ -4695,7 +4697,7 @@ function _generarHtmlCompatibilidad(rawComp) {
             const esLarga = modelos.length > UMBRAL_LISTA_LARGA;
             bloques += `<div class="compatibilidad-container mb-4 last:mb-0" data-larga="${esLarga ? "1" : "0"}">
                 <div class="compatibilidad-marca" onclick="alternarCompatibilidad(${contador})">
-                    ${escaparHTML(marcaAct)||"MODELOS"} <i aria-hidden="true" id="icono-compat-${contador}" class="fa-solid fa-chevron-down text-[11px]"></i>
+                    ${escaparHTML(marcaAct)||"MODELOS"} <i aria-hidden="true" id="icono-compat-${contador}" class="fa-solid fa-chevron-down text-[12px]"></i>
                 </div>
                 <ul id="lista-compat-${contador}" class="lista-compatibilidad-modal hidden-element${esLarga ? " max-h-64 overflow-y-auto pr-1" : ""}">
                     ${modelos.map(m=>`<li>${escaparHTML(m)}</li>`).join("")}
@@ -4794,14 +4796,14 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
                     // etiqueta clara de "En tránsito" y en color ámbar,
                     // para no confundirla con existencia ya disponible.
                     const tagTransito = enTransito
-                        ? `<span class="whitespace-nowrap bg-amber-900/60 text-amber-300 text-[11px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide"><i aria-hidden="true" class="fa-solid fa-truck-fast mr-1"></i>En tránsito</span>`
+                        ? `<span class="whitespace-nowrap bg-amber-900/60 text-amber-300 text-[12px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide"><i aria-hidden="true" class="fa-solid fa-truck-fast mr-1"></i>En tránsito</span>`
                         : "";
                     // NUEVO: etiqueta puntual por sucursal -- para que se
                     // vea claramente EN CUÁL sucursal aplica la
                     // liquidación cuando el producto está en varias, en
                     // vez de solo el banner genérico de arriba.
                     const tagLiquidacionSucursal = _liquidacionAplicaSucursal(item, inv.sucursal)
-                        ? `<span class="whitespace-nowrap bg-red-900/60 text-red-300 text-[11px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide"><i aria-hidden="true" class="fa-solid fa-flag mr-1"></i>En liquidación</span>`
+                        ? `<span class="whitespace-nowrap bg-red-900/60 text-red-300 text-[12px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide"><i aria-hidden="true" class="fa-solid fa-flag mr-1"></i>En liquidación</span>`
                         : "";
                     const cantidadClass = enTransito
                         ? "font-mono bg-amber-950 text-amber-400 px-2 py-0.5 rounded-md font-bold"
@@ -4819,7 +4821,7 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
                         </div>
                         ${!esAdmin ? `
                         <button onclick='agregarAlCarritoDesdeModal("${sku}", ${tituloSeguro}, "${marca}", "${urlImg}", ${JSON.stringify(inventarios)}, ${_itemTieneLiquidacionVisible(item)})'
-                                class="w-full mt-1 ${enTransito ? "btn-attention" : "btn-primary"} font-bold py-1 px-3 rounded-lg transition text-[11px] flex items-center justify-center gap-1 cursor-pointer">
+                                class="w-full mt-1 ${enTransito ? "btn-attention" : "btn-primary"} font-bold py-1 px-3 rounded-lg transition text-[12px] flex items-center justify-center gap-1 cursor-pointer">
                             <i aria-hidden="true" class="fa-solid fa-cart-plus"></i> ${enTransito ? "Reservar (en camino)" : "Agregar al carrito"}
                         </button>` : ""}
                     </div>`;
@@ -4920,7 +4922,7 @@ const bannerLiquidacion = _itemTieneLiquidacionVisible(item)
         <div id="galeria-editar-toggle" class="mb-2"></div>
         <div id="galeria-miniaturas" class="flex gap-2 overflow-x-auto pb-1 mb-4"></div>
         <div class="mb-4">
-                <span class="bg-emerald-950 text-emerald-400 text-[11px] font-black px-2 py-1 rounded-md tracking-wider uppercase inline-block mb-2">${escaparHTML(marca)}</span>
+                <span class="bg-emerald-950 text-emerald-400 text-[12px] font-black px-2 py-1 rounded-md tracking-wider uppercase inline-block mb-2">${escaparHTML(marca)}</span>
                 <h2 class="text-lg font-bold text-white leading-snug">${escaparHTML(titulo)}</h2>
                 <span class="text-xs font-mono text-slate-400 block mt-1">SKU: ${escaparHTML(sku)}</span>
             ${htmlAdmin}
@@ -4930,7 +4932,7 @@ const bannerLiquidacion = _itemTieneLiquidacionVisible(item)
         ${htmlNumerosParte}
         ${htmlExistencias}
         <div class="space-y-3">
-            <p class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+            <p class="text-[12px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                 <i aria-hidden="true" class="fa-solid fa-wrench mr-1.5"></i> Compatibilidad:
             </p>
             <div id="contenedor-compatibilidad">${bloques}</div>
@@ -5006,7 +5008,7 @@ function habilitarEdicionFichaCompleta(sku) {
     if (contCompat) {
         contCompat.innerHTML = `
             <div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
-                <label class="text-[11px] text-slate-400 uppercase font-bold">Modelos compatibles (separados por coma, agrupa por marca con "Marca: ")</label>
+                <label class="text-[12px] text-slate-400 uppercase font-bold">Modelos compatibles (separados por coma, agrupa por marca con "Marca: ")</label>
                 <textarea id="edit-compat" placeholder="ej. VENTO: GT 250 2020, GT 250 2021, Nitrox 250 2022, ITALIKA: FT 150 2019"
                           class="w-full h-40 bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">${escaparHTML(item.Compatibilidad || "")}</textarea>
             </div>`;
@@ -5018,7 +5020,7 @@ function habilitarEdicionFichaCompleta(sku) {
         const numerosActuales = (item.NumerosParteRelacionados || []).join(", ");
         contNumParte.innerHTML = `
             <div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
-                <label class="text-[11px] text-slate-400 uppercase font-bold">Números de parte equivalentes (separados por coma)</label>
+                <label class="text-[12px] text-slate-400 uppercase font-bold">Números de parte equivalentes (separados por coma)</label>
                 <textarea id="edit-numparte" placeholder="ej. VC12010395, VC12010396"
                           class="w-full h-20 bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono text-white mt-1">${escaparHTML(numerosActuales)}</textarea>
             </div>`;
@@ -5029,7 +5031,7 @@ function habilitarEdicionFichaCompleta(sku) {
     if (esBalata && contBalata) {
         contBalata.innerHTML = `
             <div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
-                <label class="text-[11px] text-slate-400 uppercase font-bold">Posición</label>
+                <label class="text-[12px] text-slate-400 uppercase font-bold">Posición</label>
                 <select id="edit-balata-posicion" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
                     <option value="">— Selecciona —</option>
                     <option value="Delanteras">Delanteras</option>
@@ -5131,7 +5133,7 @@ function _generarHtmlEstator(d) {
     d = d || {};
     const fila = (etiqueta, valor, sufijo) => `
         <div class="flex justify-between items-center py-1.5 border-b border-slate-700/40 last:border-0">
-            <span class="text-emerald-400 font-bold text-[11px] uppercase tracking-wide">• ${etiqueta}</span>
+            <span class="text-emerald-400 font-bold text-[12px] uppercase tracking-wide">• ${etiqueta}</span>
             <span class="text-slate-200 font-mono text-xs">${valor ? escaparHTML(String(valor)) + (sufijo||"") : "Sin capturar"}</span>
         </div>`;
     return `
@@ -5151,7 +5153,7 @@ function habilitarEdicionEstator(sku) {
     document.getElementById("contenedor-estator").innerHTML = `
         <div class="grid grid-cols-2 gap-2 bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
             <div class="col-span-2">
-                <label class="text-[11px] text-slate-400 uppercase font-bold">Fase</label>
+                <label class="text-[12px] text-slate-400 uppercase font-bold">Fase</label>
                 <select id="edit-estator-fase" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
                     <option value="">— Selecciona —</option>
                     <option value="Monofásico">Monofásico</option>
@@ -5160,17 +5162,17 @@ function habilitarEdicionEstator(sku) {
                 </select>
             </div>
             <div>
-                <label class="text-[11px] text-slate-400 uppercase font-bold">Bobinas</label>
+                <label class="text-[12px] text-slate-400 uppercase font-bold">Bobinas</label>
                 <input id="edit-estator-bobinas" type="number" min="1" step="1"
                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
             </div>
             <div>
-                <label class="text-[11px] text-slate-400 uppercase font-bold">Conductores/Cables</label>
+                <label class="text-[12px] text-slate-400 uppercase font-bold">Conductores/Cables</label>
                 <input id="edit-estator-conductores" type="number" min="1" step="1"
                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
             </div>
             <div class="col-span-2">
-                <label class="text-[11px] text-slate-400 uppercase font-bold">Longitud Cable (cm)</label>
+                <label class="text-[12px] text-slate-400 uppercase font-bold">Longitud Cable (cm)</label>
                 <input id="edit-estator-longitud" type="number" min="0" step="0.1"
                        class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
             </div>
@@ -5257,7 +5259,7 @@ function _generarHtmlPosicionBalata(d) {
     return `
         <div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
             <div class="flex justify-between items-center py-1.5">
-                <span class="text-emerald-400 font-bold text-[11px] uppercase tracking-wide">• Posición</span>
+                <span class="text-emerald-400 font-bold text-[12px] uppercase tracking-wide">• Posición</span>
                 <span class="text-slate-200 font-mono text-xs">${valor ? escaparHTML(String(valor)) : "Sin capturar"}</span>
             </div>
         </div>`;
@@ -5270,7 +5272,7 @@ function habilitarEdicionPosicionBalata(sku) {
 
     document.getElementById("contenedor-balata").innerHTML = `
         <div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
-            <label class="text-[11px] text-slate-400 uppercase font-bold">Posición</label>
+            <label class="text-[12px] text-slate-400 uppercase font-bold">Posición</label>
             <select id="edit-balata-posicion" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs text-white mt-1">
                 <option value="">— Selecciona —</option>
                 <option value="Delanteras">Delanteras</option>
@@ -5356,11 +5358,11 @@ function _generarHtmlNumerosParteRelacionados(d) {
         </div>`;
     }
     const chips = lista.map(n =>
-        `<span class="inline-block bg-slate-900 border border-amber-800/50 rounded-lg px-2 py-1 text-[11px] font-mono text-amber-300 mr-1 mb-1">${escaparHTML(n)}</span>`
+        `<span class="inline-block bg-slate-900 border border-amber-800/50 rounded-lg px-2 py-1 text-[12px] font-mono text-amber-300 mr-1 mb-1">${escaparHTML(n)}</span>`
     ).join("");
     return `
         <div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
-            ${lista.length > 1 ? `<div class="mb-2"><span class="bg-amber-900/60 text-amber-300 text-[11px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide"><i aria-hidden="true" class="fa-solid fa-boxes-stacked mr-1"></i>Viene por juego</span></div>` : ""}
+            ${lista.length > 1 ? `<div class="mb-2"><span class="bg-amber-900/60 text-amber-300 text-[12px] font-black px-2 py-0.5 rounded-md uppercase tracking-wide"><i aria-hidden="true" class="fa-solid fa-boxes-stacked mr-1"></i>Viene por juego</span></div>` : ""}
             <div class="flex flex-wrap">${chips}</div>
         </div>`;
 }
@@ -5374,7 +5376,7 @@ function habilitarEdicionNumerosParteRelacionados(sku) {
 
     document.getElementById("contenedor-numparte-relacionados").innerHTML = `
         <div class="bg-slate-900/60 rounded-xl border border-slate-700/50 p-3">
-            <label class="text-[11px] text-slate-400 uppercase font-bold">Números de parte equivalentes (separados por coma)</label>
+            <label class="text-[12px] text-slate-400 uppercase font-bold">Números de parte equivalentes (separados por coma)</label>
             <textarea id="edit-numparte" placeholder="ej. VC12010395, VC12010396"
                       class="w-full h-20 bg-slate-900 border border-slate-700 rounded-lg p-2 text-xs font-mono text-white mt-1">${escaparHTML(actuales)}</textarea>
         </div>`;
@@ -5708,14 +5710,14 @@ function renderizarPreviewFotos() {
       <div class="relative w-20 h-20">
         <img src="${data}" class="w-full h-full object-cover rounded-lg border ${i===0?'border-emerald-500 border-2':'border-slate-700'}">
         <button onclick="quitarFotoPendiente(${i})" title="Quitar"
-                class="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[11px] cursor-pointer" aria-label="Quitar"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button>
-        ${i===0 ? `<span class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 badge-brand text-[10px] font-black px-1.5 py-0.5 rounded uppercase whitespace-nowrap">Principal</span>` : ""}
+                class="absolute -top-1.5 -right-1.5 bg-red-600 hover:bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[12px] cursor-pointer" aria-label="Quitar"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button>
+        ${i===0 ? `<span class="absolute -bottom-1.5 left-1/2 -translate-x-1/2 badge-brand text-[11px] font-black px-1.5 py-0.5 rounded uppercase whitespace-nowrap">Principal</span>` : ""}
       </div>
       <div class="flex gap-1">
         <button onclick="moverFotoPendiente(${i}, -1)" ${i===0?"disabled":""}
-                class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[11px] flex items-center justify-center cursor-pointer" aria-label="Mover foto a la izquierda"><i aria-hidden="true" class="fa-solid fa-chevron-left"></i></button>
+                class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[12px] flex items-center justify-center cursor-pointer" aria-label="Mover foto a la izquierda"><i aria-hidden="true" class="fa-solid fa-chevron-left"></i></button>
         <button onclick="moverFotoPendiente(${i}, 1)" ${i===fotoProductoArchivosActuales.length-1?"disabled":""}
-                class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[11px] flex items-center justify-center cursor-pointer" aria-label="Mover foto a la derecha"><i aria-hidden="true" class="fa-solid fa-chevron-right"></i></button>
+                class="w-5 h-5 rounded bg-slate-700 hover:bg-slate-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-[12px] flex items-center justify-center cursor-pointer" aria-label="Mover foto a la derecha"><i aria-hidden="true" class="fa-solid fa-chevron-right"></i></button>
       </div>
     </div>`).join("");
 
@@ -5772,12 +5774,12 @@ async function cargarUsuariosConectados() {
             <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 flex items-center justify-between gap-2">
                 <div class="min-w-0">
                     <p class="text-sm font-bold text-white truncate">${escaparHTML(u.nombre)}</p>
-                    <p class="text-[11px] text-slate-400 truncate">${escaparHTML(u.correo)}</p>
-                    ${u.almacen ? `<p class="text-[11px] text-slate-400 truncate mt-0.5"><i aria-hidden="true" class="fa-solid fa-warehouse mr-1"></i>${escaparHTML(u.almacen)}</p>` : ""}
+                    <p class="text-[12px] text-slate-400 truncate">${escaparHTML(u.correo)}</p>
+                    ${u.almacen ? `<p class="text-[12px] text-slate-400 truncate mt-0.5"><i aria-hidden="true" class="fa-solid fa-warehouse mr-1"></i>${escaparHTML(u.almacen)}</p>` : ""}
                 </div>
                 <div class="flex flex-col items-end gap-1 shrink-0">
-                    <span class="text-[11px] font-black px-2 py-0.5 rounded-md uppercase ${u.esAdmin ? "bg-blue-900/60 text-blue-300" : "bg-slate-700 text-slate-300"}">${u.esAdmin ? "Admin" : "Cliente"}</span>
-                    ${u.dispositivos > 1 ? `<span class="text-[11px] text-amber-400"><i aria-hidden="true" class="fa-solid fa-mobile-screen mr-1"></i>${u.dispositivos} dispositivos</span>` : ""}
+                    <span class="text-[12px] font-black px-2 py-0.5 rounded-md uppercase ${u.esAdmin ? "bg-blue-900/60 text-blue-300" : "bg-slate-700 text-slate-300"}">${u.esAdmin ? "Admin" : "Cliente"}</span>
+                    ${u.dispositivos > 1 ? `<span class="text-[12px] text-amber-400"><i aria-hidden="true" class="fa-solid fa-mobile-screen mr-1"></i>${u.dispositivos} dispositivos</span>` : ""}
                 </div>
             </div>
         `).join("");
@@ -6022,7 +6024,7 @@ function renderizarCarruselMarcas(lista) {
           ${m.logo
             ? `<img src="${m.logo}" referrerpolicy="no-referrer" alt="${escaparHTML(m.nombre)}"
                     class="h-5 md:h-6 object-contain" onerror="this.parentElement.replaceWith(_crearBadgeMarca('${escaparHTML(m.nombre)}'))">`
-            : `<span class="text-[13px] font-black tracking-wide text-slate-700">${escaparHTML(m.nombre)}</span>`}
+            : `<span class="text-[13px] font-black tracking-wide text-[#334155]">${escaparHTML(m.nombre)}</span>`}
       </button>`).join("");
 
   track.innerHTML = itemsHtml + itemsHtml;

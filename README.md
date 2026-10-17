@@ -68,6 +68,8 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 - Maps: confirmar que `esVendedor`, `esAdminReal` y `validarSesion` se quedan, porque los usa para su propio acceso.
 - Hoja de cotización: ¿se agrega también dirección o teléfono de la agencia, además de la agencia y el WhatsApp del vendedor?
 
+- **Letras y áreas táctiles (17-oct):** piso de texto de 12 px (antes 11) y 11 px en lo más chico (antes 10), botones de la cabecera de 44 px (antes 38), título de tarjeta de 13 px en Rubik semibold; el botón verde de Pendientes pasa a `btn-primary` y la insignia ámbar de guardado a texto oscuro (el blanco no pasaba 4.5:1); el nombre de marca sobre fondo blanco usa un color fijo para que no desaparezca en el aspecto claro.
+
 ## Cómo probar
 1. Subir `index.html`, `sw.js` y `README.md` a GitHub Pages y recargar.
 2. Rol Gerente: en `Usuarios_Autorizados` poner `gerente` en la columna F de una cuenta de prueba. Debe ver el catálogo como vendedor y no debe poder entrar a Maps.
