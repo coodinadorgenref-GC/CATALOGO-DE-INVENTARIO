@@ -57,7 +57,7 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 
 **Por probar con datos reales**: cuenta gerente · cliente con productos de dos secciones y dos asesores · envío parcial · PDF del cliente · historial y filtros · lista de precios (Excel y pegado) · aspecto claro en el celular.
 
-**Pendiente de mejora**: barra inferior móvil y rediseño estructural (tarjeta de producto, hojas inferiores, filtros plegables) · revisar cada pantalla en claro y migrar los colores fijos de Tailwind a tokens · validar en el servidor que cada SKU de una cotización de asesor tenga existencias en su sección · revocar el token de GitHub compartido.
+**Pendiente de mejora**: rediseño estructural (tarjeta de producto, hojas inferiores, filtros plegables) · revisar cada pantalla en claro y migrar los colores fijos de Tailwind a tokens · revocar el token de GitHub compartido.
 
 ## Por confirmar
 - Nada por ahora. La hoja de cotización lleva solo logo, folio, cliente y, por asesor, **correo, nombre y teléfono** (ya no se pide dirección ni teléfono de la agencia).
@@ -176,3 +176,8 @@ El cliente solicita una vez (un carrito con las secciones que quiera) y recibe *
 - La fuente de datos de la cotización guarda del asesor solo **correo, nombre y teléfono**, tomados de `Usuarios_Autorizados` (A, B, G). En la cotización única cada sección lleva `{seccion, correo, nombre, telefono}`.
 - La columna `vendedorAgencia` del historial queda **vacía** (no la borres: las demás columnas dependen de su posición); `vendedorWhats` guarda el teléfono.
 - El PDF muestra nombre, teléfono y correo; ya no muestra la agencia del asesor.
+
+## Barra inferior móvil y existencias por sección (18-oct)
+- **Barra inferior (solo celular, hasta 767 px):** reemplaza a los botones flotantes. Asesor: Catálogo · Pendientes · **Cotizar** (ficha verde elevada) · Historial · Ajustes. Cliente: Catálogo · Cotización (carrito) · Solicitudes · Ajustes. Insignias rojas con el mismo contador de Pendientes y del carrito.
+- Los botones flotantes siguen existiendo y son los que JS muestra y oculta; la barra los refleja (`biSincronizar`, con `MutationObserver`) y al tocar un destino hace clic en el botón original. En tablet y escritorio se ven los botones flotantes de siempre.
+- **Servidor:** `guardarCotizacion` revisa que los productos de catálogo tengan existencia en la sección de la cotización (`_validarExistenciasEnSeccion_`, con la base de inventario en caché). Lo marcado "Bajo pedido" no se revisa. Si la caché está vacía no bloquea la venta.

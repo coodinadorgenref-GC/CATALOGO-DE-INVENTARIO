@@ -669,6 +669,30 @@
         .secciones button[aria-checked="true"] { background: var(--brand); color: var(--on-brand); }
         .secciones.fija { padding: 0 12px; }
         .secciones.fija span { display: flex; align-items: center; min-height: 44px; font-weight: 800; font-size: 13px; color: var(--text-2); }
+        /* ── BARRA INFERIOR MÓVIL (MASTER §7): máx. 5 destinos, ícono + etiqueta; reemplaza a los botones flotantes en celular ── */
+        #barra-inferior { display: none; }
+        @media (max-width: 767px) {
+            #barra-inferior:not([hidden]) {
+                display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 210;
+                padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+                background: color-mix(in srgb, var(--surface) 94%, transparent);
+                -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
+                border-top: 1px solid var(--border);
+            }
+            .bi-item { position: relative; flex: 1; min-width: 0; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 0 2px; background: none; border: 0; color: var(--text-3); font-size: 11px; font-weight: 800; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+            .bi-item[hidden] { display: none; }
+            .bi-item i { font-size: 20px; line-height: 1; }
+            .bi-et { max-width: 100%; white-space: nowrap; line-height: 1.1; }
+            .bi-item[aria-current="page"] { color: var(--brand-text); }
+            .bi-item:active { transform: scale(.94); }
+            .bi-principal { color: var(--text); }
+            .bi-principal .bi-ficha { display: grid; place-items: center; width: 48px; height: 48px; margin-top: -22px; border-radius: 14px; background: linear-gradient(160deg, #2fcb5b, #15803d); color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 6px 14px rgba(0,0,0,.3); }
+            .bi-principal .bi-ficha i { font-size: 24px; color: #fff; }
+            .bi-item b { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 11px; line-height: 1; display: flex; align-items: center; justify-content: center; border: 2px solid var(--surface); }
+            .bi-item b[hidden] { display: none; }
+            #btn-carrito-flotante, #btn-cotizaciones-admin, #btn-cotizar-piso { display: none !important; }   /* la barra los reemplaza */
+            body.con-barra { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+        }
         .cfg-filtros { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .cfg-filtros select, .cfg-filtros input { width: 100%; min-height: 44px; }
         .cfg-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
@@ -1309,6 +1333,15 @@
     <span id="texto-badge-guardando-compat">Guardando compatibilidad...</span>
 </div>
 
+<nav id="barra-inferior" aria-label="Navegación principal" hidden>
+    <button type="button" id="bi-catalogo" class="bi-item" aria-current="page" onclick="biIrCatalogo()"><i class="fa-solid fa-store" aria-hidden="true"></i><span class="bi-et">Catálogo</span></button>
+    <button type="button" id="bi-pendientes" class="bi-item" onclick="biClic('btn-cotizaciones-admin')" hidden><i class="fa-solid fa-users-gear" aria-hidden="true"></i><span class="bi-et">Pendientes</span><b id="bi-badge-pend" hidden>0</b></button>
+    <button type="button" id="bi-cotizar" class="bi-item bi-principal" onclick="biClic('btn-cotizar-piso')" hidden><span class="bi-ficha"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i></span><span class="bi-et">Cotizar</span></button>
+    <button type="button" id="bi-carrito" class="bi-item" onclick="biClic('btn-carrito-flotante')" hidden><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i><span class="bi-et">Cotización</span><b id="bi-badge-carrito" hidden>0</b></button>
+    <button type="button" id="bi-historial" class="bi-item" onclick="biConfig('cot')" hidden><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i><span class="bi-et">Historial</span></button>
+    <button type="button" id="bi-solicitudes" class="bi-item" onclick="biConfig('sol')" hidden><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i><span class="bi-et">Solicitudes</span></button>
+    <button type="button" id="bi-ajustes" class="bi-item" onclick="biConfig('aspecto')"><i class="fa-solid fa-gear" aria-hidden="true"></i><span class="bi-et">Ajustes</span></button>
+</nav>
 <button id="btn-carrito-flotante" onclick="toggleCarrito()" style="display:none" title="Mi Cotización">
     <span class="btn-flotante-icon"><i aria-hidden="true" class="fa-solid fa-cart-shopping"></i></span>
     <span class="btn-flotante-label">Cotización</span>
@@ -6455,7 +6488,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-18 · contactos';
+const APP_VERSION = '2026-10-18 · barra inferior';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -6503,6 +6536,30 @@ async function forzarRecarga() {
     } catch (e) { console.error('forzarRecarga', e); }
     location.reload();
 }
+
+/* ───────── Barra inferior móvil: refleja los botones flotantes (que siguen siendo los que JS muestra y oculta) ───────── */
+function biClic(id) { const e = document.getElementById(id); if (e) e.click(); }
+function biIrCatalogo() { try { cfgCerrar(); } catch (e) {} window.scrollTo({ top: 0, behavior: 'smooth' }); }
+function biConfig(tab) { cfgAbrir(); cfgTab(tab); }
+function biSincronizar() {
+    const bar = document.getElementById('barra-inferior'); if (!bar) return;
+    const vis = id => { const e = document.getElementById(id); return !!e && e.style.display !== 'none'; };
+    const pend = vis('btn-cotizaciones-admin'), coti = vis('btn-cotizar-piso'), carr = vis('btn-carrito-flotante');
+    const g = id => document.getElementById(id);
+    g('bi-pendientes').hidden = !pend; g('bi-cotizar').hidden = !coti; g('bi-carrito').hidden = !carr;
+    g('bi-historial').hidden = !(pend || coti); g('bi-solicitudes').hidden = !carr || pend || coti;
+    const badge = (b, origen) => { const o = g(origen), ok = o && o.style.display !== 'none' && String(o.textContent).trim() !== '' && String(o.textContent).trim() !== '0'; b.hidden = !ok; if (ok) b.textContent = o.textContent.trim(); };
+    badge(g('bi-badge-pend'), 'badge-cotizaciones-admin'); badge(g('bi-badge-carrito'), 'badge-carrito');
+    const hay = pend || coti || carr;
+    bar.hidden = !hay; document.body.classList.toggle('con-barra', hay);
+}
+(function () {
+    const obs = new MutationObserver(biSincronizar);
+    ['btn-carrito-flotante', 'btn-cotizaciones-admin', 'btn-cotizar-piso', 'badge-carrito', 'badge-cotizaciones-admin'].forEach(id => {
+        const e = document.getElementById(id); if (e) obs.observe(e, { attributes: true, childList: true, characterData: true, subtree: true });
+    });
+    biSincronizar();
+})();
 
 const ETIQ_PASO = { SOLICITADA: 'Solicitada', EN_ATENCION: 'En revisión', ENVIADA: 'Enviada' };
 async function cfgCargarSolicitudes() {
