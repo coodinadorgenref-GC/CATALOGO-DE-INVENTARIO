@@ -174,3 +174,10 @@ El cliente solicita una vez (un carrito con las secciones que quiera) y recibe *
 6. **Historial:** una fila por folio; pestaña de la sección si es una sola, **GENERAL** si junta varias. Columnas nuevas al final: `clienteCorreo`, `solicitudId`, `contactos` (se agregan solas a las pestañas existentes).
 - Solicitudes hechas antes de este cambio no traen `solicitudId`: se siguen enviando por WhatsApp como antes.
 - Por probar con datos reales: un cliente con productos de dos secciones, dos asesores, envío parcial y descarga del PDF por el cliente.
+
+## Contactos de agencia: todo desde Usuarios_Autorizados (18-oct)
+- La hoja **Agencias ya no se usa**. El teléfono de cada sucursal (el botón de contacto de las existencias) y los contactos de la cotización salen de **Usuarios_Autorizados**: A correo · B nombre · D estado · F rol · G WhatsApp · H almacén (`_directorioAgencias_` en `Secciones.js`).
+- Cada sucursal toma el WhatsApp de la cuenta **activa** que la atiende (según su almacén de la columna H y el mapa de visibilidad); si hay varias, gana **vendedor**, luego gerente y admin. Las cuentas con almacén TODAS o sin WhatsApp no cuentan.
+- Cotización única: el contacto de cada sección es el de quien la revisó; si es gerente o admin (sin WhatsApp en la hoja), se usa el de la cuenta de esa sección (`_contactoDeSeccion_`).
+- Editar Usuarios_Autorizados a mano limpia el caché del inventario, así que un cambio de número se refleja pronto.
+- Una sucursal sin ninguna cuenta con WhatsApp queda sin botón de contacto: hay que poner el número (columna G) y el almacén (columna H) de alguien que la atienda.
