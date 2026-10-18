@@ -151,3 +151,15 @@ Vive en otro libro (ID `11jrqAsndSQRS6yQBOLyZZZF1OB-rGn0GnvCLS-CRqk8`), con **un
 - Cotizar: la sección define la agencia y el logo (Suzuki y Bajaj fijos; en Vento / Carabela, por el almacén del asesor); ya no se genera "GENERAL".
 - Servidor (`Secciones.js`): `guardarCotizacion` exige `seccion`, comprueba que la cuenta pueda usarla y que la agencia corresponda; `solicitarCotizacionGeneral` parte el carrito del cliente en un bloque por sección.
 - Límite actual: el servidor no revisa que cada SKU de una cotización de asesor tenga existencias en su sección (el catálogo ya solo se los muestra); se puede agregar contra la hoja de inventario.
+
+## Ajustes del 18-oct (2)
+- **Sin stock:** al entrar solo se ven las piezas disponibles; lo sin stock queda en el apartado "Sin stock" (asesores). A los clientes ya no se les mostraba.
+- **Todas las cuentas consultan las tres secciones** (selector siempre visible). Un asesor cotiza solo en la sección de su almacén; en otra ve el aviso "Solo consulta" y el botón Cotizar no abre. Así un vendedor puede ver en Bajaj refacciones de otras marcas que estén en un almacén Bajaj (la sección va por existencias, no por marca).
+- **PISTE MUEBLES es Bajaj Piste**: catálogo y servidor lo tratan como Bajaj (se muestra como BAJAJ PISTE).
+- **Bajaj vuelve al círculo azul** (ya no la moto) en las etiquetas de grupo.
+- **El cliente solicita, no envía ni hace pedidos**: botón "Solicitar cotización"; la confirmación avisa que **ya no se podrá editar** y que recibirá **una sola cotización** con todo y la verá en el sistema.
+- **Cotizar en ruta** sale del carrito: botón aparte para clientes, junto al selector (abre Maps; los precios de ruta y el mensaje al equipo los maneja Maps).
+- **Precios:** el cliente nunca los ve en el catálogo; aparecen en su cotización cuando el equipo termina de revisarla. El asesor los ve al revisar.
+- **Mis solicitudes** (Configuración, clientes): en proceso + historial de cerradas (`historialSolicitudesCliente`).
+- **Consulta de cotizaciones por rol:** admin real, todas · gerente, las de su sección · vendedor, las suyas.
+- **Pendiente (siguiente etapa):** que la cotización con precios aparezca al cliente en el sistema y se genere **una sola cotización unificada** (cada sección confirma lo suyo; contacto por sección en el PDF). Aún no está construido.

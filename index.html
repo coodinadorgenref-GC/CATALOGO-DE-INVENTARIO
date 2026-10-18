@@ -1139,6 +1139,11 @@
         <!-- CONTENIDO CATÁLOGO — aparece primero en móvil gracias a order -->
         <main id="contenido-catalogo" class="flex-1 flex flex-col gap-4 min-w-0">
             <div id="selector-seccion" class="secciones" role="radiogroup" aria-label="Sección del catálogo" hidden></div>
+            <p id="aviso-consulta" class="cp-ayuda" role="status" hidden><i aria-hidden="true" class="fa-solid fa-eye"></i> Solo consulta: esta sección es de otra agencia. Para cotizar vuelve a tu sección.</p>
+            <button onclick="abrirCotizarEnRuta()" id="btn-cotizar-en-ruta" type="button" hidden
+                    class="w-full border border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-2)] font-bold py-3 rounded-xl transition text-sm cursor-pointer flex items-center justify-center gap-2">
+                <i aria-hidden="true" class="fa-solid fa-route"></i> Cotizar en ruta (precios de ruta en Maps)
+            </button>
             <!-- NUEVO: panel de compatibilidad cruzada con el índice de NP
                  (coodinadorgenref-gc.github.io/NP). Se llena/oculta desde
                  renderPanelCompatibilidadNP(), llamado dentro de filtrarProductos()
@@ -1356,11 +1361,7 @@
         <button onclick="solicitarCotizacionGeneral()"
                 id="btn-cotizacion-general"
                 class="hidden w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition text-sm shadow-lg cursor-pointer flex items-center justify-center gap-2">
-            <i aria-hidden="true" class="fa-solid fa-paper-plane"></i> Cotización General
-        </button>
-        <button onclick="abrirCotizarEnRuta()" id="btn-cotizar-en-ruta" type="button"
-                class="w-full border border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-2)] font-bold py-3 rounded-xl transition text-sm cursor-pointer flex items-center justify-center gap-2">
-            <i aria-hidden="true" class="fa-solid fa-route"></i> Cotizar en ruta
+            <i aria-hidden="true" class="fa-solid fa-paper-plane"></i> Solicitar cotización
         </button>
         <button onclick="vaciarCarrito()"
                 id="btn-vaciar-carrito"
@@ -1448,6 +1449,7 @@
       <button type="button" class="cfg-tab" id="cfg-tab-aspecto" role="tab" aria-selected="true" onclick="cfgTab('aspecto')">Aspecto</button>
       <button type="button" class="cfg-tab" id="cfg-tab-cuenta" role="tab" aria-selected="false" onclick="cfgTab('cuenta')">Cuenta y versión</button>
       <button type="button" class="cfg-tab" id="cfg-tab-cot" role="tab" aria-selected="false" onclick="cfgTab('cot')" style="display:none">Cotizaciones</button>
+      <button type="button" class="cfg-tab" id="cfg-tab-sol" role="tab" aria-selected="false" onclick="cfgTab('sol')" style="display:none">Mis solicitudes</button>
     </div>
     <div id="cfg-aspecto">
       <p class="cfg-muted" style="margin:0 0 8px">Elige cómo se ve el catálogo en este dispositivo.</p>
@@ -1465,6 +1467,12 @@
       <button type="button" class="cp-btn-sec" onclick="location.reload()"><i aria-hidden="true" class="fa-solid fa-rotate"></i> Recargar para actualizar</button>
       <button type="button" class="cp-btn-sec" onclick="forzarRecarga()"><i aria-hidden="true" class="fa-solid fa-broom"></i> Forzar recarga (limpiar caché de esta pestaña)</button>
       <button type="button" class="cp-btn-sec" onclick="cfgCerrar(); cerrarSesion()"><i aria-hidden="true" class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</button>
+    </div>
+    <div id="cfg-solicitudes" hidden>
+      <p class="cfg-muted" style="margin:0 0 8px">Tus solicitudes de cotización. Los precios aparecen en tu cotización cuando el equipo termina de revisarla.</p>
+      <div id="cfg-sol-curso"></div>
+      <h4 class="cfg-muted" style="margin:12px 0 4px;font-weight:800">Historial</h4>
+      <div id="cfg-sol-hist"></div>
     </div>
     <div id="cfg-cotizaciones" hidden>
       <div class="cp-campo"><label for="cfg-buscar">Buscar por folio, cliente, teléfono o ID</label>
@@ -1578,7 +1586,7 @@ let duracionSesionActualMs = TIEMPO_EXPIRACION_MS; // se ajusta según "Recuérd
  *   CARABELA → naranja
  */
 const GRUPOS_AGENCIA = {
-    BAJAJ:    { nombre: "Bajaj",    exclusivo: true,  emoji: '<i class="fa-solid fa-motorcycle" aria-hidden="true"></i>', almacen: "BAJAJ" },
+    BAJAJ:    { nombre: "Bajaj",    exclusivo: true,  emoji: '<i class="fa-solid fa-circle" style="color:#3b82f6" aria-hidden="true"></i>', almacen: "BAJAJ" },
     SUZUKI:   { nombre: "Suzuki",   exclusivo: true,  emoji: '<i class="fa-solid fa-circle" style="color:#60a5fa" aria-hidden="true"></i>', almacen: "SUZUKI" },
     VENTO:    { nombre: "Vento",    exclusivo: false, emoji: '<i class="fa-solid fa-circle" style="color:#a78bfa" aria-hidden="true"></i>', almacen: "VENTO_CARABELA" },
     CARABELA: { nombre: "Carabela", exclusivo: false, emoji: '<i class="fa-solid fa-circle" style="color:#fb923c" aria-hidden="true"></i>', almacen: "VENTO_CARABELA" },
@@ -1587,7 +1595,7 @@ const GRUPOS_AGENCIA = {
 /** Detecta a qué grupo pertenece una sucursal */
 function detectarGrupoSucursal(nombreSucursal) {
     const n = (nombreSucursal || "").toUpperCase();
-    if (n.includes("BAJAJ"))    return "BAJAJ";
+    if (n.includes("BAJAJ") || n.includes("PISTE MUEBLES")) return "BAJAJ";   // PISTE MUEBLES es Bajaj Piste
     if (n.includes("SUZUKI"))   return "SUZUKI";
     if (n.includes("VENTO"))    return "VENTO";
     if (n.includes("CARABELA")) return "CARABELA";
@@ -3080,6 +3088,7 @@ let filtrados = inventarioMaestro.filter(item => {
         }
         if (filtroSinImagenActivo && !_productoSinImagen(item)) return false;
         if (filtroSinStockActivo && !_productoSinStock(item)) return false;
+        if (esAdmin && !filtroSinStockActivo && _productoSinStock(item)) return false;   // lo sin stock vive en su apartado
         // NUEVO: producto sin existencia real (ni en camino) -> invisible
         // para el cliente. El admin nunca se ve afectado por esta línea.
         if (_productoOcultoParaCliente(item)) return false;
@@ -3582,12 +3591,12 @@ async function vaciarCarrito() {
    no editable, visible desde este momento para el admin.
 ══════════════════════════════════════════ */
 async function solicitarCotizacionGeneral() {
-    if (carrito.length === 0) { mostrarToastInfo("Tu carrito está vacío. Agrega productos antes de enviar la cotización.", "error"); return; }
+    if (carrito.length === 0) { mostrarToastInfo("Tu carrito está vacío. Agrega productos antes de solicitar la cotización.", "error"); return; }
     const lineas = carrito.length, piezas = totalItemsCarrito();
     const seguir = await confirmarApp({
-        titulo: "Enviar cotización general",
-        mensaje: _notaPedidosPorSeccion() + `Vas a enviar ${lineas} ${lineas === 1 ? "producto" : "productos"} (${piezas} ${piezas === 1 ? "pieza" : "piezas"}) como una cotización general.\nUna vez enviada, esos productos ya no se podrán editar.`,
-        confirmar: "Enviar cotización", cancelar: "Seguir editando", icono: "fa-paper-plane"
+        titulo: "Solicitar cotización",
+        mensaje: _notaPedidosPorSeccion() + `Vas a solicitar la cotización de ${lineas} ${lineas === 1 ? "producto" : "productos"} (${piezas} ${piezas === 1 ? "pieza" : "piezas"}).\nUna vez solicitada ya no podrás editarla: el equipo revisará disponibilidad y precios, y verás tu cotización aquí en el sistema.`,
+        confirmar: "Solicitar cotización", cancelar: "Seguir editando", icono: "fa-paper-plane"
     });
     if (!seguir) return;
 
@@ -3615,7 +3624,7 @@ async function solicitarCotizacionGeneral() {
             carrito = [];
             guardarCarritoLocal(); guardarBloquesLocal();
             actualizarUICarrito();
-            mostrarToastInfo((rs.bloques || []).length > 1 ? 'Enviamos ' + rs.bloques.length + ' pedidos, uno por sección. El equipo los revisará pronto.' : 'Tu cotización general fue enviada. El equipo la revisará pronto.');
+            mostrarToastInfo('Solicitaste tu cotización. El equipo la está revisando y la verás aquí cuando esté lista.');
         } else {
             mostrarToastInfo("No se pudo enviar: " + (rs.message || "Error desconocido."), "error");
         }
@@ -6360,20 +6369,20 @@ function _cpAgenciaAuto() {   // la sección manda: Suzuki y Bajaj fijos; en Ven
 ══════════════════════════════════════════ */
 const SECCIONES = { VENTO: 'Vento / Carabela', SUZUKI: 'Suzuki', BAJAJ: 'Bajaj' };
 let inventarioCompleto = [], _seccionAplicada = null, _invAplicado = null;
-function seccionDeTexto(t) { const n = String(t || '').toUpperCase(); return n.includes('SUZUKI') ? 'SUZUKI' : n.includes('BAJAJ') ? 'BAJAJ' : 'VENTO'; }
-function seccionesPermitidas() {
-    const todas = ['VENTO', 'SUZUKI', 'BAJAJ'];
-    if (!esAdmin) return todas;                                  // clientes: eligen
+function seccionDeTexto(t) { const n = String(t || '').toUpperCase(); return n.includes('SUZUKI') ? 'SUZUKI' : (n.includes('BAJAJ') || n.includes('PISTE MUEBLES')) ? 'BAJAJ' : 'VENTO'; }
+function seccionesPermitidas() { return ['VENTO', 'SUZUKI', 'BAJAJ']; }   // todos pueden consultar las tres
+/** Sección propia de una cuenta de asesor (por su almacén); null = zona TODAS o cliente (sin restricción). */
+function seccionPropia() {
+    if (!esAdmin) return null;
     const a = String(almacenAdminActual || '').toUpperCase().trim();
-    if (!a || esZonaValladolid()) return todas;                  // zona TODAS: las tres
-    return [seccionDeTexto(a)];                                  // cuenta de un almacén: solo la suya
+    return (!a || esZonaValladolid()) ? null : seccionDeTexto(a);
 }
+function puedeCotizarEn(sec) { const p = seccionPropia(); return !p || p === sec; }
 function seccionActual() {
     const ok = seccionesPermitidas(); let g = '';
     try { g = localStorage.getItem('seccion') || ''; } catch (e) {}
     if (ok.includes(g)) return g;
-    const propia = esAdmin ? seccionDeTexto(almacenAdminActual) : 'VENTO';
-    return ok.includes(propia) ? propia : ok[0];
+    return seccionPropia() || 'VENTO';
 }
 function _asegurarSeccion() {
     const sec = seccionActual();
@@ -6387,21 +6396,25 @@ function _asegurarSeccion() {
     _seccionAplicada = sec; _invAplicado = inventarioCompleto;
     pintarSelectorSeccion();
 }
-function fijarInventario(datos) { inventarioCompleto = datos || []; _asegurarSeccion(); }
+function fijarInventario(datos) {
+    inventarioCompleto = datos || [];
+    inventarioCompleto.forEach(it => (it.Existencias || []).forEach(e => { if (/PISTE MUEBLES/i.test(e.sucursal || '')) e.sucursal = 'BAJAJ PISTE'; }));   // PISTE MUEBLES es Bajaj Piste
+    _asegurarSeccion();
+}
 /** Sección de una línea del carrito: la guardada, o la de su primera sucursal (carritos guardados antes de las secciones). */
 function seccionDeLinea(c) { return c.seccion || seccionDeTexto(((c.agenciasDisponibles || [])[0] || {}).sucursal || c.marca); }
 function _notaPedidosPorSeccion() {
     const n = {}; carrito.forEach(c => { const k = seccionDeLinea(c); n[k] = (n[k] || 0) + 1; });
     const ks = Object.keys(n);
-    return ks.length > 1 ? 'Se enviará un pedido por cada sección: ' + ks.map(k => SECCIONES[k] + ' (' + n[k] + ')').join(', ') + '.\n' : '';
+    return ks.length > 1 ? 'Recibirás UNA sola cotización con todo (' + ks.map(k => SECCIONES[k] + ': ' + n[k]).join(', ') + ').\n' : '';
 }
 function pintarSelectorSeccion() {
     const cont = document.getElementById('selector-seccion'); if (!cont) return;
-    const ok = seccionesPermitidas(), act = seccionActual();
-    cont.hidden = false;
-    if (ok.length < 2) { cont.classList.add('fija'); cont.innerHTML = '<span>Sección: ' + SECCIONES[ok[0]] + '</span>'; return; }
-    cont.classList.remove('fija');
-    cont.innerHTML = ok.map(k => `<button type="button" role="radio" aria-checked="${k === act}" onclick="cambiarSeccion('${k}')">${SECCIONES[k]}</button>`).join('');
+    const act = seccionActual();
+    cont.hidden = false; cont.classList.remove('fija');
+    cont.innerHTML = seccionesPermitidas().map(k => `<button type="button" role="radio" aria-checked="${k === act}" onclick="cambiarSeccion('${k}')">${SECCIONES[k]}</button>`).join('');
+    const av = document.getElementById('aviso-consulta'); if (av) av.hidden = !(esAdmin && !puedeCotizarEn(act));
+    const ruta = document.getElementById('btn-cotizar-en-ruta'); if (ruta) ruta.hidden = !!esAdmin;
 }
 async function cambiarSeccion(k) {
     const actual = seccionActual();
@@ -6416,7 +6429,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-18 · secciones';
+const APP_VERSION = '2026-10-18 · secciones 2';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -6428,6 +6441,7 @@ function cfgAbrir() {
     _cpEl('cfg-tipo').textContent = esAdmin ? 'Asesor' : 'Cliente';
     _cpEl('cfg-version').textContent = APP_VERSION;
     _cpEl('cfg-tab-cot').style.display = esAdmin ? '' : 'none';
+    _cpEl('cfg-tab-sol').style.display = esAdmin ? 'none' : '';
     cfgTab('aspecto');
     _cpEl('cfg-overlay').classList.add('visible');
 }
@@ -6464,10 +6478,23 @@ async function forzarRecarga() {
     location.reload();
 }
 
+const ETIQ_PASO = { SOLICITADA: 'Solicitada', EN_ATENCION: 'En revisión', ENVIADA: 'Enviada' };
+async function cfgCargarSolicitudes() {
+    const curso = _cpEl('cfg-sol-curso'), hist = _cpEl('cfg-sol-hist');
+    curso.innerHTML = (bloquesCotizacion || []).length ? bloquesCotizacion.map(b => `<div class="cfg-cot"><div class="cfg-cot-top"><b>${(b.items || []).length} producto(s)</b><span class="cfg-est"><i aria-hidden="true" class="fa-solid fa-clock"></i> ${ETIQ_PASO[b.paso || (b.atendidoPor ? 'EN_ATENCION' : 'SOLICITADA')] || 'En proceso'}</span></div><div class="cfg-muted">${escaparHTML(String(b.fecha || '').slice(0, 16).replace('T', ' '))}</div></div>`).join('') : '<p class="cfg-muted">No tienes solicitudes en proceso.</p>';
+    hist.innerHTML = '<p class="cfg-muted">Cargando…</p>';
+    try {
+        const rs = await _cpApi('historialSolicitudesCliente');
+        if (!rs.success) { hist.innerHTML = '<p class="cfg-muted">' + escaparHTML(rs.message || 'No se pudo cargar.') + '</p>'; return; }
+        hist.innerHTML = (rs.historial || []).length ? rs.historial.map(h => `<div class="cfg-cot"><div class="cfg-cot-top"><b>${escaparHTML(h.resultado)}</b><span class="cfg-muted">${escaparHTML(h.solicitada.slice(0, 16))}</span></div><div>${escaparHTML(h.productos)}</div>${h.asesor ? '<div class="cfg-muted">Atendió: ' + escaparHTML(h.asesor) + '</div>' : ''}</div>`).join('') : '<p class="cfg-muted">Aún no tienes solicitudes cerradas.</p>';
+    } catch (e) { hist.innerHTML = '<p class="cfg-muted">No se pudo cargar. Revisa tu conexión.</p>'; }
+}
 function cfgCerrar() { _cpEl('cfg-overlay').classList.remove('visible'); }
 function cfgTab(t) {
     const cot = t === 'cot' && esAdmin;
     _cpEl('cfg-aspecto').hidden = t !== 'aspecto'; _cpEl('cfg-cuenta').hidden = t !== 'cuenta'; _cpEl('cfg-cotizaciones').hidden = !cot;
+    _cpEl('cfg-solicitudes').hidden = !(t === 'sol' && !esAdmin); _cpEl('cfg-tab-sol').setAttribute('aria-selected', String(t === 'sol'));
+    if (t === 'sol' && !esAdmin) cfgCargarSolicitudes();
     _cpEl('cfg-tab-aspecto').setAttribute('aria-selected', String(t === 'aspecto'));
     _cpEl('cfg-tab-cuenta').setAttribute('aria-selected', String(t === 'cuenta'));
     if (t === 'aspecto') cfgPintarAspecto();
@@ -6760,6 +6787,7 @@ function _cpReiniciar() {
 
 function cotPisoAbrir() {
     if (!esAdmin) return;
+    if (!puedeCotizarEn(seccionActual())) { mostrarToastInfo('Solo consulta: esta sección es de otra agencia. Cambia a tu sección para cotizar.', 'error'); return; }
     _cpReiniciar();
     _cpEl('cp-overlay').classList.add('visible');
     document.body.style.overflow = 'hidden';
