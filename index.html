@@ -3451,6 +3451,10 @@ function agregarAlCarrito(item) {
     const exs  = item.Existencias || [];
     const ya   = carrito.find(c => String(c.sku) === String(sku));
 
+    if (ya && seccionDeLinea(ya) !== seccionActual()) {
+        mostrarToastInfo('Ya tienes este producto en tu carrito desde ' + SECCIONES[seccionDeLinea(ya)] + '. Ajusta su cantidad ahí.', 'error');
+        return;
+    }
     if (ya) {
         ya.cantidad = Math.min(ya.cantidad+1, ya.stockMax);
     } else {
@@ -3461,6 +3465,7 @@ function agregarAlCarrito(item) {
             marca:  item.Marca || "GENÉRICO",
             imagen: optimizarEnlaceImagen(item.Imagen||""),
             cantidad: 1,
+            seccion: seccionActual(),
             stockMax,
             // item.Liquidacion normalmente es el texto crudo de la
             // columna F (branch o "TODOS"), pero cuando se llega aquí
@@ -3581,7 +3586,7 @@ async function solicitarCotizacionGeneral() {
     const lineas = carrito.length, piezas = totalItemsCarrito();
     const seguir = await confirmarApp({
         titulo: "Enviar cotización general",
-        mensaje: `Vas a enviar ${lineas} ${lineas === 1 ? "producto" : "productos"} (${piezas} ${piezas === 1 ? "pieza" : "piezas"}) como una cotización general.\nUna vez enviada, esos productos ya no se podrán editar.`,
+        mensaje: _notaPedidosPorSeccion() + `Vas a enviar ${lineas} ${lineas === 1 ? "producto" : "productos"} (${piezas} ${piezas === 1 ? "pieza" : "piezas"}) como una cotización general.\nUna vez enviada, esos productos ya no se podrán editar.`,
         confirmar: "Enviar cotización", cancelar: "Seguir editando", icono: "fa-paper-plane"
     });
     if (!seguir) return;
@@ -3600,17 +3605,17 @@ async function solicitarCotizacionGeneral() {
                 correo: usuarioActual, token: tokenActual, nombre: sesion.nombre || "",
                 items: carrito.map(c => ({
                     sku: c.sku, nombre: c.nombre, cantidad: c.cantidad,
-                    enLiquidacion: !!c.enLiquidacion, agenciasDisponibles: c.agenciasDisponibles || []
+                    enLiquidacion: !!c.enLiquidacion, seccion: seccionDeLinea(c), agenciasDisponibles: c.agenciasDisponibles || []
                 }))
             })});
         const rs = await r.json();
         if (rs.success) {
             _versionCarritoLocal++; // el carrito vuelve a cambiar (se vacía) — otra invalidación
-            bloquesCotizacion.push(rs.bloque);
+            (rs.bloques || [rs.bloque]).forEach(b => b && bloquesCotizacion.push(b));
             carrito = [];
             guardarCarritoLocal(); guardarBloquesLocal();
             actualizarUICarrito();
-            mostrarToastInfo("Tu cotización general fue enviada. El equipo la revisará pronto.");
+            mostrarToastInfo((rs.bloques || []).length > 1 ? 'Enviamos ' + rs.bloques.length + ' pedidos, uno por sección. El equipo los revisará pronto.' : 'Tu cotización general fue enviada. El equipo la revisará pronto.');
         } else {
             mostrarToastInfo("No se pudo enviar: " + (rs.message || "Error desconocido."), "error");
         }
@@ -6383,6 +6388,13 @@ function _asegurarSeccion() {
     pintarSelectorSeccion();
 }
 function fijarInventario(datos) { inventarioCompleto = datos || []; _asegurarSeccion(); }
+/** Sección de una línea del carrito: la guardada, o la de su primera sucursal (carritos guardados antes de las secciones). */
+function seccionDeLinea(c) { return c.seccion || seccionDeTexto(((c.agenciasDisponibles || [])[0] || {}).sucursal || c.marca); }
+function _notaPedidosPorSeccion() {
+    const n = {}; carrito.forEach(c => { const k = seccionDeLinea(c); n[k] = (n[k] || 0) + 1; });
+    const ks = Object.keys(n);
+    return ks.length > 1 ? 'Se enviará un pedido por cada sección: ' + ks.map(k => SECCIONES[k] + ' (' + n[k] + ')').join(', ') + '.\n' : '';
+}
 function pintarSelectorSeccion() {
     const cont = document.getElementById('selector-seccion'); if (!cont) return;
     const ok = seccionesPermitidas(), act = seccionActual();
@@ -6394,11 +6406,6 @@ function pintarSelectorSeccion() {
 async function cambiarSeccion(k) {
     const actual = seccionActual();
     if (k === actual) return;
-    if (carrito.length) {
-        const ok = await confirmarApp({ titulo: 'Cambiar de sección', mensaje: 'Una cotización no puede mezclar secciones. Tu carrito tiene productos de ' + SECCIONES[actual] + '; al pasar a ' + SECCIONES[k] + ' se vaciará.', confirmar: 'Cambiar y vaciar', cancelar: 'Quedarme aquí', tipo: 'peligro' });
-        if (!ok) return;
-        _versionCarritoLocal++; carrito = []; guardarCarritoLocal(); sincronizarCarritoInstantaneo(); actualizarUICarrito();
-    }
     try { localStorage.setItem('seccion', k); } catch (e) {}
     _asegurarSeccion();
     marcaSeleccionadaActual.length = 0; familiaSeleccionadaActual.length = 0; paginaActual = 1;
