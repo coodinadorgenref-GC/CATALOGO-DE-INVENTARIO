@@ -1470,6 +1470,9 @@
     </div>
     <div id="cfg-solicitudes" hidden>
       <p class="cfg-muted" style="margin:0 0 8px">Tus solicitudes de cotización. Los precios aparecen en tu cotización cuando el equipo termina de revisarla.</p>
+      <h4 class="cfg-muted" style="margin:0 0 4px;font-weight:800">Cotizaciones recibidas</h4>
+      <div id="cfg-sol-cots"></div>
+      <h4 class="cfg-muted" style="margin:12px 0 4px;font-weight:800">En proceso</h4>
       <div id="cfg-sol-curso"></div>
       <h4 class="cfg-muted" style="margin:12px 0 4px;font-weight:800">Historial</h4>
       <div id="cfg-sol-hist"></div>
@@ -4311,7 +4314,7 @@ function pintarCotizacionesAdmin(rs) {
             const htmlAcciones = _htmlAccionesCot({
                 correo: correoSeg, bloque: idBloqueCardSeg, paso, atendidoPor, yo: loAtiendoYo, pasoFecha: primero._pasoFecha,
                 tel: !!u.telefono, telSeg: escaparHTML(String(u.telefono || "")).replace(/'/g, "\\'"), nombreSeg: nombreSeg.replace(/'/g, "\\'"),
-                zona: esZonaValladolidPanel
+                zona: esZonaValladolidPanel, solicitudId: String(primero._solicitudId || '').replace(/[^\w-]/g, '')
             });
 
             return `<div class="bloque-fecha-admin ${tonoClase} ${atendidoPor && !loAtiendoYo ? "opacity-80" : ""}">
@@ -4406,6 +4409,10 @@ function _htmlAccionesCot(c) {
             <div class="cot-acciones">${contactar}${btn("pri", `avanzarPasoAdmin(${a},'REVISADA')`, "fa-solid fa-clipboard-check", "Marcar revisada")}${liberar}</div>`;
     }
     if (c.paso === "REVISADA") {
+        if (c.solicitudId) {
+            return `<p class="cot-aviso"><strong>Tu parte está revisada.</strong> El cliente recibe <strong>una sola cotización</strong> con todas las secciones, con precios y el contacto de cada una.</p>
+            <div class="cot-acciones">${btn("pri", `armarCotizacionUnicaAdmin(${a},'${c.solicitudId}',false)`, "fa-solid fa-file-invoice-dollar", "Armar cotización única")}${btn("", `avanzarPasoAdmin(${a},'EN_ATENCION')`, "fa-solid fa-rotate-left", "Volver a revisar")}${liberar}</div>`;
+        }
         return `<p class="cot-aviso"><strong>Todo revisado.</strong> Envía la cotización al cliente.</p>
             <div class="cot-acciones">${btn("pri", `enviarCotizacionAdmin(${a},false)`, c.tel ? "fa-brands fa-whatsapp" : "fa-solid fa-paper-plane", c.tel ? "Enviar por WhatsApp" : "Marcar como enviada")}${btn("", `avanzarPasoAdmin(${a},'EN_ATENCION')`, "fa-solid fa-rotate-left", "Volver a revisar")}${liberar}</div>`;
     }
@@ -4465,6 +4472,25 @@ async function avanzarPasoAdmin(correoUsuario, bloqueId, paso) {
     _pendAplicar(correoUsuario, it => { if (it._bloqueId === bloqueId) { it._paso = paso; it._pasoFecha = ahora; } });
     const rs = await _pendLlamar({ action: "avanzarPasoCotizacion", correoUsuario, bloqueId, paso });
     if (!rs.success) { _pendRestaurar(respaldo); mostrarToastInfo(rs.message || "No se pudo avanzar.", "error"); }
+    cargarCotizacionesAdmin(true, true);
+}
+
+/** Arma la cotización ÚNICA del cliente con las partes revisadas de todas las secciones y se la deja en el sistema. */
+async function armarCotizacionUnicaAdmin(correoUsuario, bloqueId, solicitudId, parcial) {
+    const u = (_pendCache?.data || []).find(x => String(x.correo) === String(correoUsuario));
+    mostrarToastInfo('Armando la cotización…');
+    const rs = await _pendLlamar({ action: 'armarCotizacionUnificada', correoUsuario, solicitudId, parcial: !!parcial, cliente: u ? u.nombre : '', telefono: u ? u.telefono : '' });
+    if (!rs.success && rs.needsParcial) {
+        const ok = await confirmarApp({ titulo: 'Faltan secciones por revisar', mensaje: 'Aún no han revisado: ' + rs.faltan.join(', ') + '.\n¿Enviar ya la cotización solo con lo revisado? Lo demás quedará pendiente.', confirmar: 'Enviar parcial', cancelar: 'Esperar' });
+        if (ok) return armarCotizacionUnicaAdmin(correoUsuario, bloqueId, solicitudId, true);
+        return;
+    }
+    if (!rs.success) { mostrarToastInfo(rs.message || 'No se pudo armar la cotización.', 'error'); return; }
+    mostrarToastInfo('Cotización ' + rs.folio + ' enviada. El cliente ya la ve en el sistema.');
+    if (u && u.telefono) {
+        const url = _urlWhatsAppCliente(u.telefono, 'Hola ' + (u.nombre || '') + ', tu cotización ' + rs.folio + ' ya está lista. Entra al catálogo > Configuración > Mis solicitudes para verla y descargarla. Total con IVA: ' + Number(rs.total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) + (rs.pendientes.length ? '\nPendiente de confirmar: ' + rs.pendientes.join(', ') + '.' : ''));
+        if (url) window.open(url, '_blank', 'noopener');
+    }
     cargarCotizacionesAdmin(true, true);
 }
 
@@ -6429,7 +6455,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-18 · secciones 2';
+const APP_VERSION = '2026-10-18 · cotización única';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -6483,11 +6509,31 @@ async function cfgCargarSolicitudes() {
     const curso = _cpEl('cfg-sol-curso'), hist = _cpEl('cfg-sol-hist');
     curso.innerHTML = (bloquesCotizacion || []).length ? bloquesCotizacion.map(b => `<div class="cfg-cot"><div class="cfg-cot-top"><b>${(b.items || []).length} producto(s)</b><span class="cfg-est"><i aria-hidden="true" class="fa-solid fa-clock"></i> ${ETIQ_PASO[b.paso || (b.atendidoPor ? 'EN_ATENCION' : 'SOLICITADA')] || 'En proceso'}</span></div><div class="cfg-muted">${escaparHTML(String(b.fecha || '').slice(0, 16).replace('T', ' '))}</div></div>`).join('') : '<p class="cfg-muted">No tienes solicitudes en proceso.</p>';
     hist.innerHTML = '<p class="cfg-muted">Cargando…</p>';
+    cfgCargarCotizacionesRecibidas();
     try {
         const rs = await _cpApi('historialSolicitudesCliente');
         if (!rs.success) { hist.innerHTML = '<p class="cfg-muted">' + escaparHTML(rs.message || 'No se pudo cargar.') + '</p>'; return; }
         hist.innerHTML = (rs.historial || []).length ? rs.historial.map(h => `<div class="cfg-cot"><div class="cfg-cot-top"><b>${escaparHTML(h.resultado)}</b><span class="cfg-muted">${escaparHTML(h.solicitada.slice(0, 16))}</span></div><div>${escaparHTML(h.productos)}</div>${h.asesor ? '<div class="cfg-muted">Atendió: ' + escaparHTML(h.asesor) + '</div>' : ''}</div>`).join('') : '<p class="cfg-muted">Aún no tienes solicitudes cerradas.</p>';
     } catch (e) { hist.innerHTML = '<p class="cfg-muted">No se pudo cargar. Revisa tu conexión.</p>'; }
+}
+let _cfgMisCots = [];
+async function cfgCargarCotizacionesRecibidas() {
+    const cont = _cpEl('cfg-sol-cots');
+    cont.innerHTML = '<p class="cfg-muted">Cargando…</p>';
+    try {
+        const rs = await _cpApi('cotizacionesDelCliente');
+        if (!rs.success) { cont.innerHTML = '<p class="cfg-muted">' + escaparHTML(rs.message || 'No se pudieron cargar.') + '</p>'; return; }
+        _cfgMisCots = rs.cotizaciones || [];
+        cont.innerHTML = _cfgMisCots.length ? _cfgMisCots.map((c, k) => {
+            const lineas = c.items.map(it => `<li>${it.cantidad} × ${escaparHTML(it.descripcion || '')} (${escaparHTML(it.sku || '')}) — ${it.importe === null || it.importe === undefined || it.importe === '' ? 'por confirmar' : _cfgMoneda(it.importe)}</li>`).join('');
+            const cont2 = (c.contactos || []).map(x => `<div class="cfg-muted">${escaparHTML(SECCIONES[x.seccion] || x.seccion)}: ${escaparHTML(x.nombre)}${x.whats ? ' · WhatsApp ' + escaparHTML(String(x.whats)) : ''}</div>`).join('');
+            return `<div class="cfg-cot"><div class="cfg-cot-top"><b>${escaparHTML(c.folio)}</b><span class="cfg-est"><i aria-hidden="true" class="fa-solid fa-circle-check"></i> ${escaparHTML(c.estado)}</span></div>
+                <div class="cfg-muted">${escaparHTML(String(c.fecha).slice(0, 16))} · Subtotal ${_cfgMoneda(c.subtotal)} · IVA ${_cfgMoneda(c.iva)}</div>
+                <div><b>Total con IVA: ${_cfgMoneda(c.total)}</b></div>
+                <details><summary>Ver productos (${c.items.length})</summary><ul>${lineas}</ul></details>${cont2}
+                <div class="cfg-acciones"><button type="button" onclick="hojaCotizacionPdf(_cfgMisCots[${k}], this)"><i aria-hidden="true" class="fa-solid fa-file-pdf"></i> Descargar PDF</button></div></div>`;
+        }).join('') : '<p class="cfg-muted">Aún no tienes cotizaciones recibidas. Cuando el equipo termine de revisar tu solicitud aparecerá aquí con precios.</p>';
+    } catch (e) { cont.innerHTML = '<p class="cfg-muted">No se pudieron cargar. Revisa tu conexión.</p>'; }
 }
 function cfgCerrar() { _cpEl('cfg-overlay').classList.remove('visible'); }
 function cfgTab(t) {
@@ -6625,11 +6671,16 @@ function hojaCotizacionConstruir(jsPDF, cot, logo) {
     const izq = [['CLIENTE', txt(cot.cliente), true]];
     if (txt(cot.idCliente)) izq.push(['', 'ID de cliente: ' + txt(cot.idCliente), false]);
     if (telTxt) izq.push(['', 'Teléfono: ' + telTxt, false]);
-    const der = [['ASESOR DE VENTAS', txt(cot.vendedorNombre) || '—', true]];
+    const NOM_SEC = { VENTO: 'Vento / Carabela', SUZUKI: 'Suzuki', BAJAJ: 'Bajaj' };
+    const fmtWa = w => { const d = txt(w).replace(/\D/g, ''); return d.length === 10 ? d.slice(0, 3) + ' ' + d.slice(3, 6) + ' ' + d.slice(6) : d; };
+    const contactos = Array.isArray(cot.contactos) ? cot.contactos : [];
+    const der = contactos.length ? [] : [['ASESOR DE VENTAS', txt(cot.vendedorNombre) || '—', true]];
+    // Cotización única: un contacto POR SECCIÓN (cada asesor atiende lo suyo)
+    contactos.forEach((x, k) => der.push([k === 0 ? 'CONTACTO POR SECCIÓN' : '', (NOM_SEC[x.seccion] || x.seccion) + ': ' + (txt(x.nombre) || '—') + (fmtWa(x.whats) ? ' · ' + fmtWa(x.whats) : ''), k === 0]));
     // Contacto del asesor: solo viene si su cuenta es "vendedor" (el servidor no lo manda para admin ni gerente).
-    if (txt(cot.vendedorAgencia)) der.push(['', 'Agencia: ' + txt(cot.vendedorAgencia).replace(/\s*[,;|]\s*/g, ' · '), false]);
+    if (!contactos.length && txt(cot.vendedorAgencia)) der.push(['', 'Agencia: ' + txt(cot.vendedorAgencia).replace(/\s*[,;|]\s*/g, ' · '), false]);
     const wa = txt(cot.vendedorWhats).replace(/\D/g, '');
-    if (wa) der.push(['', 'WhatsApp: ' + (wa.length === 10 ? wa.slice(0, 3) + ' ' + wa.slice(3, 6) + ' ' + wa.slice(6) : wa), false]);
+    if (!contactos.length && wa) der.push(['', 'WhatsApp: ' + (wa.length === 10 ? wa.slice(0, 3) + ' ' + wa.slice(3, 6) + ' ' + wa.slice(6) : wa), false]);
     const moto = [txt(cot.moto), txt(cot.anio) ? 'Año ' + txt(cot.anio) : ''].filter(Boolean).join(' · ');
     if (moto) der.push(['MOTOCICLETA', moto, true]);
     const alturaCol = col => col.reduce((h, f) => h + (f[0] ? 4 : 0) + 4.6, 0);
@@ -6660,8 +6711,14 @@ function hojaCotizacionConstruir(jsPDF, cot, logo) {
         y += 7;
     };
     encabezadoTabla();
-    let hayAprox = false, sinPrecio = 0;
+    let hayAprox = false, sinPrecio = 0, secPrev = null;
     items.forEach((it, n) => {
+        if (it.seccion && it.seccion !== secPrev) {   // franja de sección (cotización única)
+            if (y + 14 > LIM) { doc.addPage(); y = 14; encabezadoTabla(); }
+            doc.setFillColor(226, 232, 240); doc.rect(MX, y, TW, 6, 'F');
+            fuente('bold', 8, OSC); doc.text('Surte: ' + (NOM_SEC[it.seccion] || it.seccion), MX + 2, y + 4.2);
+            y += 6; secPrev = it.seccion;
+        }
         const aprox = it.precioAprox === true && it.precio !== null && it.precio !== undefined;
         if (aprox) hayAprox = true;
         const sinP = it.precio === null || it.precio === undefined || it.importe === null || it.importe === undefined;

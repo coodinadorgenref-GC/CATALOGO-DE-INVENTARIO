@@ -162,4 +162,15 @@ Vive en otro libro (ID `11jrqAsndSQRS6yQBOLyZZZF1OB-rGn0GnvCLS-CRqk8`), con **un
 - **Precios:** el cliente nunca los ve en el catálogo; aparecen en su cotización cuando el equipo termina de revisarla. El asesor los ve al revisar.
 - **Mis solicitudes** (Configuración, clientes): en proceso + historial de cerradas (`historialSolicitudesCliente`).
 - **Consulta de cotizaciones por rol:** admin real, todas · gerente, las de su sección · vendedor, las suyas.
-- **Pendiente (siguiente etapa):** que la cotización con precios aparezca al cliente en el sistema y se genere **una sola cotización unificada** (cada sección confirma lo suyo; contacto por sección en el PDF). Aún no está construido.
+- **Cotización única (ver sección siguiente):** construida el 18-oct.
+
+## Cotización única (18-oct)
+El cliente solicita una vez (un carrito con las secciones que quiera) y recibe **UNA cotización** con todo, aunque la atiendan asesores de distintas agencias.
+1. Al solicitar, el servidor crea una solicitud por sección con el mismo `solicitudId` (`solicitarCotizacionGeneral`).
+2. Cada asesor **Atiende** su parte, quita con la ✕ lo que no hay y la marca **revisada** (flujo de pasos de siempre).
+3. El asesor que atendió pulsa **"Armar cotización única"** (paso Revisada). `armarCotizacionUnificada` (`Cotizacion_unica.js`) junta las partes revisadas, pone los precios de la lista (con IVA, calculados en el servidor), guarda **una sola fila** en el historial ligada al correo del cliente y pasa todas las partes a **Enviada**. Si falta alguna sección, ofrece **enviar parcial** (queda pendiente lo demás).
+4. **PDF:** una sola hoja, partidas agrupadas con la franja "Surte: sección", Subtotal, IVA y Total, y **un contacto por sección** (nombre y WhatsApp de quien confirmó cada parte; sin un único "asesor principal"). Logo general cuando hay varias secciones.
+5. **El cliente la ve en el sistema:** Configuración › Mis solicitudes › Cotizaciones recibidas (con precios, totales, contactos y "Descargar PDF"). Los precios solo existen ahí; nunca en el catálogo. Sin números de parte de lo bajo pedido.
+6. **Historial:** una fila por folio; pestaña de la sección si es una sola, **GENERAL** si junta varias. Columnas nuevas al final: `clienteCorreo`, `solicitudId`, `contactos` (se agregan solas a las pestañas existentes).
+- Solicitudes hechas antes de este cambio no traen `solicitudId`: se siguen enviando por WhatsApp como antes.
+- Por probar con datos reales: un cliente con productos de dos secciones, dos asesores, envío parcial y descarga del PDF por el cliente.
