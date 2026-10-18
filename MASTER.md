@@ -203,3 +203,5 @@ Contraste 4.5:1 (texto) y 3:1 (bordes de controles/íconos); foco visible siempr
 **Aplicado (17-oct):** aspecto claro/oscuro/sistema (tokens nuevos `--divider`, `--hover`, `--border-strong`, `--info-*`, `--danger-bg`, `--ok`, `--brand-text`, `--attention-text`), pestaña Aspecto en Configuración y Forzar recarga.
 
 **Aplicado (17-oct, 2):** botones flotantes como fichas tipo iPhone (60 px, radio 14, glifo blanco, etiqueta debajo en píldora, verde = cotizar, azul = Pendientes); aspecto claro con fondo `#eef2f7` y tarjetas blancas; imagen "no disponible" con variante clara.
+
+**Aplicado (18-oct):** selector de sección (Vento / Carabela · Suzuki · Bajaj) como control segmentado de 44 px arriba del catálogo (`.secciones`); en cuentas de un solo almacén es una etiqueta fija "Sección: …".

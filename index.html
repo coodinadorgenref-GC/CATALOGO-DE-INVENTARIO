@@ -664,6 +664,11 @@
         .cfg-est { font-size: 12px; font-weight: 700; display: inline-flex; gap: 6px; align-items: center; color: var(--text-2); }
         .cfg-muted { color: var(--text-3); font-size: 12px; }
         .cfg-cot ul { margin: 8px 0 0; padding-left: 18px; color: var(--text-2); }
+        .secciones { display: flex; gap: 6px; padding: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+        .secciones button { flex: 1; min-width: 0; min-height: 44px; padding: 0 8px; border: 0; border-radius: 10px; background: transparent; color: var(--text-2); font-weight: 800; font-size: 13px; cursor: pointer; }
+        .secciones button[aria-checked="true"] { background: var(--brand); color: var(--on-brand); }
+        .secciones.fija { padding: 0 12px; }
+        .secciones.fija span { display: flex; align-items: center; min-height: 44px; font-weight: 800; font-size: 13px; color: var(--text-2); }
         .cfg-filtros { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .cfg-filtros select, .cfg-filtros input { width: 100%; min-height: 44px; }
         .cfg-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
@@ -1133,6 +1138,7 @@
 
         <!-- CONTENIDO CATÁLOGO — aparece primero en móvil gracias a order -->
         <main id="contenido-catalogo" class="flex-1 flex flex-col gap-4 min-w-0">
+            <div id="selector-seccion" class="secciones" role="radiogroup" aria-label="Sección del catálogo" hidden></div>
             <!-- NUEVO: panel de compatibilidad cruzada con el índice de NP
                  (coodinadorgenref-gc.github.io/NP). Se llena/oculta desde
                  renderPanelCompatibilidadNP(), llamado dentro de filtrarProductos()
@@ -2387,7 +2393,7 @@ async function obtenerInventarioDesdeServidor() {
     if (cache) {
         // Render from cache immediately — no setTimeout so iOS paints right away
         try {
-            inventarioMaestro = JSON.parse(cache);
+            fijarInventario(JSON.parse(cache));
             procesarDespuesDeCarga();
         } catch(e) {
             localStorage.removeItem("inventario_cache");
@@ -2431,7 +2437,7 @@ async function obtenerInventarioDesdeServidor() {
                 const dataStr = JSON.stringify(rs.data);
                 // Solo re-renderizar si los datos cambiaron (evita doble render en iOS)
                 if (!cache || cache !== dataStr) {
-                    inventarioMaestro = rs.data;
+                    fijarInventario(rs.data);
                     try { localStorage.setItem("inventario_cache", dataStr); } catch {}
                     // Si ya había caché visible, solo actualizamos filtros y catálogo sin mostrar spinner
                     if (cache) {
@@ -3042,6 +3048,7 @@ function renderPanelKitsProveedor(kits) {
 
 function filtrarProductos() {
     actualizarTimestampSesion();
+    _asegurarSeccion();
     const orden    = document.getElementById("orden-alfabetico").value;
     const agencia  = (document.getElementById("filtro-agencia")||{}).value || "";
     const textoBuscado = document.getElementById("buscador").value;
@@ -6335,13 +6342,74 @@ function _cpAviso(msg) { _cpEl('cp-aviso').textContent = msg || ''; }
 
 /** Sin selector de Agencia: se deduce del almacén del asesor. Define el logo de la hoja (Vento, Carabela, Suzuki o Bajaj);
  *  con "TODAS", vacío u otro almacén queda GENERAL: sin logo, con el nombre de la empresa. */
-function _cpAgenciaAuto() {
-    const h = String(almacenAdminActual || '').toUpperCase();
-    return h.includes('BAJAJ') ? 'BAJAJ' : h.includes('SUZUKI') ? 'SUZUKI' : h.includes('CARABELA') ? 'CARABELA' : h.includes('VENTO') ? 'VENTO' : 'GENERAL';
+function _cpAgenciaAuto() {   // la sección manda: Suzuki y Bajaj fijos; en Vento / Carabela, por el almacén del asesor
+    const sec = seccionActual();
+    if (sec === 'SUZUKI' || sec === 'BAJAJ') return sec;
+    return String(almacenAdminActual || '').toUpperCase().includes('CARABELA') ? 'CARABELA' : 'VENTO';
+}
+
+/* ══════════════════════════════════════════
+   SECCIONES: Vento / Carabela · Suzuki · Bajaj (MASTER.md §7.2)
+   Vento y Carabela (y los demás almacenes) se venden entre sí; Bajaj y Suzuki solo lo de su almacén.
+   Ninguna búsqueda, carrito ni cotización mezcla secciones. El servidor lo valida (Secciones.js).
+══════════════════════════════════════════ */
+const SECCIONES = { VENTO: 'Vento / Carabela', SUZUKI: 'Suzuki', BAJAJ: 'Bajaj' };
+let inventarioCompleto = [], _seccionAplicada = null, _invAplicado = null;
+function seccionDeTexto(t) { const n = String(t || '').toUpperCase(); return n.includes('SUZUKI') ? 'SUZUKI' : n.includes('BAJAJ') ? 'BAJAJ' : 'VENTO'; }
+function seccionesPermitidas() {
+    const todas = ['VENTO', 'SUZUKI', 'BAJAJ'];
+    if (!esAdmin) return todas;                                  // clientes: eligen
+    const a = String(almacenAdminActual || '').toUpperCase().trim();
+    if (!a || esZonaValladolid()) return todas;                  // zona TODAS: las tres
+    return [seccionDeTexto(a)];                                  // cuenta de un almacén: solo la suya
+}
+function seccionActual() {
+    const ok = seccionesPermitidas(); let g = '';
+    try { g = localStorage.getItem('seccion') || ''; } catch (e) {}
+    if (ok.includes(g)) return g;
+    const propia = esAdmin ? seccionDeTexto(almacenAdminActual) : 'VENTO';
+    return ok.includes(propia) ? propia : ok[0];
+}
+function _asegurarSeccion() {
+    const sec = seccionActual();
+    if (_seccionAplicada === sec && _invAplicado === inventarioCompleto) return;
+    inventarioMaestro = inventarioCompleto.map(it => {
+        const exs = it.Existencias || [];
+        if (!exs.length) return seccionDeTexto(it.Marca) === sec ? it : null;        // sin existencias: por marca
+        const prop = exs.filter(e => seccionDeTexto(e.sucursal) === sec);
+        return prop.length ? (prop.length === exs.length ? it : Object.assign({}, it, { Existencias: prop })) : null;
+    }).filter(Boolean);
+    _seccionAplicada = sec; _invAplicado = inventarioCompleto;
+    pintarSelectorSeccion();
+}
+function fijarInventario(datos) { inventarioCompleto = datos || []; _asegurarSeccion(); }
+function pintarSelectorSeccion() {
+    const cont = document.getElementById('selector-seccion'); if (!cont) return;
+    const ok = seccionesPermitidas(), act = seccionActual();
+    cont.hidden = false;
+    if (ok.length < 2) { cont.classList.add('fija'); cont.innerHTML = '<span>Sección: ' + SECCIONES[ok[0]] + '</span>'; return; }
+    cont.classList.remove('fija');
+    cont.innerHTML = ok.map(k => `<button type="button" role="radio" aria-checked="${k === act}" onclick="cambiarSeccion('${k}')">${SECCIONES[k]}</button>`).join('');
+}
+async function cambiarSeccion(k) {
+    const actual = seccionActual();
+    if (k === actual) return;
+    if (carrito.length) {
+        const ok = await confirmarApp({ titulo: 'Cambiar de sección', mensaje: 'Una cotización no puede mezclar secciones. Tu carrito tiene productos de ' + SECCIONES[actual] + '; al pasar a ' + SECCIONES[k] + ' se vaciará.', confirmar: 'Cambiar y vaciar', cancelar: 'Quedarme aquí', tipo: 'peligro' });
+        if (!ok) return;
+        _versionCarritoLocal++; carrito = []; guardarCarritoLocal(); sincronizarCarritoInstantaneo(); actualizarUICarrito();
+    }
+    try { localStorage.setItem('seccion', k); } catch (e) {}
+    _asegurarSeccion();
+    marcaSeleccionadaActual.length = 0; familiaSeleccionadaActual.length = 0; paginaActual = 1;
+    const sel = document.getElementById('filtro-agencia');
+    if (sel) { while (sel.options.length > 1) sel.remove(1); sel.value = ''; poblarSelectAgencias(); }
+    renderizarFiltrosFamilia(); renderizarFiltrosMarcas();
+    filtrarProductos(); actualizarChipsFiltros();
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-17 · aspecto';
+const APP_VERSION = '2026-10-18 · secciones';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -6832,7 +6900,7 @@ async function cotPisoGuardar() {
     try {
         const datos = {
             cliente: _cpEl('cp-cliente').value.trim(), telefono: _cpEl('cp-telefono').value, idCliente: _cpIdResuelto,
-            moto: _cpEl('cp-moto').value.trim(), anio: _cpEl('cp-anio').value.trim(), agencia: _cpAgenciaAuto(), origen: 'PISO',
+            moto: _cpEl('cp-moto').value.trim(), anio: _cpEl('cp-anio').value.trim(), agencia: _cpAgenciaAuto(), seccion: seccionActual(), origen: 'PISO',
             lineas: _cpLineas.map(l => l.tipo === 'pedido'
                 ? { tipo: 'pedido', cantidad: l.cantidad, numeroParte: l.numeroParte, descripcion: l.descripcion, precioAprox: l.precioAprox }
                 : { tipo: 'catalogo', sku: l.sku, cantidad: l.cantidad, descripcion: l.descripcion, disponibilidad: l.disponibilidad, precioAprox: l.precioAprox })

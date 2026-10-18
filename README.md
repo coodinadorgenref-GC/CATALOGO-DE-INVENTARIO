@@ -142,3 +142,12 @@ Vive en otro libro (ID `11jrqAsndSQRS6yQBOLyZZZF1OB-rGn0GnvCLS-CRqk8`), con **un
 - Requisito: el dueño del Apps Script debe tener permiso de edición sobre ese libro.
 
 - **Hoja de cotización (17-oct):** ahora desglosa Subtotal, IVA (16 %) y Total; los precios de la lista ya traen IVA.
+
+## Secciones del catálogo (18-oct)
+- Tres secciones: **Vento / Carabela** (y los demás almacenes, que se venden entre sí), **Suzuki** (Suzuki Tizimín y Valladolid) y **Bajaj** (Cancún, Valladolid, Tizimín y Piste). Bajaj y Suzuki solo venden lo de su almacén; ninguna búsqueda, carrito ni cotización mezcla secciones.
+- Selector arriba del catálogo. **Clientes**: eligen y la app recuerda la última. **Cuentas de un almacén** (columna H): fijas en la suya, sin selector. **Zona TODAS** (o sin almacén): las tres.
+- Al elegir una sección solo salen productos con existencias en ella y solo se muestran las existencias de ella (un SKU en Suzuki y Carabela aparece en cada sección con lo suyo). Sin existencias: por marca.
+- Carrito: al cambiar de sección con productos en el carrito, la app avisa y lo vacía.
+- Cotizar: la sección define la agencia y el logo (Suzuki y Bajaj fijos; en Vento / Carabela, por el almacén del asesor); ya no se genera "GENERAL".
+- Servidor (`Secciones.js`): `guardarCotizacion` exige `seccion`, comprueba que la cuenta pueda usarla y que la agencia corresponda; `solicitarCotizacionGeneral` rechaza carritos de clientes con productos de más de una sección.
+- Límite actual: el servidor no revisa que cada SKU de una cotización de asesor tenga existencias en su sección (el catálogo ya solo se los muestra); se puede agregar contra la hoja de inventario.
