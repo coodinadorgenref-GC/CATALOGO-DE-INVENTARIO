@@ -206,4 +206,6 @@ Contraste 4.5:1 (texto) y 3:1 (bordes de controles/íconos); foco visible siempr
 
 **Aplicado (18-oct):** selector de sección (Vento / Carabela · Suzuki · Bajaj) como control segmentado de 44 px arriba del catálogo (`.secciones`); en cuentas de un solo almacén es una etiqueta fija "Sección: …".
 
+**Aplicado (18-oct, 4):** auditoría de contraste del aspecto claro: `--attention-text` y ámbar a `#a34a08` (5.3:1 sobre el fondo), cielo `#0369a1`, ícono de "vacío" visible, hover de paginación legible, panel de compatibilidad y bloques de Pendientes (`.bloque-fecha-admin`, `.bloque-cotizacion-general`) con fondos y etiquetas propios del aspecto claro. Barra inferior: el engrane de la cabecera se oculta en celular (Ajustes ya está abajo) y la barra marca dónde estás (`biMarcar`). Sesión vencida o cerrada por inactividad: diálogo propio (`avisoSesionVencida`) en lugar de `alert`.
+
 **Aplicado (18-oct, 3):** barra inferior móvil (5 destinos máx., ícono + etiqueta de 11 px, ficha verde elevada para Cotizar, insignias, `safe-area`); los botones flotantes quedan solo para tablet y escritorio.

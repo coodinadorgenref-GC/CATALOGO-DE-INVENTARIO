@@ -177,6 +177,12 @@ El cliente solicita una vez (un carrito con las secciones que quiera) y recibe *
 - La columna `vendedorAgencia` del historial queda **vacía** (no la borres: las demás columnas dependen de su posición); `vendedorWhats` guarda el teléfono.
 - El PDF muestra nombre, teléfono y correo; ya no muestra la agencia del asesor.
 
+## Modo claro, barra inferior y sesión vencida (18-oct)
+- **Contraste en claro:** auditoría de los pares texto/fondo de las clases Tailwind (script en la sesión). Se corrigieron ámbar (`#a34a08`), cielo (`#0369a1`), el ícono de "vacío", el hover de la paginación, el panel de compatibilidad y los bloques de Pendientes. Quedan por migrar a tokens las clases de color fijo (se hace por pantalla; el remapeo de `--color-slate-*` las cubre mientras tanto).
+- **Barra inferior (celular):** el engrane de la cabecera se oculta cuando hay barra (Ajustes está abajo; Cerrar sesión sigue arriba y en Ajustes). La barra marca el destino activo con `aria-current` (`biMarcar`, llamado desde `cfgTab` y `cfgCerrar`).
+- **Sesión vencida o por inactividad:** `avisoSesionVencida` muestra el diálogo del catálogo (antes `alert`) con un solo botón "Iniciar sesión"; se muestra una vez aunque lleguen varias respuestas a la vez.
+- **Servidor:** `Codigo_Reporteador.js` devuelve siempre "No pudimos validar tus datos. Contacta al administrador." cuando el REPORTEADOR rechaza una cuenta (sin rol, sin sucursal o no encontrada), con una sola constante `MENSAJE_ACCESO_GENERICO_REP`.
+
 ## Barra inferior móvil y existencias por sección (18-oct)
 - **Barra inferior (solo celular, hasta 767 px):** reemplaza a los botones flotantes. Asesor: Catálogo · Pendientes · **Cotizar** (ficha verde elevada) · Historial · Ajustes. Cliente: Catálogo · Cotización (carrito) · Solicitudes · Ajustes. Insignias rojas con el mismo contador de Pendientes y del carrito.
 - Los botones flotantes siguen existiendo y son los que JS muestra y oculta; la barra los refleja (`biSincronizar`, con `MutationObserver`) y al tocar un destino hace clic en el botón original. En tablet y escritorio se ven los botones flotantes de siempre.

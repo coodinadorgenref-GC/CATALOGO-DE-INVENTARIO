@@ -116,7 +116,7 @@
             background-color: var(--bg); border: 1px solid var(--border); color: var(--text-2);
             border-radius: 8px; transition: all .2s; cursor: pointer;
         }
-        .paginacion-btn:hover:not(:disabled) { background-color: var(--hover); color: #fff; }
+        .paginacion-btn:hover:not(:disabled) { background-color: var(--hover); color: var(--text); }
         .paginacion-btn:disabled { opacity: .4; cursor: not-allowed; }
         .paginacion-btn.activa { background-color: var(--brand); border-color: var(--brand); color: var(--on-brand); }
 
@@ -454,6 +454,7 @@
         .app-dlg-icono { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
             font-size: 20px; margin-bottom: 12px; background: rgba(34, 177, 76, .15); color: var(--brand); }
         .app-dlg-icono.peligro { background: rgba(248, 113, 113, .15); color: var(--danger); }
+        .app-dlg-icono.aviso { background: rgba(251, 146, 60, .15); color: var(--attention-text); }
         .app-dlg h2 { font-family: var(--font-display); font-size: 17px; font-weight: 700; margin: 0 0 6px; }
         .app-dlg p { font-size: 14px; line-height: 1.45; color: var(--text-2); white-space: pre-line; margin: 0 0 18px; }
         .app-dlg-acciones { display: flex; flex-direction: column-reverse; flex-wrap: wrap; gap: 8px; }
@@ -691,6 +692,7 @@
             .bi-item b { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 11px; line-height: 1; display: flex; align-items: center; justify-content: center; border: 2px solid var(--surface); }
             .bi-item b[hidden] { display: none; }
             #btn-carrito-flotante, #btn-cotizaciones-admin, #btn-cotizar-piso { display: none !important; }   /* la barra los reemplaza */
+            body.con-barra #btn-header-ajustes { display: none; }   /* Ajustes ya está en la barra: no repetirlo arriba */
             body.con-barra { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
         }
         .cfg-filtros { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -749,7 +751,7 @@
             --danger: #b91c1c; --ring: #047857;
             --divider: #e5eaf0; --hover: #e6ecf3; --border-strong: #64748b;
             --info-text: #1d4ed8; --info-bg: #dbeafe; --danger-bg: #fee2e2; --ok: #047857;
-            --brand-text: #047857; --attention-text: #b45309;
+            --brand-text: #047857; --attention-text: #a34a08;
             /* Tailwind: escala invertida para lo que aún usa clases de color fijo */
             --color-slate-950: #eef2f7; --color-slate-900: #eef2f7; --color-slate-800: #ffffff; --color-slate-700: #f4f7fa;
             --color-slate-600: #e6ecf3; --color-slate-500: #94a3b8; --color-slate-400: #475569; --color-slate-300: #334155;
@@ -757,7 +759,8 @@
             --color-emerald-300: #047857; --color-emerald-400: #047857; --color-emerald-500: #047857;
             --color-emerald-800: #a7f3d0; --color-emerald-900: #d1fae5; --color-emerald-950: #ecfdf5;
             --color-red-300: #991b1b; --color-red-400: #b91c1c; --color-red-900: #fecaca; --color-red-950: #fef2f2;
-            --color-amber-300: #92400e; --color-amber-400: #b45309; --color-amber-900: #fde68a; --color-amber-950: #fffbeb;
+            --color-amber-300: #92400e; --color-amber-400: #a34a08; --color-amber-900: #fde68a; --color-amber-950: #fffbeb;
+            --color-sky-300: #0369a1; --color-sky-400: #0369a1;
             --color-blue-300: #1e40af; --color-blue-400: #1d4ed8; --color-blue-900: #dbeafe; --color-sky-950: #f0f9ff;
         }
         :root[data-theme="light"] [class*="border-slate-"] { border-color: var(--border); }
@@ -770,6 +773,23 @@
         :root[data-theme="light"] :is(.bg-blue-600, .bg-amber-600, .bg-red-600, .bg-green-600, .bg-black\/50) .text-white,
         :root[data-theme="light"] :is(.hover\:bg-red-800, .hover\:bg-emerald-700, .hover\:bg-blue-500, .hover\:bg-blue-700, .hover\:bg-blue-900, .hover\:bg-red-500, .hover\:bg-green-700):hover.text-white { color: #fff; }
         :root[data-theme="light"] .bg-slate-900\/90, :root[data-theme="light"] .bg-slate-900\/95 { box-shadow: 0 1px 2px rgba(15,23,42,.08); }
+        /* Correcciones de contraste del aspecto claro (auditoría 18-oct): lo que tenía color fijo pensado para fondo oscuro */
+        :root[data-theme="light"] .text-slate-600 { color: #94a3b8; }                       /* ícono grande de "vacío": en claro quedaba casi invisible */
+        :root[data-theme="light"] .paginacion-btn:hover:not(:disabled) { color: var(--text); }
+        :root[data-theme="light"] .compatibilidad-container { background-color: var(--surface-2); }
+        :root[data-theme="light"] .compatibilidad-marca { border-bottom-color: var(--divider); }
+        :root[data-theme="light"] .bloque-cotizacion-general { background: rgba(59, 130, 246, .08); border-color: rgba(37, 99, 235, .35); }
+        :root[data-theme="light"] .bloque-cotizacion-general .item-bloque { border-bottom-color: rgba(37, 99, 235, .2); }
+        :root[data-theme="light"] .bloque-fecha-admin.tono-0 { background: rgba(100, 116, 139, .10); }
+        :root[data-theme="light"] .bloque-fecha-admin.tono-1 { background: rgba(59, 130, 246, .08); }
+        :root[data-theme="light"] .bloque-fecha-admin.tono-2 { background: rgba(168, 85, 247, .08); }
+        :root[data-theme="light"] .bloque-fecha-admin.tono-3 { background: rgba(16, 185, 129, .09); }
+        :root[data-theme="light"] .bloque-fecha-admin.tono-4 { background: rgba(249, 115, 22, .09); }
+        :root[data-theme="light"] .bloque-fecha-admin.tono-5 { background: rgba(236, 72, 153, .08); }
+        :root[data-theme="light"] .bloque-fecha-admin.tono-2 .etiqueta-fecha-admin { color: #6b21a8; }
+        :root[data-theme="light"] .bloque-fecha-admin.tono-3 .etiqueta-fecha-admin { color: #047857; }
+        :root[data-theme="light"] .bloque-fecha-admin.tono-4 .etiqueta-fecha-admin { color: #9a3412; }
+        :root[data-theme="light"] .bloque-fecha-admin.tono-5 .etiqueta-fecha-admin { color: #9d174d; }
         .cfg-opcion { flex: 1; min-height: 44px; background: transparent; border: 1px solid var(--border-strong); border-radius: 8px; color: var(--text); font-weight: 700; cursor: pointer; display: inline-flex; gap: 8px; align-items: center; justify-content: center; }
         .cfg-opcion[aria-checked="true"] { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
         /* Insignias sobre fotos: el fondo sigue siendo negro translúcido, el texto sigue claro en cualquier aspecto */
@@ -906,7 +926,7 @@
                 <span id="texto-indicador-conexion" class="hidden sm:inline">Sin conexión</span>
             </span>
 
-            <button type="button" onclick="cfgAbrir()" aria-label="Configuración" title="Configuración"
+            <button type="button" id="btn-header-ajustes" onclick="cfgAbrir()" aria-label="Configuración" title="Configuración"
                     class="shrink-0 bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold rounded-xl transition cursor-pointer flex items-center justify-center w-11 h-11">
                 <i aria-hidden="true" class="fa-solid fa-gear"></i>
             </button>
@@ -2267,8 +2287,22 @@ function cerrarSesionPorInactividad() {
     localStorage.removeItem("sesion_catalogo"); _olvidarPendCache();
     localStorage.removeItem("inventario_cache");
     const minutos = Math.round(duracionSesionActualMs / 60000);
-    alert("Tu sesión se cerró automáticamente por " + minutos + " minutos de inactividad.");
-    location.reload();
+    avisoSesionVencida("Sesión cerrada por inactividad", "Tu sesión se cerró automáticamente por " + minutos + " minutos de inactividad.");
+}
+
+/** Aviso de sesión vencida con el estilo del catálogo (antes un alert del navegador).
+ *  Solo se muestra una vez aunque varias respuestas lleguen a la vez; cualquier salida recarga al login. */
+let _avisoSesionAbierto = false;
+function avisoSesionVencida(titulo, mensaje) {
+    if (_avisoSesionAbierto) return;
+    _avisoSesionAbierto = true;
+    dialogoApp({
+        titulo: titulo || "Sesión expirada",
+        mensaje: mensaje || "Tu sesión ha sido cerrada. Vuelve a iniciar sesión.",
+        icono: "fa-clock",
+        tipo: "aviso",
+        botones: [{ valor: true, texto: "Iniciar sesión", estilo: "pri" }]
+    }).then(() => location.reload());
 }
 
 async function heartbeatSesion() {
@@ -2310,8 +2344,7 @@ function manejarSesionInvalidaDelServidor(motivo) {
     detenerControlDeSesion();
     localStorage.removeItem("sesion_catalogo"); _olvidarPendCache();
     localStorage.removeItem("inventario_cache"); // NUEVO
-    alert(motivo || "Tu sesión ha sido cerrada. Vuelve a iniciar sesión.");
-    location.reload();
+    avisoSesionVencida("Sesión expirada", motivo || "Tu sesión ha sido cerrada. Vuelve a iniciar sesión.");
 }
 
 function iniciarControlDeSesion() {
@@ -6488,7 +6521,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-18 · barra inferior';
+const APP_VERSION = '2026-10-18 · modo claro y navegación';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -6541,6 +6574,11 @@ async function forzarRecarga() {
 function biClic(id) { const e = document.getElementById(id); if (e) e.click(); }
 function biIrCatalogo() { try { cfgCerrar(); } catch (e) {} window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function biConfig(tab) { cfgAbrir(); cfgTab(tab); }
+/** Marca en la barra dónde está la persona: Catálogo (sin panel abierto), Historial/Solicitudes o Ajustes. */
+function biMarcar(destino) {
+    const id = destino === 'cot' ? 'bi-historial' : destino === 'sol' ? 'bi-solicitudes' : destino ? 'bi-ajustes' : 'bi-catalogo';
+    document.querySelectorAll('#barra-inferior .bi-item').forEach(b => { if (b.id === id) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+}
 function biSincronizar() {
     const bar = document.getElementById('barra-inferior'); if (!bar) return;
     const vis = id => { const e = document.getElementById(id); return !!e && e.style.display !== 'none'; };
@@ -6592,8 +6630,9 @@ async function cfgCargarCotizacionesRecibidas() {
         }).join('') : '<p class="cfg-muted">Aún no tienes cotizaciones recibidas. Cuando el equipo termine de revisar tu solicitud aparecerá aquí con precios.</p>';
     } catch (e) { cont.innerHTML = '<p class="cfg-muted">No se pudieron cargar. Revisa tu conexión.</p>'; }
 }
-function cfgCerrar() { _cpEl('cfg-overlay').classList.remove('visible'); }
+function cfgCerrar() { _cpEl('cfg-overlay').classList.remove('visible'); biMarcar(null); }
 function cfgTab(t) {
+    biMarcar(t);
     const cot = t === 'cot' && esAdmin;
     _cpEl('cfg-aspecto').hidden = t !== 'aspecto'; _cpEl('cfg-cuenta').hidden = t !== 'cuenta'; _cpEl('cfg-cotizaciones').hidden = !cot;
     _cpEl('cfg-solicitudes').hidden = !(t === 'sol' && !esAdmin); _cpEl('cfg-tab-sol').setAttribute('aria-selected', String(t === 'sol'));
