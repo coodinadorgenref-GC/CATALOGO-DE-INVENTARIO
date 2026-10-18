@@ -47,30 +47,20 @@ PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan 
 10. **Maps ya no atiende el catálogo** (16-oct): se borra todo lo relacionado. En `index.html`: el botón "Cotizar en Maps" de las tarjetas de Pendientes y `abrirCotizacionEnMaps`. En `Código.js`: el enlace "Cotizar en Maps" del mensaje de Telegram. Para el cliente se agrega el botón **Cotizar en ruta**, que sí lleva a Maps (una sola constante con la URL). Lo que Maps usa para su propio acceso (`esVendedor`, `esAdminReal`, `validarSesion`) no se toca hasta confirmarlo.
 11. **Rediseño de toda la interfaz** (16-oct) con UI/UX Pro Max: experiencia intuitiva y natural. Como el aspecto será Claro/Oscuro/Sistema, el diseño necesita tokens para los dos temas (`MASTER.md` §3).
 
-## Pendiente (en orden)
-1. Rol Gerente: listo en backend, catálogo y REPORTEADOR (v74: entra con alcance de vendedor y ve Talleres de su agencia). Falta probarlo con una cuenta `gerente` (columna F) con agencia en la columna H.
-2. Sistema visual (MASTER.md): hecho y aplicada la capa base en `index.html` (16-oct): tokens, contraste AA en botones y grises, fuentes Rubik + Nunito Sans, texto mínimo de 11 px, `aria-label`/`aria-hidden`/`aria-live`, foco visible, imágenes `loading="lazy"`, emojis sustituidos por Font Awesome. Queda lo estructural, que va con la etapa 6: barra inferior móvil, tarjeta de producto, modales como hoja inferior y áreas táctiles de 44 px.
-3. Listas de precios en el REPORTEADOR hacia el API.
-4. Cotización en piso de venta: captura, folio y guardado hechos (falta desplegar `Cotizaciones.js` en Apps Script y probar). Falta: que "Atender" en Pendientes abra la cotización en el catálogo con los SKU del carrito (el botón a Maps ya se quitó de las tarjetas de Pendientes), lista de mis cotizaciones con cambio de estado en la interfaz, y el precio por número de parte desde la lista de precios del REPORTEADOR.
-5. **Hecho en código (17-oct), falta probar en el celular y desplegar**: hoja de cotización tipo factura con logo por agencia (Vento, Carabela, Suzuki, Bajaj), contacto del vendedor (agencia y WhatsApp, solo si la cuenta es vendedor) y botón Hoja PDF. Falta subir `Cotizaciones.js` (agencias `CARABELA` y `GENERAL`, columnas nuevas `vendedorAgencia` y `vendedorWhats`; si la hoja `COTIZACIONES` ya existe con el encabezado anterior se migra sola) y la lista de precios del REPORTEADOR.
-6. Reestructura de la interfaz. La barra inferior móvil y el rediseño estructural quedan para después, por indicación (17-oct).
-7. **Hecho en `index.html` (16-oct), falta probar en celular** — fallos visibles: el botón "Cotizar" se pierde entre los demás botones flotantes, y las etiquetas "Pendientes" y "Cotización" se desbordan del ícono. Reglas de corrección en `MASTER.md` §7.
-8. **Hecho (16-oct)**: captura con ID de cliente primero (autollena nombre y teléfono desde la hoja `Mecanicos`: B = ID, C = nombre, E = teléfono; `buscarMecanico` en `Cotizaciones.js`) y sin selector de Agencia (se deduce del almacén del asesor; define el logo de la hoja). Falta subir `Código.js` y `Cotizaciones.js` a Apps Script.
-9. **Hecho (16-oct)**: Buscar por Foto quitado del index y de `Código.js` (`analizarFotoProducto` y su ruta). Falta subir `Código.js` a Apps Script y borrar `GROQ_API_KEY` de las Propiedades del script.
-10. **Hecho (17-oct)**: panel Configuración (engrane en la cabecera) con **Aspecto** (Claro, Oscuro, Sistema; se guarda en el dispositivo; arranca en Sistema), **Cuenta y versión** (con "Forzar recarga", igual que el REPORTEADOR) y **Cotizaciones** (lista de las tuyas, búsqueda, ver líneas, cambiar estado, reenviar por WhatsApp sin número de parte). El aspecto claro funciona con tokens en el CSS propio y con una escala de colores de Tailwind invertida (`:root[data-theme="light"]`); las clases de color fijo del HTML no se tocaron. Falta revisar pantalla por pantalla en claro.
-11. **Hecho (16-oct)**: botón "Cotizar en Maps" quitado de Pendientes, enlace a Maps quitado del mensaje de Telegram, y botón "Cotizar en ruta" en el pie del carrito del cliente (abre Maps sin datos). Falta subir `Código.js` a Apps Script.
-12. **Hecho en código (17-oct), falta probar en el celular y desplegar `Código.js`**: seguimiento paso a paso de las cotizaciones solicitadas por clientes (Atender → Revisar → Enviar → Cerrar, candado por cliente, hoja `Seguimiento_Solicitudes`), lista de pendientes más rápida, diálogos con la paleta del catálogo y cantidad del carrito que nunca elimina el producto. Ver «Seguimiento de la cotización solicitada por el cliente».
+## Estado y pendientes (18-oct)
+**Hecho y en GitHub** (detalle en las secciones de abajo): roles con Gerente en catálogo y REPORTEADOR · sistema visual y aspecto Claro/Oscuro/Sistema · Configuración (Aspecto, Cuenta y versión con Forzar recarga, Cotizaciones, Mis solicitudes) · ID de cliente y búsqueda en `Mecanicos` · lista de precios en el REPORTEADOR · cotización de piso con hoja PDF tipo factura (Subtotal, IVA y Total) · historial en libro aparte · secciones Vento / Carabela · Suzuki · Bajaj · cotización única · contactos desde `Usuarios_Autorizados` (solo correo, nombre y teléfono) · Buscar por Foto y Maps fuera del catálogo.
+- **Letras y áreas táctiles (17-oct):** piso de texto de 12 px (antes 11) y 11 px en lo más chico (antes 10), botones de la cabecera de 44 px (antes 38), título de tarjeta de 13 px en Rubik semibold; el botón verde de Pendientes pasa a `btn-primary` y la insignia ámbar de guardado a texto oscuro (el blanco no pasaba 4.5:1); el nombre de marca sobre fondo blanco usa un color fijo para que no desaparezca en el aspecto claro.
+
+**Para desplegar en Apps Script** (todo lo de `apps-script` en GitHub): `Código.js`, `Cotizaciones.js`, `Cotizacion_unica.js`, `Secciones.js`, `Lista_precios.js`, `Inventario_base.js`, `Sesion_rol.js`. Después: 1) correr `migrarCotizacionesAlHistorial()` una vez; 2) dar permiso de edición al libro del historial; 3) borrar `GROQ_API_KEY` de las Propiedades del script; 4) **Forzar recarga** en cada dispositivo.
+
+**Para cargar**: la **lista de precios** (REPORTEADOR › Configuración › Carga de datos) y, en `Usuarios_Autorizados`, el teléfono (G) y el almacén (H) de quien atiende cada sucursal.
+
+**Por probar con datos reales**: cuenta gerente · cliente con productos de dos secciones y dos asesores · envío parcial · PDF del cliente · historial y filtros · lista de precios (Excel y pegado) · aspecto claro en el celular.
+
+**Pendiente de mejora**: barra inferior móvil y rediseño estructural (tarjeta de producto, hojas inferiores, filtros plegables) · revisar cada pantalla en claro y migrar los colores fijos de Tailwind a tokens · validar en el servidor que cada SKU de una cotización de asesor tenga existencias en su sección · revocar el token de GitHub compartido.
 
 ## Por confirmar
-- **Hoja de cotización: dirección y teléfono de cada agencia.** Pásame los datos de Vento, Carabela, Suzuki y Bajaj para agregarlos; mientras tanto la hoja lleva el logo de la agencia y el WhatsApp del vendedor.
-
-## Decisiones tomadas (17-oct, antes por confirmar)
-- **Configuración:** el engrane lo ven todos los usuarios con sesión; la pestaña Cotizaciones solo los asesores. El aspecto arranca en **Sistema** (sigue el modo del teléfono o la computadora) hasta que cada quien elija.
-- **Cotizar en ruta:** solo abre Maps (no lleva el carrito).
-- **Lista de precios:** es la que se sube en el REPORTEADOR (hoja `LISTA_PRECIOS`).
-- **Maps:** `esVendedor`, `esAdminReal` y `validarSesion` se quedan; Maps los usa para su propio acceso.
-
-- **Letras y áreas táctiles (17-oct):** piso de texto de 12 px (antes 11) y 11 px en lo más chico (antes 10), botones de la cabecera de 44 px (antes 38), título de tarjeta de 13 px en Rubik semibold; el botón verde de Pendientes pasa a `btn-primary` y la insignia ámbar de guardado a texto oscuro (el blanco no pasaba 4.5:1); el nombre de marca sobre fondo blanco usa un color fijo para que no desaparezca en el aspecto claro.
+- Nada por ahora. La hoja de cotización lleva solo logo, folio, cliente y, por asesor, **correo, nombre y teléfono** (ya no se pide dirección ni teléfono de la agencia).
 
 ## Cómo probar
 1. Subir `index.html`, `sw.js` y `README.md` a GitHub Pages y recargar.
@@ -181,3 +171,8 @@ El cliente solicita una vez (un carrito con las secciones que quiera) y recibe *
 - Cotización única: el contacto de cada sección es el de quien la revisó; si es gerente o admin (sin WhatsApp en la hoja), se usa el de la cuenta de esa sección (`_contactoDeSeccion_`).
 - Editar Usuarios_Autorizados a mano limpia el caché del inventario, así que un cambio de número se refleja pronto.
 - Una sucursal sin ninguna cuenta con WhatsApp queda sin botón de contacto: hay que poner el número (columna G) y el almacén (columna H) de alguien que la atienda.
+
+## Contacto en la cotización: correo, nombre y teléfono (18-oct)
+- La fuente de datos de la cotización guarda del asesor solo **correo, nombre y teléfono**, tomados de `Usuarios_Autorizados` (A, B, G). En la cotización única cada sección lleva `{seccion, correo, nombre, telefono}`.
+- La columna `vendedorAgencia` del historial queda **vacía** (no la borres: las demás columnas dependen de su posición); `vendedorWhats` guarda el teléfono.
+- El PDF muestra nombre, teléfono y correo; ya no muestra la agencia del asesor.

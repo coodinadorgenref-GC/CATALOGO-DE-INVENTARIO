@@ -6455,7 +6455,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-18 · cotización única';
+const APP_VERSION = '2026-10-18 · contactos';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -6526,7 +6526,7 @@ async function cfgCargarCotizacionesRecibidas() {
         _cfgMisCots = rs.cotizaciones || [];
         cont.innerHTML = _cfgMisCots.length ? _cfgMisCots.map((c, k) => {
             const lineas = c.items.map(it => `<li>${it.cantidad} × ${escaparHTML(it.descripcion || '')} (${escaparHTML(it.sku || '')}) — ${it.importe === null || it.importe === undefined || it.importe === '' ? 'por confirmar' : _cfgMoneda(it.importe)}</li>`).join('');
-            const cont2 = (c.contactos || []).map(x => `<div class="cfg-muted">${escaparHTML(SECCIONES[x.seccion] || x.seccion)}: ${escaparHTML(x.nombre)}${x.whats ? ' · WhatsApp ' + escaparHTML(String(x.whats)) : ''}</div>`).join('');
+            const cont2 = (c.contactos || []).map(x => `<div class="cfg-muted">${escaparHTML(SECCIONES[x.seccion] || x.seccion)}: ${escaparHTML(x.nombre)}${(x.telefono || x.whats) ? ' · ' + escaparHTML(String(x.telefono || x.whats)) : ''}${x.correo ? ' · ' + escaparHTML(x.correo) : ''}</div>`).join('');
             return `<div class="cfg-cot"><div class="cfg-cot-top"><b>${escaparHTML(c.folio)}</b><span class="cfg-est"><i aria-hidden="true" class="fa-solid fa-circle-check"></i> ${escaparHTML(c.estado)}</span></div>
                 <div class="cfg-muted">${escaparHTML(String(c.fecha).slice(0, 16))} · Subtotal ${_cfgMoneda(c.subtotal)} · IVA ${_cfgMoneda(c.iva)}</div>
                 <div><b>Total con IVA: ${_cfgMoneda(c.total)}</b></div>
@@ -6676,11 +6676,14 @@ function hojaCotizacionConstruir(jsPDF, cot, logo) {
     const contactos = Array.isArray(cot.contactos) ? cot.contactos : [];
     const der = contactos.length ? [] : [['ASESOR DE VENTAS', txt(cot.vendedorNombre) || '—', true]];
     // Cotización única: un contacto POR SECCIÓN (cada asesor atiende lo suyo)
-    contactos.forEach((x, k) => der.push([k === 0 ? 'CONTACTO POR SECCIÓN' : '', (NOM_SEC[x.seccion] || x.seccion) + ': ' + (txt(x.nombre) || '—') + (fmtWa(x.whats) ? ' · ' + fmtWa(x.whats) : ''), k === 0]));
+    contactos.forEach((x, k) => {
+        der.push([k === 0 ? 'CONTACTO POR SECCIÓN' : '', (NOM_SEC[x.seccion] || x.seccion) + ': ' + (txt(x.nombre) || '—') + (fmtWa(x.telefono || x.whats) ? ' · ' + fmtWa(x.telefono || x.whats) : ''), k === 0]);
+        if (txt(x.correo)) der.push(['', txt(x.correo), false]);
+    });
     // Contacto del asesor: solo viene si su cuenta es "vendedor" (el servidor no lo manda para admin ni gerente).
-    if (!contactos.length && txt(cot.vendedorAgencia)) der.push(['', 'Agencia: ' + txt(cot.vendedorAgencia).replace(/\s*[,;|]\s*/g, ' · '), false]);
     const wa = txt(cot.vendedorWhats).replace(/\D/g, '');
     if (!contactos.length && wa) der.push(['', 'WhatsApp: ' + (wa.length === 10 ? wa.slice(0, 3) + ' ' + wa.slice(3, 6) + ' ' + wa.slice(6) : wa), false]);
+    if (!contactos.length && wa && txt(cot.vendedorCorreo)) der.push(['', txt(cot.vendedorCorreo), false]);
     const moto = [txt(cot.moto), txt(cot.anio) ? 'Año ' + txt(cot.anio) : ''].filter(Boolean).join(' · ');
     if (moto) der.push(['MOTOCICLETA', moto, true]);
     const alturaCol = col => col.reduce((h, f) => h + (f[0] ? 4 : 0) + 4.6, 0);
