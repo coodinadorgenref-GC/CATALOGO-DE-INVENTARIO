@@ -743,6 +743,23 @@
         .cp-total { display: flex; justify-content: space-between; align-items: baseline; font-family: 'Rubik', sans-serif; font-size: 22px; font-weight: 700; margin: 16px 0 4px; }
         .cp-listo { text-align: center; padding: 8px 0; }
         .cp-folio { font-family: 'Rubik', sans-serif; font-size: 34px; font-weight: 700; color: var(--brand); margin: 8px 0; }
+        /* Historial y vista previa de cotizaciones (mismo patrón que "Mis ventas" y la nota de Maps): sin listas de líneas, la hoja se ve completa */
+        .cv-overlay { z-index: 320; }
+        .cv-marco { width: 100%; height: 62vh; border: 1px solid var(--border); border-radius: 10px; background: #fff; display: block; }
+        .cv-aparte { text-align: center; margin: 8px 0 4px; font-size: 12px; }
+        .cv-aparte a { color: var(--text-3); text-decoration: underline; }
+        .cv-fila { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--divider); }
+        .cv-fila:last-child { border-bottom: 0; }
+        .cv-info { flex: 1; min-width: 0; text-align: left; background: transparent; border: 0; color: var(--text); cursor: pointer; padding: 0; font: inherit; }
+        .cv-info b { display: block; font-size: 15px; overflow-wrap: anywhere; }
+        .cv-meta { display: block; font-size: 12px; color: var(--text-3); margin-top: 2px; }
+        .cv-vencida { color: var(--danger); font-weight: 700; }
+        .cv-btns { display: flex; gap: 8px; flex: 0 0 auto; }
+        .cv-btn { min-height: 44px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--brand-text); font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .cv-btn:hover { background: var(--surface-2); }
+        .cv-btn.peligro { color: var(--danger); border-color: var(--danger); }
+        .cv-btn:disabled { opacity: .6; cursor: progress; }
+        @media (max-width: 560px) { .cv-fila { flex-direction: column; align-items: stretch; } .cv-btns .cv-btn { flex: 1; } }
     
         /* ── ASPECTO CLARO (data-theme="light"; el oscuro es el de :root) ── */
         :root[data-theme="light"] {
@@ -1591,6 +1608,8 @@
                     <input id="cp-moto" type="text" autocomplete="off" enterkeyhint="next"></div>
                 <div class="cp-campo"><label for="cp-anio">Año (opcional)</label>
                     <input id="cp-anio" type="text" inputmode="numeric" maxlength="4" autocomplete="off" enterkeyhint="next"></div>
+                <div class="cp-campo"><label for="cp-vigencia">Vigencia (válida hasta)</label>
+                    <input id="cp-vigencia" type="date" enterkeyhint="next"></div>
             </div>
             <div class="cp-campo" style="margin-top:16px">
                 <label for="cp-buscador">Producto: SKU, nombre o número de parte</label>
@@ -1604,13 +1623,33 @@
             <button type="button" id="cp-guardar" class="btn-primary" onclick="cotPisoGuardar()" style="width:100%;min-height:48px;border-radius:8px;font-weight:600;margin-top:12px;cursor:pointer">Guardar cotización</button>
         </div>
         <div id="cp-listo" class="cp-listo" hidden>
-            <p style="color:var(--text-2);margin:0">Cotización guardada</p>
+            <p id="cp-listo-titulo" style="color:var(--text-2);margin:0">Cotización guardada</p>
             <div id="cp-folio" class="cp-folio"></div>
             <p id="cp-listo-detalle" style="color:var(--text-2);margin:0 0 4px"></p>
             <p id="cp-listo-aviso" class="cp-ayuda" style="margin-bottom:16px"></p>
-            <button type="button" id="cp-hoja" class="btn-primary" onclick="hojaCotizacionPdf(_cpUltima, this)" style="width:100%;min-height:48px;border-radius:8px;font-weight:600;cursor:pointer"><i aria-hidden="true" class="fa-solid fa-file-pdf"></i> Hoja PDF</button>
+            <button type="button" id="cp-vista" class="btn-primary" onclick="cvAbrir(_cpUltima, 'nueva')" style="width:100%;min-height:48px;border-radius:8px;font-weight:600;cursor:pointer"><i aria-hidden="true" class="fa-solid fa-eye"></i> Vista previa</button>
+            <button type="button" id="cp-hoja" class="cp-btn-sec" onclick="hojaCotizacionPdf(_cpUltima, this)"><i aria-hidden="true" class="fa-solid fa-file-pdf"></i> Hoja PDF</button>
             <button type="button" class="cp-btn-sec" onclick="cotPisoNueva()">Nueva cotización</button>
             <button type="button" class="cp-btn-sec" onclick="cotPisoCerrar(true)">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<div id="cv-overlay" class="cp-overlay cv-overlay" role="dialog" aria-modal="true" aria-labelledby="cv-titulo" onclick="if(event.target===this)cvCerrar()">
+    <div class="cp-card">
+        <div class="cp-cab">
+            <h3 id="cv-titulo">Cotización</h3>
+            <button type="button" class="cp-cerrar" aria-label="Cerrar" onclick="cvCerrar()"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p id="cv-sub" class="cp-ayuda" style="margin:0 0 10px"></p>
+        <iframe id="cv-marco" class="cv-marco" title="Vista previa de la cotización"></iframe>
+        <p class="cv-aparte"><a id="cv-aparte" href="#" target="_blank" rel="noopener">¿No se ve bien? Ábrela aparte</a></p>
+        <div id="cv-estado-fila" class="cp-campo" style="margin-top:8px"><label for="cv-estado">Estado</label>
+            <select id="cv-estado" onchange="cvCambiarEstado(this)"></select></div>
+        <div class="cfg-acciones">
+            <button type="button" id="cv-wa" onclick="_cotReenviar(_cvCot)"><i aria-hidden="true" class="fa-brands fa-whatsapp"></i> Reenviar</button>
+            <button type="button" id="cv-pdf" onclick="hojaCotizacionPdf(_cvCot, this)"><i aria-hidden="true" class="fa-solid fa-file-pdf"></i> Compartir PDF</button>
+            <button type="button" id="cv-editar" onclick="cvEditar()"><i aria-hidden="true" class="fa-solid fa-pen"></i> Editar</button>
         </div>
     </div>
 </div>
@@ -6472,6 +6511,7 @@ function filtrarPorMarcaDesdeFooter(palabraClave) {
 
   // De arriba hacia abajo: lo que está encima va primero.
   var capas = [
+    function(){ var e = el('cv-overlay'); if (e && e.classList.contains('visible')){ cvCerrar(); return true; } },
     function(){ if (abierto('modal-zoom-imagen'))        { cerrarZoomImagen(); return true; } },
     function(){ if (abierto('modal-form-foto'))          { cerrarFormularioFoto(); return true; } },
     function(){ if (abierto('modal-usuarios-conectados')){ cerrarModalUsuariosConectados(); return true; } },
@@ -6523,6 +6563,25 @@ const _cpSku = v => { const t = String(v == null ? '' : v).trim(); return /^\d+$
 const _cpMoneda = n => '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const _cpEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const _cpEl = id => document.getElementById(id);
+
+/* ── Vigencia: fecha límite (AAAA-MM-DD) hasta la que vale la cotización ── */
+const COT_VIGENCIA_DIAS = 15;   // vigencia por omisión; el asesor la cambia en el formulario
+const _COT_MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+const _cotIso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+function _cotVigenciaPorOmision() { const d = new Date(); d.setDate(d.getDate() + COT_VIGENCIA_DIAS); return _cotIso(d); }
+/** Normaliza lo que mande el servidor (texto o fecha de Sheets) a AAAA-MM-DD; '' si no hay. */
+function _cotVigIso(v) { const m = /^(\d{4}-\d{2}-\d{2})/.exec(String(v == null ? '' : v).trim()); return m ? m[1] : ''; }
+function _cotFechaLarga(iso) { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '')); return m ? Number(m[3]) + ' de ' + _COT_MESES[Number(m[2]) - 1] + ' de ' + m[1] : ''; }
+/** Vencida: pasó su vigencia y todavía sigue abierta (Borrador o Enviada). */
+function _cotVencida(c) { const v = _cotVigIso(c && c.vigencia); return !!v && v < _cotIso(new Date()) && (c.estado === 'Borrador' || c.estado === 'Enviada'); }
+const _cotSeccionDeAgencia = a => (String(a || '').toUpperCase() === 'SUZUKI' || String(a || '').toUpperCase() === 'BAJAJ') ? String(a).toUpperCase() : 'VENTO';
+/** '' si se puede editar; si no, el motivo. El servidor lo vuelve a validar. */
+function _cotMotivoNoEditable(c) {
+    if (!esAdmin) return 'Solo los asesores editan cotizaciones.';
+    if (c.estado !== 'Borrador' && c.estado !== 'Enviada') return 'Solo se editan cotizaciones en Borrador o Enviada.';
+    if (String(c.agencia || '').toUpperCase() === 'GENERAL' || c.solicitudId || (c.origen && String(c.origen).toUpperCase() !== 'PISO')) return 'Esta cotización viene de una solicitud del cliente; se corrige desde Pendientes.';
+    return '';
+}
 
 async function _cpApi(action, extra) {
     const r = await fetch(API_URL, { method: 'POST', mode: 'cors', headers: { 'Content-Type': 'text/plain' },
@@ -6630,7 +6689,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-19 · v48';
+const APP_VERSION = '2026-10-19 · v49';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -6729,13 +6788,12 @@ async function cfgCargarCotizacionesRecibidas() {
         if (!rs.success) { cont.innerHTML = '<p class="cfg-muted">' + escaparHTML(rs.message || 'No se pudieron cargar.') + '</p>'; return; }
         _cfgMisCots = rs.cotizaciones || [];
         cont.innerHTML = _cfgMisCots.length ? _cfgMisCots.map((c, k) => {
-            const lineas = c.items.map(it => `<li>${it.cantidad} × ${escaparHTML(it.descripcion || '')} (${escaparHTML(it.sku || '')}) — ${it.importe === null || it.importe === undefined || it.importe === '' ? 'por confirmar' : _cfgMoneda(it.importe)}</li>`).join('');
             const cont2 = (c.contactos || []).map(x => `<div class="cfg-muted">${escaparHTML(SECCIONES[x.seccion] || x.seccion)}: ${escaparHTML(x.nombre)}${(x.telefono || x.whats) ? ' · ' + escaparHTML(String(x.telefono || x.whats)) : ''}${x.correo ? ' · ' + escaparHTML(x.correo) : ''}</div>`).join('');
             return `<div class="cfg-cot"><div class="cfg-cot-top"><b>${escaparHTML(c.folio)}</b><span class="cfg-est"><i aria-hidden="true" class="fa-solid fa-circle-check"></i> ${escaparHTML(c.estado)}</span></div>
                 <div class="cfg-muted">${escaparHTML(String(c.fecha).slice(0, 16))} · Subtotal ${_cfgMoneda(c.subtotal)} · IVA ${_cfgMoneda(c.iva)}</div>
                 <div><b>Total con IVA: ${_cfgMoneda(c.total)}</b></div>
-                <details><summary>Ver productos (${c.items.length})</summary><ul>${lineas}</ul></details>${cont2}
-                <div class="cfg-acciones"><button type="button" onclick="hojaCotizacionPdf(_cfgMisCots[${k}], this)"><i aria-hidden="true" class="fa-solid fa-file-pdf"></i> Descargar PDF</button></div></div>`;
+                ${_cotVigIso(c.vigencia) ? `<div class="cfg-muted">Vigente hasta el ${_cotFechaLarga(_cotVigIso(c.vigencia))}</div>` : ''}${cont2}
+                <div class="cfg-acciones"><button type="button" onclick="cvAbrir(_cfgMisCots[${k}], 'cliente')"><i aria-hidden="true" class="fa-solid fa-eye"></i> Ver cotización</button><button type="button" onclick="hojaCotizacionPdf(_cfgMisCots[${k}], this)"><i aria-hidden="true" class="fa-solid fa-file-pdf"></i> Descargar PDF</button></div></div>`;
         }).join('') : '<p class="cfg-muted">Aún no tienes cotizaciones recibidas. Cuando el equipo termine de revisar tu solicitud aparecerá aquí con precios.</p>';
     } catch (e) { cont.innerHTML = '<p class="cfg-muted">No se pudieron cargar. Revisa tu conexión.</p>'; }
 }
@@ -6768,38 +6826,98 @@ function cfgPintarCotizaciones() {
     const lista = _cfgCots, pags = Math.max(1, Math.ceil(_cfgTotal / _cfgPorPag));
     _cpEl('cfg-cot-estado').textContent = _cfgTotal ? _cfgTotal + ' cotización(es) · página ' + _cfgPag + ' de ' + pags : 'Sin cotizaciones con esos filtros.';
     _cpEl('cfg-cot-pag').innerHTML = pags > 1 ? `<button type="button" ${_cfgPag <= 1 ? 'disabled' : ''} onclick="cfgCargarCotizaciones(${_cfgPag - 1})">Anterior</button><button type="button" ${_cfgPag >= pags ? 'disabled' : ''} onclick="cfgCargarCotizaciones(${_cfgPag + 1})">Siguiente</button>` : '';
+    // Como "Mis ventas" en Maps: una fila por cotización; al tocarla se abre la vista previa de la hoja (sin lista de líneas).
     _cpEl('cfg-cot-lista').innerHTML = lista.map(c => {
-        const lineas = (c.items || []).map(it => `<li>${it.cantidad} × ${escaparHTML(it.descripcion || '')}${it.sku ? ' (' + escaparHTML(it.sku) + ')' : ''}${it.tipo === 'pedido' ? ' · bajo pedido, parte ' + escaparHTML(it.numeroParte || '') : ''} — ${_cfgMoneda(it.importe)}</li>`).join('');
-        const opciones = ESTADOS_COT.map(e => `<option${e === c.estado ? ' selected' : ''}>${e}</option>`).join('');
-        const f = escaparHTML(c.folio);
-        return `<div class="cfg-cot"><div class="cfg-cot-top"><b>${f}</b><span class="cfg-est"><i aria-hidden="true" class="fa-solid ${ICONO_ESTADO_COT[c.estado] || 'fa-circle'}"></i> ${escaparHTML(c.estado)}</span></div>
-            <div>${escaparHTML(c.cliente)} · ${escaparHTML(String(c.telefono))}${c.idCliente ? ' · ID ' + escaparHTML(c.idCliente) : ''}</div>
-            <div class="cfg-muted">${escaparHTML(String(c.fecha).slice(0, 16))} · ${_cfgMoneda(c.total)}</div>
-            <details><summary>Ver líneas (${(c.items || []).length})</summary><ul>${lineas}</ul></details>
-            <div class="cfg-acciones"><select aria-label="Estado de ${f}" onchange="cfgCambiarEstado('${f}', this)">${opciones}</select>
-            <button type="button" onclick="cfgReenviar('${f}')"><i aria-hidden="true" class="fa-brands fa-whatsapp"></i> Reenviar</button>
-            <button type="button" onclick="cfgHojaPdf('${f}', this)"><i aria-hidden="true" class="fa-solid fa-file-pdf"></i> Hoja PDF</button></div></div>`;
+        const f = escaparHTML(c.folio), vig = _cotVigIso(c.vigencia), venc = _cotVencida(c);
+        const abierta = c.estado === 'Borrador' || c.estado === 'Enviada';
+        const vigTxt = vig ? (venc ? 'Venció el ' : 'Vigente hasta el ') + _cotFechaLarga(vig) : 'Sin vigencia';
+        return `<div class="cv-fila">
+            <button type="button" class="cv-info" onclick="cfgVer('${f}')" aria-label="Ver cotización ${f}">
+                <b>${escaparHTML(c.cliente)} · ${_cfgMoneda(c.total)}</b>
+                <span class="cv-meta">${f} · ${escaparHTML(String(c.fecha).slice(0, 10))} · <i aria-hidden="true" class="fa-solid ${ICONO_ESTADO_COT[c.estado] || 'fa-circle'}"></i> ${escaparHTML(c.estado)}</span>
+                <span class="cv-meta${venc ? ' cv-vencida' : ''}">${escaparHTML(vigTxt)}</span>
+            </button>
+            <div class="cv-btns">
+                <button type="button" class="cv-btn" onclick="cfgReenviar('${f}')"><i aria-hidden="true" class="fa-solid fa-rotate-right"></i> Reenviar</button>
+                ${abierta && !_cotMotivoNoEditable(c) ? `<button type="button" class="cv-btn" onclick="cfgEditar('${f}')"><i aria-hidden="true" class="fa-solid fa-pen"></i> Editar</button>` : ''}
+                ${abierta ? `<button type="button" class="cv-btn peligro" onclick="cfgCancelar('${f}')"><i aria-hidden="true" class="fa-solid fa-xmark"></i> Cancelar</button>` : ''}
+            </div></div>`;
     }).join('');
 }
-async function cfgCambiarEstado(folio, sel) {
-    const c = _cfgCots.find(x => x.folio === folio); const previo = c ? c.estado : sel.value;
+const _cfgBuscar = folio => _cfgCots.find(x => x.folio === folio);
+function cfgVer(folio) { const c = _cfgBuscar(folio); if (c) cvAbrir(c, 'hist'); }
+function cfgEditar(folio) { const c = _cfgBuscar(folio); if (c) cotPisoEditar(c); }
+async function cfgCancelar(folio) {
+    const c = _cfgBuscar(folio); if (!c) return;
+    if (!(await confirmarApp({ titulo: '¿Cancelar la cotización ' + folio + '?', mensaje: 'Queda en el historial como Cancelada.', icono: 'fa-ban', tipo: 'peligro', confirmar: 'Sí, cancelar', cancelar: 'No' }))) return;
     try {
-        const rs = await _cpApi('cambiarEstadoCotizacion', { folio, estado: sel.value });
-        if (!rs.success) throw new Error(rs.message || 'No se pudo cambiar el estado.');
-        if (c) c.estado = sel.value;
-        cfgPintarCotizaciones();
-    } catch (e) { sel.value = previo; _cpEl('cfg-cot-estado').textContent = e.message || 'No se pudo cambiar el estado.'; }
+        const rs = await _cpApi('cambiarEstadoCotizacion', { folio, estado: 'Cancelada' });
+        if (!rs.success) throw new Error(rs.message || 'No se pudo cancelar.');
+        c.estado = 'Cancelada'; cfgPintarCotizaciones();
+    } catch (e) { _cpEl('cfg-cot-estado').textContent = e.message || 'No se pudo cancelar.'; }
 }
-function cfgHojaPdf(folio, btn) {
-    const c = _cfgCots.find(x => x.folio === folio); if (c) hojaCotizacionPdf(c, btn);
-}
-/** Reenvía por WhatsApp: líneas, importes y total. El número de parte de lo bajo pedido NO va en el mensaje. */
-function cfgReenviar(folio) {
-    const c = _cfgCots.find(x => x.folio === folio); if (!c) return;
+/** Reenvía por WhatsApp: líneas, importes, total y vigencia. El número de parte de lo bajo pedido NO va en el mensaje. */
+function _cotReenviar(c) {
+    if (!c) return;
     const tel = String(c.telefono).replace(/\D/g, '');
     const lin = (c.items || []).map(it => `• ${it.cantidad} × ${it.descripcion || ''}${it.sku ? ' (' + it.sku + ')' : ''} — ${_cfgMoneda(it.importe)}`).join('\n');
-    const msg = `Hola ${c.cliente}, te comparto tu cotización ${c.folio}:\n${lin}\nTotal: ${_cfgMoneda(c.total)}`;
+    const vig = _cotVigIso(c.vigencia);
+    const msg = `Hola ${c.cliente}, te comparto tu cotización ${c.folio}:\n${lin}\nTotal: ${_cfgMoneda(c.total)}${vig ? '\nVigente hasta el ' + _cotFechaLarga(vig) : ''}`;
     window.open('https://wa.me/' + (tel.length === 10 ? '52' + tel : tel) + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+}
+function cfgReenviar(folio) { _cotReenviar(_cfgBuscar(folio)); }
+
+/* ── Vista previa de la cotización: el mismo PDF que se comparte, dentro de la app (como la nota de venta en Maps) ── */
+let _cvUrl = null, _cvCot = null;
+function cvLiberar() {
+    const m = _cpEl('cv-marco');
+    if (m) { try { m.contentWindow.location.replace('about:blank'); } catch (e) { m.src = 'about:blank'; } }
+    if (_cvUrl) { URL.revokeObjectURL(_cvUrl); _cvUrl = null; }
+}
+function cvCerrar() {
+    _cpEl('cv-overlay').classList.remove('visible');
+    cvLiberar(); _cvCot = null;
+    if (!_cpEl('cp-overlay').classList.contains('visible')) document.body.style.overflow = '';
+}
+/** origen: 'hist' (historial del asesor: estado, reenviar y editar), 'nueva' (recién guardada) o 'cliente' (solo ver y compartir). */
+async function cvAbrir(cot, origen) {
+    if (!cot || !cot.folio) return;
+    try {
+        const [jsPDF, logo] = await Promise.all([_cargarJsPdf(), _hojaLogoDe(cot.agencia)]);
+        const blob = hojaCotizacionConstruir(jsPDF, cot, logo).output('blob');
+        cvLiberar();
+        _cvUrl = URL.createObjectURL(blob); _cvCot = cot;
+        const asesor = origen !== 'cliente';
+        _cpEl('cv-titulo').textContent = 'Cotización ' + cot.folio;
+        cvPintarSub();
+        const m = _cpEl('cv-marco');
+        try { m.contentWindow.location.replace(_cvUrl); } catch (e) { m.src = _cvUrl; }
+        _cpEl('cv-aparte').href = _cvUrl;
+        _cpEl('cv-estado-fila').hidden = origen !== 'hist';
+        _cpEl('cv-estado').innerHTML = ESTADOS_COT.map(e => `<option${e === cot.estado ? ' selected' : ''}>${e}</option>`).join('');
+        _cpEl('cv-wa').hidden = !asesor;
+        cvPintarEditar(origen);
+        _cvOrigen = origen;
+        _cpEl('cv-overlay').classList.add('visible');
+        document.body.style.overflow = 'hidden';
+    } catch (e) { mostrarToastInfo(e && e.message ? e.message : 'No se pudo abrir la vista previa.', 'error'); }
+}
+let _cvOrigen = null;
+function cvPintarSub() {
+    const c = _cvCot; if (!c) return;
+    const vig = _cotVigIso(c.vigencia);
+    _cpEl('cv-sub').textContent = [c.cliente, _cfgMoneda(c.total), c.estado, vig ? (_cotVencida(c) ? 'Venció el ' : 'Vigente hasta el ') + _cotFechaLarga(vig) : ''].filter(Boolean).join(' · ');
+}
+function cvPintarEditar(origen) { _cpEl('cv-editar').hidden = !(origen !== 'cliente' && _cvCot && !_cotMotivoNoEditable(_cvCot)); }
+function cvEditar() { if (_cvCot) cotPisoEditar(_cvCot); }
+async function cvCambiarEstado(sel) {
+    const c = _cvCot; if (!c) return;
+    const previo = c.estado;
+    try {
+        const rs = await _cpApi('cambiarEstadoCotizacion', { folio: c.folio, estado: sel.value });
+        if (!rs.success) throw new Error(rs.message || 'No se pudo cambiar el estado.');
+        c.estado = sel.value; cvPintarSub(); cvPintarEditar(_cvOrigen); cfgPintarCotizaciones();
+    } catch (e) { sel.value = previo; mostrarToastInfo(e.message || 'No se pudo cambiar el estado.', 'error'); }
 }
 
 /* ═════ HOJA_COTIZACION_INICIO ═════
@@ -6853,6 +6971,8 @@ function hojaCotizacionConstruir(jsPDF, cot, logo) {
     const mf = /^(\d{4})-(\d{2})-(\d{2})/.exec(txt(cot.fecha));
     const hoy = new Date();
     const fechaTxt = mf ? Number(mf[3]) + ' de ' + MESES[Number(mf[2]) - 1] + ' de ' + mf[1] : hoy.getDate() + ' de ' + MESES[hoy.getMonth()] + ' de ' + hoy.getFullYear();
+    const mv = /^(\d{4})-(\d{2})-(\d{2})/.exec(txt(cot.vigencia));
+    const vigTxt = mv ? Number(mv[3]) + ' de ' + MESES[Number(mv[2]) - 1] + ' de ' + mv[1] : '';
     const tel = txt(cot.telefono).replace(/\D/g, '');
     const telTxt = tel.length === 10 ? tel.slice(0, 3) + ' ' + tel.slice(3, 6) + ' ' + tel.slice(6) : tel;
     const fuente = (peso, tam, color) => { doc.setFont('helvetica', peso); doc.setFontSize(tam); doc.setTextColor(color[0], color[1], color[2]); };
@@ -6868,7 +6988,8 @@ function hojaCotizacionConstruir(jsPDF, cot, logo) {
     fuente('bold', 17, VERDE_TXT); doc.text('COTIZACIÓN', PW - MX, y + 3, { align: 'right' });
     fuente('bold', 10, OSC); doc.text('Folio: ' + txt(cot.folio), PW - MX, y + 9, { align: 'right' });
     fuente('normal', 9, GRIS); doc.text(fechaTxt, PW - MX, y + 14, { align: 'right' });
-    y += 19;
+    if (vigTxt) { fuente('bold', 9, VERDE_TXT); doc.text('Vigencia: hasta el ' + vigTxt, PW - MX, y + 18.6, { align: 'right' }); }
+    y += vigTxt ? 23.5 : 19;
     doc.setDrawColor(VERDE[0], VERDE[1], VERDE[2]); doc.setLineWidth(0.7); doc.line(MX, y, PW - MX, y);
     y += 6;
 
@@ -6950,7 +7071,7 @@ function hojaCotizacionConstruir(jsPDF, cot, logo) {
     });
 
     // ── Total y notas
-    if (y + 46 > LIM) { doc.addPage(); y = 14; }
+    if (y + 52 > LIM) { doc.addPage(); y = 14; }
     y += 6;
     const wT = 78, xT = PW - MX - wT;
     // Los precios de la lista ya traen IVA: se desglosa Subtotal e IVA (16 %) y el total queda igual.
@@ -6969,6 +7090,7 @@ function hojaCotizacionConstruir(jsPDF, cot, logo) {
     if (hayAprox) { doc.text('* Precio aproximado, por confirmar.', MX, y); y += 4.2; }
     if (sinPrecio) { doc.text(sinPrecio + (sinPrecio === 1 ? ' partida por confirmar, no incluida' : ' partidas por confirmar, no incluidas') + ' en el total.', MX, y); y += 4.2; }
     doc.text('Precios y existencias sujetos a confirmación.', MX, y);
+    if (vigTxt) { y += 4.2; doc.text('Esta cotización es válida hasta el ' + vigTxt + '.', MX, y); }
 
     // ── Pie de cada hoja
     const n = doc.getNumberOfPages();
@@ -7040,9 +7162,12 @@ function _cpElegirCliente(m) {
     _cpEl('cp-moto').focus();
 }
 
+let _cpEdicion = null;   // { folio, base } mientras se edita una cotización ya guardada
 function _cpReiniciar() {
-    _cpLineas = []; _cpGuardada = false;
+    _cpLineas = []; _cpGuardada = false; _cpEdicion = null;
     ['cp-cliente', 'cp-telefono', 'cp-moto', 'cp-anio', 'cp-idcliente', 'cp-buscador'].forEach(id => { _cpEl(id).value = ''; });
+    _cpEl('cp-vigencia').value = _cotVigenciaPorOmision();
+    _cpEl('cp-titulo').textContent = 'Nueva cotización'; _cpEl('cp-guardar').textContent = 'Guardar cotización'; _cpEl('cp-listo-titulo').textContent = 'Cotización guardada';
     _cpEl('cp-id-estado').textContent = ''; _cpIdResuelto = ''; _cpEl('cp-id-resultados').hidden = true;
     _cpEl('cp-resultados').hidden = true;
     _cpEl('cp-form').hidden = false; _cpEl('cp-listo').hidden = true;
@@ -7054,21 +7179,53 @@ function cotPisoAbrir() {
     if (!esAdmin) return;
     if (!puedeCotizarEn(seccionActual())) { mostrarToastInfo('Solo consulta: esta sección es de otra agencia. Cambia a tu sección para cotizar.', 'error'); return; }
     _cpReiniciar();
+    _cpMostrarFormulario();
+    setTimeout(() => _cpEl('cp-idcliente').focus(), 60);
+}
+function _cpMostrarFormulario() {
     _cpEl('cp-overlay').classList.add('visible');
     document.body.style.overflow = 'hidden';
-    setTimeout(() => _cpEl('cp-idcliente').focus(), 60);
     _cpCargarPrecios().then(() => _cpPintarLineas()).catch(e => _cpAviso('No se pudieron mostrar los precios (' + e.message + '). Puedes capturar la cotización: el servidor calcula los precios al guardar.'));
 }
 
+/** Abre el mismo formulario de captura con los datos de una cotización guardada (Borrador o Enviada). */
+async function cotPisoEditar(c) {
+    if (!c || !c.folio) return;
+    const motivo = _cotMotivoNoEditable(c);
+    if (motivo) { mostrarToastInfo(motivo, 'error'); return; }
+    const sec = _cotSeccionDeAgencia(c.agencia);
+    if (!puedeCotizarEn(sec)) { mostrarToastInfo('Solo consulta: esa cotización es de otra agencia.', 'error'); return; }
+    if (seccionActual() !== sec) await cambiarSeccion(sec);   // el buscador de productos trabaja con la sección activa
+    cvCerrar();
+    _cpReiniciar();
+    _cpEdicion = { folio: c.folio, base: c };
+    _cpEl('cp-titulo').textContent = 'Editar ' + c.folio; _cpEl('cp-guardar').textContent = 'Guardar cambios'; _cpEl('cp-listo-titulo').textContent = 'Cotización actualizada';
+    _cpEl('cp-cliente').value = c.cliente || ''; _cpEl('cp-telefono').value = String(c.telefono || '');
+    _cpEl('cp-idcliente').value = c.idCliente || ''; _cpIdResuelto = c.idCliente || '';
+    _cpEl('cp-moto').value = c.moto || ''; _cpEl('cp-anio').value = c.anio || '';
+    _cpEl('cp-vigencia').value = _cotVigIso(c.vigencia) || _cotVigenciaPorOmision();
+    _cpLineas = (c.items || []).map(it => {
+        const cant = Math.max(1, Math.min(9999, Math.floor(Number(it.cantidad)) || 1));
+        if (it.tipo === 'pedido') return { id: ++_cpSeq, tipo: 'pedido', sku: '', descripcion: it.descripcion || '', disponibilidad: 'Bajo pedido', stock: 0, cantidad: cant, numeroParte: it.numeroParte || '', precioAprox: Number(it.precio) > 0 ? String(it.precio) : '' };
+        const p = inventarioMaestro.find(x => String(x.SKU) === String(it.sku));
+        const st = p ? _cpStock(p) : 0;
+        return { id: ++_cpSeq, tipo: 'catalogo', sku: String(it.sku || ''), descripcion: it.descripcion || (p ? p.Producto : ''), disponibilidad: p ? (st > 0 ? 'En existencia' : 'Bajo pedido') : (it.disponibilidad || ''), stock: st, cantidad: cant, precioAprox: (it.precioAprox === true && Number(it.precio) > 0) ? String(it.precio) : '' };
+    });
+    _cpPintarLineas();
+    _cpMostrarFormulario();
+}
+
 async function cotPisoCerrar(forzar) {
-    if (!forzar && _cpLineas.length && !_cpGuardada && !(await confirmarApp({ titulo: "¿Descartar esta cotización?", mensaje: "Aún no se ha guardado.", icono: "fa-trash", tipo: "peligro", confirmar: "Descartar" }))) return;
+    if (!forzar && _cpLineas.length && !_cpGuardada && !(await confirmarApp({ titulo: _cpEdicion ? "¿Descartar los cambios?" : "¿Descartar esta cotización?", mensaje: _cpEdicion ? "La cotización se queda como estaba." : "Aún no se ha guardado.", icono: "fa-trash", tipo: "peligro", confirmar: "Descartar" }))) return;
     _cpEl('cp-overlay').classList.remove('visible');
     document.body.style.overflow = '';
 }
 function cotPisoClickFuera(e) { if (e.target.id === 'cp-overlay') cotPisoCerrar(); }
 function cotPisoNueva() { _cpReiniciar(); setTimeout(() => _cpEl('cp-idcliente').focus(), 60); }
 document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && _cpEl('cp-overlay') && _cpEl('cp-overlay').classList.contains('visible')) cotPisoCerrar();
+    if (e.key !== 'Escape') return;
+    if (_cpEl('cv-overlay') && _cpEl('cv-overlay').classList.contains('visible')) { cvCerrar(); return; }
+    if (_cpEl('cp-overlay') && _cpEl('cp-overlay').classList.contains('visible')) cotPisoCerrar();
 });
 
 /* ── Búsqueda (SKU, nombre o número de parte; el vendedor ve los números de parte) ── */
@@ -7185,6 +7342,9 @@ function _cpPintarLineas() {
 function _cpValidar() {
     if (!_cpEl('cp-cliente').value.trim()) return 'Captura el nombre del cliente.';
     if (_cpEl('cp-telefono').value.replace(/\D/g, '').length < 10) return 'El teléfono debe tener al menos 10 dígitos.';
+    const vig = _cpEl('cp-vigencia').value;
+    if (!vig) return 'Elige hasta qué fecha es válida la cotización.';
+    if (vig < _cotIso(new Date())) return 'La vigencia no puede ser anterior a hoy.';
     if (!_cpLineas.length) return 'Agrega al menos un producto.';
     const sinNp = _cpLineas.find(l => l.tipo === 'pedido' && !String(l.numeroParte).trim());
     if (sinNp) return 'Captura el número de parte de cada producto bajo pedido.';
@@ -7200,24 +7360,28 @@ async function cotPisoGuardar() {
     try {
         const datos = {
             cliente: _cpEl('cp-cliente').value.trim(), telefono: _cpEl('cp-telefono').value, idCliente: _cpIdResuelto,
-            moto: _cpEl('cp-moto').value.trim(), anio: _cpEl('cp-anio').value.trim(), agencia: _cpAgenciaAuto(), seccion: seccionActual(), origen: 'PISO',
+            moto: _cpEl('cp-moto').value.trim(), anio: _cpEl('cp-anio').value.trim(), vigencia: _cpEl('cp-vigencia').value,
+            agencia: _cpEdicion ? (_cpEdicion.base.agencia || _cpAgenciaAuto()) : _cpAgenciaAuto(), seccion: seccionActual(), origen: 'PISO',
             lineas: _cpLineas.map(l => l.tipo === 'pedido'
                 ? { tipo: 'pedido', cantidad: l.cantidad, numeroParte: l.numeroParte, descripcion: l.descripcion, precioAprox: l.precioAprox }
                 : { tipo: 'catalogo', sku: l.sku, cantidad: l.cantidad, descripcion: l.descripcion, disponibilidad: l.disponibilidad, precioAprox: l.precioAprox })
         };
-        const rs = await _cpApi('guardarCotizacion', { datos });
-        if (!rs.success) { _cpError(rs.message || 'No se pudo guardar la cotización.'); return; }
+        const edicion = _cpEdicion;
+        const rs = edicion ? await _cpApi('editarCotizacion', { folio: edicion.folio, datos }) : await _cpApi('guardarCotizacion', { datos });
+        if (!rs.success) { _cpError(rs.message || (edicion ? 'No se pudieron guardar los cambios.' : 'No se pudo guardar la cotización.')); return; }
         _cpGuardada = true;
-        _cpUltima = { folio: rs.folio, fecha: rs.fecha, agencia: datos.agencia, cliente: datos.cliente, telefono: datos.telefono, idCliente: datos.idCliente,
-            moto: datos.moto, anio: datos.anio, vendedorAgencia: rs.vendedorAgencia, vendedorWhats: rs.vendedorWhats, vendedorNombre: (document.getElementById('nombre-usuario')?.textContent || '').trim(), total: rs.total, items: rs.items };
+        _cpUltima = { folio: rs.folio || (edicion && edicion.folio), fecha: rs.fecha || (edicion && edicion.base.fecha), estado: rs.estado || (edicion && edicion.base.estado), agencia: datos.agencia, cliente: datos.cliente, telefono: datos.telefono, idCliente: datos.idCliente,
+            moto: datos.moto, anio: datos.anio, vigencia: _cotVigIso(rs.vigencia) || datos.vigencia, vendedorAgencia: rs.vendedorAgencia, vendedorWhats: rs.vendedorWhats,
+            vendedorNombre: (edicion && edicion.base.vendedorNombre) || (document.getElementById('nombre-usuario')?.textContent || '').trim(), total: rs.total, items: rs.items };
+        if (!_cpEl('cfg-cotizaciones').hidden) cfgCargarCotizaciones(_cfgPag);   // el historial abierto detrás se actualiza solo
         _cpEl('cp-form').hidden = true; _cpEl('cp-listo').hidden = false;
-        _cpEl('cp-folio').textContent = rs.folio;
-        _cpEl('cp-listo-detalle').textContent = rs.items.length + (rs.items.length === 1 ? ' producto' : ' productos') + ' · Total ' + _cpMoneda(rs.total) + ' · Estado: ' + rs.estado;
+        _cpEl('cp-folio').textContent = _cpUltima.folio;
+        _cpEl('cp-listo-detalle').textContent = rs.items.length + (rs.items.length === 1 ? ' producto' : ' productos') + ' · Total ' + _cpMoneda(rs.total) + ' · Estado: ' + (rs.estado || _cpUltima.estado) + ' · Vigente hasta el ' + _cotFechaLarga(_cpUltima.vigencia);
         _cpEl('cp-listo-aviso').textContent = rs.sinPrecio ? rs.sinPrecio + ' sin precio: revisa antes de enviarla al cliente.' : '';
     } catch (e) {
         if (!/sesi/i.test(e.message || '')) _cpError('Error de conexión. La cotización no se guardó; intenta de nuevo.');
     } finally {
-        _cpGuardando = false; btn.disabled = false; btn.textContent = 'Guardar cotización';
+        _cpGuardando = false; btn.disabled = false; btn.textContent = _cpEdicion ? 'Guardar cambios' : 'Guardar cotización';
     }
 }
 
