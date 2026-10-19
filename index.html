@@ -1224,10 +1224,6 @@
         <main id="contenido-catalogo" class="flex-1 flex flex-col gap-4 min-w-0">
             <div id="selector-seccion" class="secciones" role="radiogroup" aria-label="Sección del catálogo" hidden></div>
             <p id="aviso-consulta" class="cp-ayuda" role="status" hidden><i aria-hidden="true" class="fa-solid fa-eye"></i> Solo consulta: esta sección es de otra agencia. Para cotizar vuelve a tu sección.</p>
-            <button onclick="abrirCotizarEnRuta()" id="btn-cotizar-en-ruta" type="button" hidden
-                    class="w-full border border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-2)] font-bold py-3 rounded-xl transition text-sm cursor-pointer flex items-center justify-center gap-2">
-                <i aria-hidden="true" class="fa-solid fa-route"></i> Cotizar en ruta (precios de ruta en Maps)
-            </button>
             <!-- NUEVO: panel de compatibilidad cruzada con el índice de NP
                  (coodinadorgenref-gc.github.io/NP). Se llena/oculta desde
                  renderPanelCompatibilidadNP(), llamado dentro de filtrarProductos()
@@ -1611,8 +1607,8 @@
                 <div class="cp-campo"><label for="cp-telefono">Teléfono *</label>
                     <input id="cp-telefono" type="tel" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required aria-required="true" placeholder="Solo números, ej. 9851234567" enterkeyhint="next"></div>
                 <div class="cp-campo"><label for="cp-moto">Motocicleta (modelo) *</label>
-                    <input id="cp-moto" type="text" list="cp-motos-lista" maxlength="60" autocomplete="off" required aria-required="true" placeholder="Elige de la lista o captura el modelo" enterkeyhint="next">
-                    <datalist id="cp-motos-lista"></datalist></div>
+                    <input id="cp-moto" type="text" maxlength="60" autocomplete="off" required aria-required="true" placeholder="Escribe el modelo; saldrán sugerencias" enterkeyhint="next" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="cp-moto-sug">
+                    <div id="cp-moto-sug" class="cp-resultados" role="listbox" hidden></div></div>
                 <div class="cp-campo"><label for="cp-anio">Año *</label>
                     <input id="cp-anio" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required aria-required="true" placeholder="Ej. 2022" enterkeyhint="next"></div>
                 <div class="cp-campo"><label for="cp-vigencia">Vigencia (válida hasta) *</label>
@@ -4514,12 +4510,6 @@ function pintarCotizacionesAdmin(rs) {
     contenedor.innerHTML = html;
 }
 
-/** Cliente: "Cotizar en ruta" abre Maps (venta en ruta). Es el único enlace del catálogo a Maps. */
-const URL_MAPS_APP = "https://coodinadorgenref-gc.github.io/Maps/";
-function abrirCotizarEnRuta() {
-    window.open(URL_MAPS_APP, "_blank", "noopener");
-}
-
 /* ═══════════════════════════════════════════════════════════════
    SEGUIMIENTO DE LA COTIZACIÓN SOLICITADA POR EL CLIENTE
 
@@ -6682,7 +6672,6 @@ function pintarSelectorSeccion() {
     cont.hidden = false; cont.classList.remove('fija');
     cont.innerHTML = seccionesPermitidas().map(k => `<button type="button" role="radio" aria-checked="${k === act}" onclick="cambiarSeccion('${k}')">${SECCIONES[k]}</button>`).join('');
     const av = document.getElementById('aviso-consulta'); if (av) av.hidden = !(esAdmin && !puedeCotizarEn(act));
-    const ruta = document.getElementById('btn-cotizar-en-ruta'); if (ruta) ruta.hidden = !!esAdmin;
 }
 async function cambiarSeccion(k) {
     const actual = seccionActual();
@@ -6697,7 +6686,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-19 · v52';
+const APP_VERSION = '2026-10-19 · v53';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -7218,6 +7207,7 @@ function cotPisoAbrir() {
 function _cpMostrarFormulario() {
     _cpEl('cp-overlay').classList.add('visible');
     document.body.style.overflow = 'hidden';
+    _motosCargar();
     _cpCargarPrecios().then(() => _cpPintarLineas()).catch(e => _cpAviso('No se pudieron mostrar los precios (' + e.message + '). Puedes capturar la cotización: el servidor calcula los precios al guardar.'));
 }
 
@@ -7376,30 +7366,52 @@ const _COT_LETRAS = 'A-Za-zÁÉÍÓÚÜÑáéíóúüñ';
 const _COT_RE_NOMBRE = new RegExp("^[" + _COT_LETRAS + "][" + _COT_LETRAS + " .'-]*$");
 const _cotSoloLetras = t => String(t == null ? '' : t).replace(new RegExp("[^" + _COT_LETRAS + " .'-]", 'g'), '').replace(new RegExp("^[^" + _COT_LETRAS + "]+"), '').replace(/ {2,}/g, ' ');
 const _cotSoloDigitos = t => String(t == null ? '' : t).replace(/\D/g, '');
-const _MOTOS_CLAVE = 'motosCotizacion';   // modelos ya capturados en este dispositivo (se ofrecen como lista desplegable)
-function _motosGuardadas() {
-    try { const a = JSON.parse(localStorage.getItem(_MOTOS_CLAVE) || '[]'); return Array.isArray(a) ? a.filter(x => typeof x === 'string' && x.trim()) : []; } catch (e) { return []; }
+/* Lista de motos: viene de la hoja "Motos" (compartida por todos los asesores). Mientras se escribe salen hasta 6 sugerencias;
+   si el modelo no se elige de la lista, el servidor lo registra al guardar la cotización. */
+let _motosLista = [];          // modelos conocidos (MAYÚSCULAS)
+let _motosCargadas = false;
+const _MOTOS_MAX_SUGERENCIAS = 6;
+const _motosClave = t => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
+async function _motosCargar() {
+    if (_motosCargadas) return;
+    try {
+        const rs = await _cpApi('listarMotos');
+        if (rs && rs.success && Array.isArray(rs.motos)) { _motosLista = rs.motos; _motosCargadas = true; }
+    } catch (e) {}   // sin lista el campo funciona igual: se captura el modelo a mano
 }
-function _motosPintar() {
-    const dl = _cpEl('cp-motos-lista'); if (!dl) return;
-    let delHistorial = []; try { delHistorial = (_cfgCots || []).map(c => String(c.moto || '').trim()).filter(Boolean); } catch (e) {}
-    const vistas = new Set(), lista = [];
-    _motosGuardadas().concat(delHistorial).forEach(m => { const k = m.toLowerCase(); if (!vistas.has(k)) { vistas.add(k); lista.push(m); } });
-    lista.sort((a, b) => a.localeCompare(b, 'es'));
-    dl.innerHTML = lista.map(m => `<option value="${escaparHTML(m)}"></option>`).join('');
+function _motosSugerir() {
+    const caja = _cpEl('cp-moto-sug'), campo = _cpEl('cp-moto'); if (!caja || !campo) return;
+    const q = _motosClave(campo.value), palabras = q.split(' ').filter(Boolean);
+    let sug = [];
+    if (palabras.length) {
+        sug = _motosLista.filter(m => { const k = _motosClave(m); return palabras.every(p => k.includes(p)); })
+            .sort((a, b) => (_motosClave(a).startsWith(q) ? 0 : 1) - (_motosClave(b).startsWith(q) ? 0 : 1))
+            .filter(m => _motosClave(m) !== q)   // si ya escribió el modelo completo no hace falta sugerirlo
+            .slice(0, _MOTOS_MAX_SUGERENCIAS);
+    }
+    caja.innerHTML = sug.map((m, i) => `<button type="button" role="option" class="cfg-res" data-i="${i}"><b>${escaparHTML(m)}</b></button>`).join('');
+    caja.hidden = !sug.length; campo.setAttribute('aria-expanded', String(!!sug.length));
+    caja._sug = sug;
 }
-function _motosRecordar(m) {
-    m = String(m || '').replace(/\s+/g, ' ').trim(); if (!m) return;
-    const l = _motosGuardadas();
-    if (!l.some(x => x.toLowerCase() === m.toLowerCase())) { l.push(m); try { localStorage.setItem(_MOTOS_CLAVE, JSON.stringify(l.slice(-300))); } catch (e) {} }
-    _motosPintar();
+function _motosOcultar() { const c = _cpEl('cp-moto-sug'); if (c) c.hidden = true; const m = _cpEl('cp-moto'); if (m) m.setAttribute('aria-expanded', 'false'); }
+function _motosElegir(m) { _cpEl('cp-moto').value = m; _motosOcultar(); const a = _cpEl('cp-anio'); if (a) a.focus(); }
+function _motosRecordar(m) {   // el servidor ya lo agregó a la hoja; aquí se refleja en la lista local
+    m = String(m || '').replace(/\s+/g, ' ').trim().toUpperCase(); if (!m) return;
+    if (!_motosLista.some(x => _motosClave(x) === _motosClave(m))) { _motosLista.push(m); _motosLista.sort((a, b) => a.localeCompare(b, 'es')); }
 }
 document.addEventListener('DOMContentLoaded', () => {
     const filtrar = (id, fn) => { const el = _cpEl(id); if (el) el.addEventListener('input', () => { const v = fn(el.value); if (v !== el.value) el.value = v; }); };
     filtrar('cp-cliente', _cotSoloLetras); filtrar('cp-telefono', v => _cotSoloDigitos(v).slice(0, 15)); filtrar('cp-anio', v => _cotSoloDigitos(v).slice(0, 4));
-    const m = _cpEl('cp-moto'); if (m) m.addEventListener('focus', _motosPintar);
+    const m = _cpEl('cp-moto'), sug = _cpEl('cp-moto-sug');
+    if (m) {
+        m.addEventListener('focus', _motosCargar);
+        m.addEventListener('input', _motosSugerir);
+        m.addEventListener('blur', () => setTimeout(_motosOcultar, 150));   // deja que el toque en una sugerencia se registre antes de cerrar
+        m.addEventListener('keydown', e => { if (e.key === 'Escape') _motosOcultar(); });
+    }
+    if (sug) sug.addEventListener('mousedown', e => { const b = e.target.closest('button[data-i]'); if (b) { e.preventDefault(); _motosElegir(sug._sug[Number(b.dataset.i)]); } });
+    if (sug) sug.addEventListener('touchstart', e => { const b = e.target.closest('button[data-i]'); if (b) { e.preventDefault(); _motosElegir(sug._sug[Number(b.dataset.i)]); } }, { passive: false });
     const v = _cpEl('cp-vigencia'); if (v) v.addEventListener('focus', () => { v.min = _cotIso(new Date()); });
-    _motosPintar();
 });
 
 /* ── Guardar (el servidor valida, calcula precios y asigna el folio) ── */
