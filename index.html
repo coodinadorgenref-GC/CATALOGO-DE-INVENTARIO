@@ -6686,7 +6686,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-19 · v53';
+const APP_VERSION = '2026-10-19 · v54';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -7303,7 +7303,34 @@ function cotPisoCampo(id, campo, valor) {
     const l = _cpLineas.find(x => x.id === id); if (!l) return;
     if (campo === 'cantidad') { const n = Math.floor(Number(valor)); l.cantidad = n >= 1 ? Math.min(n, 9999) : 1; }
     else l[campo] = valor;
+    if (campo === 'precioAprox') l.precioManual = true;   // si el asesor lo cambia, una búsqueda posterior ya no lo pisa
     _cpActualizarImportes();
+}
+
+/** Línea bajo pedido: al capturar el número de parte, trae de la lista de VENTO el precio aproximado (costo × 1.16 / 0.6, editable),
+ *  la descripción si está vacía y la disponibilidad. Solo en la sección Vento / Carabela. Si no está en la lista, todo se captura a mano. */
+async function cotPisoBuscarParte(id) {
+    const l0 = _cpLineas.find(x => x.id === id); if (!l0) return;
+    const np = String(l0.numeroParte || '').trim();
+    const estado = (t) => { l0.vnTexto = t; const el = _cpEl('cp-vn-' + id); if (el) el.textContent = t; };
+    if (np.length < 3 || seccionActual() !== 'VENTO') { estado(''); return; }
+    estado('Buscando en la lista de VENTO…');
+    try {
+        const rs = await _cpApi('consultarParteVento', { numeroParte: np });
+        const l = _cpLineas.find(x => x.id === id); if (!l || String(l.numeroParte || '').trim() !== np) return;   // la línea cambió mientras se buscaba
+        if (!rs.success) { estado(rs.message || 'No se pudo consultar la lista de VENTO.'); return; }
+        if (!rs.encontrado) { estado('No está en la lista de VENTO: captura el precio aproximado a mano.'); return; }
+        if (!String(l.descripcion || '').trim() && rs.descripcion) { l.descripcion = rs.descripcion; const d = _cpEl('cp-ds-' + id); if (d) d.value = rs.descripcion; }
+        let partes = [];
+        if (rs.precio > 0) {
+            if (!l.precioManual) { l.precioAprox = rs.precio.toFixed(2); const pa = _cpEl('cp-pa-' + id); if (pa) pa.value = l.precioAprox; }
+            partes.push('Precio aproximado de lista: ' + _cpMoneda(rs.precio) + ' (editable)');
+        } else partes.push('Precio pendiente en la lista: captura uno aproximado');
+        if (rs.disponibilidad) partes.push('Disponibilidad: ' + rs.disponibilidad + (rs.fechaRecibo ? ' · recibo ' + rs.fechaRecibo : ''));
+        if (rs.aplicacion) partes.push('Aplicación: ' + rs.aplicacion);
+        estado(partes.join(' · '));
+        _cpActualizarImportes();
+    } catch (e) { estado('No se pudo consultar la lista de VENTO. Captura el precio a mano.'); }
 }
 
 /* ── Precio de una línea (solo apoyo visual; el servidor recalcula) ── */
@@ -7338,7 +7365,8 @@ function _cpPintarLineas() {
         const cabeza = ped
             ? `<div style="flex:1;min-width:0">
                  <div class="cp-campo"><label for="cp-np-${l.id}">Número de parte (solo lo ves tú; no sale en la hoja)</label>
-                   <input id="cp-np-${l.id}" data-campo="numeroParte" type="text" autocomplete="off" value="${_cpEsc(l.numeroParte)}" oninput="cotPisoCampo(${l.id},'numeroParte',this.value)"></div>
+                   <input id="cp-np-${l.id}" data-campo="numeroParte" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" value="${_cpEsc(l.numeroParte)}" oninput="cotPisoCampo(${l.id},'numeroParte',this.value)" onchange="cotPisoBuscarParte(${l.id})" onkeydown="if(event.key==='Enter'){event.preventDefault();cotPisoBuscarParte(${l.id});}">
+                   <p class="cp-ayuda" id="cp-vn-${l.id}" role="status" aria-live="polite">${_cpEsc(l.vnTexto || '')}</p></div>
                  <div class="cp-campo" style="margin-top:8px"><label for="cp-ds-${l.id}">Descripción</label>
                    <input id="cp-ds-${l.id}" type="text" autocomplete="off" value="${_cpEsc(l.descripcion)}" oninput="cotPisoCampo(${l.id},'descripcion',this.value)"></div>
                  ${badge}
