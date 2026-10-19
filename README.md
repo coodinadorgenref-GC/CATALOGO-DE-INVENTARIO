@@ -190,6 +190,13 @@ El cliente solicita una vez (un carrito con las secciones que quiera) y recibe *
 - Los botones flotantes siguen existiendo y son los que JS muestra y oculta; la barra los refleja (`biSincronizar`, con `MutationObserver`) y al tocar un destino hace clic en el botón original. En tablet y escritorio se ven los botones flotantes de siempre.
 - **Servidor:** `guardarCotizacion` revisa que los productos de catálogo tengan existencia en la sección de la cotización (`_validarExistenciasEnSeccion_`, con la base de inventario en caché). Lo marcado "Bajo pedido" no se revisa. Si la caché está vacía no bloquea la venta.
 
+## Precios en Cotizaciones Pendientes (19-oct)
+- El panel de Pendientes (solo asesores) muestra el **importe de cada producto** (precio de la lista × cantidad, con IVA) y el **Total con IVA** de cada solicitud. Los productos que no están en `LISTA_PRECIOS` salen "Sin precio", no suman y van como "Por confirmar".
+- Los precios salen de `obtenerPreciosCatalogo` (ya existente; no hay cambios en los .gs). Se piden al abrir Pendientes y se refrescan cada 3 min (`_pendCargarPrecios`), así el mensaje lleva el precio vigente.
+- **Enviar por WhatsApp** y **Reenviar** (`_mensajeCotizacionWhatsApp`) ahora incluyen precio por línea, total con IVA y la nota de lo que falta por confirmar. Si los precios no cargan, se avisa y el mensaje sale sin ellos.
+- **Armar cotización única** (`armarCotizacionUnicaAdmin`): el mensaje lista cada línea con el precio que calculó el servidor, más el total.
+- El cliente sigue sin ver precios en el catálogo; solo en su cotización armada.
+
 ## Claro v2, tránsito y navegación móvil (19-oct)
 - **El cliente ya no ve lo que está en tránsito**: el servidor no le manda las existencias en tránsito (`descargarInventario` y `descargarInventarioRapido`) y el catálogo también las descarta. Un producto que solo tenga tránsito no aparece para el cliente. Los asesores lo siguen viendo.
 - **Aspecto claro v2** (paleta del REPORTEADOR): fondo `#e8edf3`, tarjetas blancas, marca verde profundo `#15803d` con texto blanco. **La barra superior, los filtros y la barra inferior conservan su tono oscuro** en claro (se les devuelven los valores del aspecto oscuro con variables CSS). Las fotos con fondo blanco se funden con el fondo de la tarjeta (`mix-blend-mode: multiply`). `theme-color` queda oscuro en ambos aspectos.
