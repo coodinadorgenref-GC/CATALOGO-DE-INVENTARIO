@@ -6565,7 +6565,7 @@ const _cpEsc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': 
 const _cpEl = id => document.getElementById(id);
 
 /* ── Vigencia: fecha límite (AAAA-MM-DD) hasta la que vale la cotización ── */
-const COT_VIGENCIA_DIAS = 15;   // vigencia por omisión; el asesor la cambia en el formulario
+const COT_VIGENCIA_DIAS = 7;   // vigencia por omisión; el asesor la cambia en el formulario
 const _COT_MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
 const _cotIso = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 function _cotVigenciaPorOmision() { const d = new Date(); d.setDate(d.getDate() + COT_VIGENCIA_DIAS); return _cotIso(d); }
