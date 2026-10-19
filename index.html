@@ -31,7 +31,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <meta name="color-scheme" content="dark light">
-<script>(function(){try{var p=localStorage.getItem('aspecto')||'sistema';var l=p==='claro'||(p==='sistema'&&matchMedia('(prefers-color-scheme: light)').matches);document.documentElement.setAttribute('data-theme',l?'light':'dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
+<script>(function(){try{var p=localStorage.getItem('aspecto')||'oscuro';var l=p==='claro'||(p==='sistema'&&matchMedia('(prefers-color-scheme: light)').matches);document.documentElement.setAttribute('data-theme',l?'light':'dark');}catch(e){document.documentElement.setAttribute('data-theme','dark');}})();</script>
 <style>
         /* ── TOKENS DE DISEÑO (MASTER.md §3-§5) ───────── */
         :root {
@@ -1647,7 +1647,7 @@
         <div id="cv-estado-fila" class="cp-campo" style="margin-top:8px"><label for="cv-estado">Estado</label>
             <select id="cv-estado" onchange="cvCambiarEstado(this)"></select></div>
         <div class="cfg-acciones">
-            <button type="button" id="cv-wa" onclick="_cotReenviar(_cvCot)"><i aria-hidden="true" class="fa-brands fa-whatsapp"></i> Reenviar</button>
+            <button type="button" id="cv-wa" onclick="_cotReenviar(_cvCot, this)"><i aria-hidden="true" class="fa-brands fa-whatsapp"></i> Reenviar</button>
             <button type="button" id="cv-pdf" onclick="hojaCotizacionPdf(_cvCot, this)"><i aria-hidden="true" class="fa-solid fa-file-pdf"></i> Compartir PDF</button>
             <button type="button" id="cv-editar" onclick="cvEditar()"><i aria-hidden="true" class="fa-solid fa-pen"></i> Editar</button>
         </div>
@@ -6689,7 +6689,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-19 · v49';
+const APP_VERSION = '2026-10-19 · v51';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -6705,7 +6705,7 @@ function cfgAbrir() {
     cfgTab('aspecto');
     _cpEl('cfg-overlay').classList.add('visible');
 }
-function aspectoActual() { try { return localStorage.getItem('aspecto') || 'sistema'; } catch (e) { return 'sistema'; } }
+function aspectoActual() { try { return localStorage.getItem('aspecto') || 'oscuro'; } catch (e) { return 'oscuro'; } }   /* oscuro por omisión; quien elija Claro o Sistema en Ajustes conserva su elección */
 function aspectoAplicar() {
     const p = aspectoActual();
     const claro = p === 'claro' || (p === 'sistema' && matchMedia('(prefers-color-scheme: light)').matches);
@@ -6838,7 +6838,7 @@ function cfgPintarCotizaciones() {
                 <span class="cv-meta${venc ? ' cv-vencida' : ''}">${escaparHTML(vigTxt)}</span>
             </button>
             <div class="cv-btns">
-                <button type="button" class="cv-btn" onclick="cfgReenviar('${f}')"><i aria-hidden="true" class="fa-solid fa-rotate-right"></i> Reenviar</button>
+                <button type="button" class="cv-btn" onclick="cfgReenviar('${f}', this)"><i aria-hidden="true" class="fa-solid fa-rotate-right"></i> Reenviar</button>
                 ${abierta && !_cotMotivoNoEditable(c) ? `<button type="button" class="cv-btn" onclick="cfgEditar('${f}')"><i aria-hidden="true" class="fa-solid fa-pen"></i> Editar</button>` : ''}
                 ${abierta ? `<button type="button" class="cv-btn peligro" onclick="cfgCancelar('${f}')"><i aria-hidden="true" class="fa-solid fa-xmark"></i> Cancelar</button>` : ''}
             </div></div>`;
@@ -6856,16 +6856,39 @@ async function cfgCancelar(folio) {
         c.estado = 'Cancelada'; cfgPintarCotizaciones();
     } catch (e) { _cpEl('cfg-cot-estado').textContent = e.message || 'No se pudo cancelar.'; }
 }
-/** Reenvía por WhatsApp: líneas, importes, total y vigencia. El número de parte de lo bajo pedido NO va en el mensaje. */
-function _cotReenviar(c) {
-    if (!c) return;
-    const tel = String(c.telefono).replace(/\D/g, '');
-    const lin = (c.items || []).map(it => `• ${it.cantidad} × ${it.descripcion || ''}${it.sku ? ' (' + it.sku + ')' : ''} — ${_cfgMoneda(it.importe)}`).join('\n');
+/** Reenvía la cotización como PDF (la misma hoja de la vista previa), ya no como texto.
+ *  Celular: abre la hoja de compartir del sistema con el PDF adjunto; ahí se elige WhatsApp y el chat del cliente.
+ *  Computadora o navegador que no comparte archivos: descarga el PDF y abre el chat de WhatsApp del cliente con un mensaje corto para adjuntarlo
+ *  (WhatsApp Web no permite adjuntar un archivo por enlace). Sin números de parte de lo bajo pedido. boton: se bloquea mientras prepara. */
+async function _cotReenviar(c, boton) {
+    if (!c || !c.folio) return;
+    const tel = String(c.telefono || '').replace(/\D/g, '');
     const vig = _cotVigIso(c.vigencia);
-    const msg = `Hola ${c.cliente}, te comparto tu cotización ${c.folio}:\n${lin}\nTotal: ${_cfgMoneda(c.total)}${vig ? '\nVigente hasta el ' + _cotFechaLarga(vig) : ''}`;
-    window.open('https://wa.me/' + (tel.length === 10 ? '52' + tel : tel) + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+    const msg = `Hola ${c.cliente}, te comparto tu cotización ${c.folio} por ${_cfgMoneda(c.total)}${vig ? ', vigente hasta el ' + _cotFechaLarga(vig) : ''}. Va en PDF.`;
+    const original = boton ? boton.innerHTML : '';
+    if (boton) { boton.disabled = true; boton.innerHTML = '<i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> Preparando…'; }
+    try {
+        const [jsPDF, logo] = await Promise.all([_cargarJsPdf(), _hojaLogoDe(c.agencia)]);
+        const blob = hojaCotizacionConstruir(jsPDF, c, logo).output('blob');
+        const nombre = 'Cotizacion-' + String(c.folio).replace(/[^\w-]/g, '') + '.pdf';
+        const archivo = new File([blob], nombre, { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+            try { await navigator.share({ files: [archivo], title: 'Cotización ' + c.folio, text: msg }); return; }
+            catch (e) { if (e && e.name === 'AbortError') return; }   // si el celular no deja compartir, se descarga
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = nombre;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        mostrarToastInfo('PDF descargado. Adjúntalo en el chat de WhatsApp.');
+        if (tel) window.open('https://wa.me/' + (tel.length === 10 ? '52' + tel : tel) + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+    } catch (e) {
+        mostrarToastInfo(e && e.message ? e.message : 'No se pudo preparar el PDF.', 'error');
+    } finally {
+        if (boton) { boton.disabled = false; boton.innerHTML = original; }
+    }
 }
-function cfgReenviar(folio) { _cotReenviar(_cfgBuscar(folio)); }
+function cfgReenviar(folio, boton) { _cotReenviar(_cfgBuscar(folio), boton); }
 
 /* ── Vista previa de la cotización: el mismo PDF que se comparte, dentro de la app (como la nota de venta en Maps) ── */
 let _cvUrl = null, _cvCot = null;
