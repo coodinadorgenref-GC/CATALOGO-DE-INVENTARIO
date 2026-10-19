@@ -467,6 +467,8 @@
         .app-dlg-btn.peligro { background: #b91c1c; border-color: #b91c1c; color: #fff; }
         .app-dlg-btn.peligro:hover { background: #dc2626; }
         .app-dlg-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+        /* Login: usuario y contraseña con exactamente el mismo alto y ancho que en REPORTEADOR y Maps (50 px = 24 de texto + 12×2 de relleno + 1×2 de borde). */
+        #input-correo, #input-pin { box-sizing: border-box; width: 100%; height: 50px; padding-top: 12px; padding-bottom: 12px; font-size: 16px; line-height: 24px; }
         @keyframes appDlgIn { from { opacity: 0; } to { opacity: 1; } }
 
         /* ── Cotizaciones solicitadas: pasos, acciones y carga ── */
@@ -2037,14 +2039,14 @@ function irAGaleria(indice) {
 }
 
 /** Admin: elimina una foto puntual de la galería del producto abierto. */
-function eliminarFotoGaleria(url) {
-    if (!confirm("¿Eliminar esta foto? No se puede deshacer.")) return;
+async function eliminarFotoGaleria(url) {
+    if (!(await confirmarApp({ titulo: "¿Eliminar esta foto?", mensaje: "No se puede deshacer.", icono: "fa-trash", tipo: "peligro", confirmar: "Eliminar" }))) return;
     fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
         body: JSON.stringify({ action:"eliminarFotoProducto", token:tokenActual, correo:usuarioActual,
                                sku: galeriaSkuActual, urlFoto: url }) })
     .then(r => r.json())
     .then(rs => {
-        if (!rs.success) { alert("No se pudo eliminar la foto: " + (rs.message||"Error.")); return; }
+        if (!rs.success) { avisoApp("No se pudo eliminar la foto", rs.message || "Error.", "peligro"); return; }
         galeriaActual = rs.fotos || [];
         if (galeriaActual.length === 0) galeriaActual = [""];
         if (galeriaIndiceActual >= galeriaActual.length) galeriaIndiceActual = 0;
@@ -2062,7 +2064,7 @@ function eliminarFotoGaleria(url) {
         }
         forzarSincronizacionDatos();
     })
-    .catch(() => alert("Error de conexión al eliminar la foto."));
+    .catch(() => avisoApp("Sin conexión", "Error de conexión al eliminar la foto.", "peligro"));
 }
 function moverFotoGaleria(indice, direccion) {
   const nuevoIndice = indice + direccion;
@@ -2081,7 +2083,7 @@ function moverFotoGaleria(indice, direccion) {
   .then(r => r.json())
   .then(rs => {
     if (!rs.success) {
-      alert("No se pudo guardar el nuevo orden: " + (rs.message||"Error.") + " Se revierte el cambio.");
+      avisoApp("No se pudo guardar el nuevo orden", (rs.message || "Error.") + " Se revierte el cambio.", "peligro");
       const temp2 = galeriaActual[indice];
       galeriaActual[indice] = galeriaActual[nuevoIndice];
       galeriaActual[nuevoIndice] = temp2;
@@ -2096,7 +2098,7 @@ function moverFotoGaleria(indice, direccion) {
     filtrarProductos(); // refresca la portada en la tarjeta del catálogo
   })
   .catch(() => {
-    alert("Error de conexión al guardar el nuevo orden.");
+    avisoApp("Sin conexión", "Error de conexión al guardar el nuevo orden.", "peligro");
   });
 }
 
@@ -3887,7 +3889,7 @@ function dialogoApp({ titulo, mensaje, icono = "fa-circle-question", tipo = "", 
             resolve(valor);
         };
         const alTeclear = e => {
-            if (e.key === "Escape") { e.preventDefault(); cerrar(null); return; }
+            if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); cerrar(null); return; }
             if (e.key === "Tab") {   // el foco se queda dentro del diálogo
                 const bs = [...velo.querySelectorAll("button")];
                 const pos = bs.indexOf(document.activeElement);
@@ -3905,6 +3907,15 @@ function dialogoApp({ titulo, mensaje, icono = "fa-circle-question", tipo = "", 
         // El foco empieza en la opción segura: "cancelar" si la acción es peligrosa; si no, en la principal.
         const bs = [...velo.querySelectorAll("button")];
         (tipo === "peligro" ? bs[0] : (bs.find(b => b.classList.contains("pri")) || bs[bs.length - 1])).focus();
+    });
+}
+
+/** Aviso con un solo botón y la paleta del catálogo (reemplaza al alert del navegador). No bloquea el flujo. */
+function avisoApp(titulo, mensaje, tipo) {
+    return dialogoApp({
+        titulo, mensaje, tipo: tipo || "aviso",
+        icono: tipo === "peligro" ? "fa-triangle-exclamation" : (tipo === "info" ? "fa-circle-info" : "fa-triangle-exclamation"),
+        botones: [{ valor: true, texto: "Entendido", estilo: "pri" }]
     });
 }
 
@@ -4730,7 +4741,7 @@ async function eliminarCarritoCompletoAdmin(correoUsuario) {
    el carrito editable — nunca los bloques de Cotización General)
 ══════════════════════════════════════════ */
 function abrirModalCotizacion() {
-    if (carrito.length === 0) { alert("El carrito está vacío."); return; }
+    if (carrito.length === 0) { avisoApp("Carrito vacío", "El carrito está vacío.", "info"); return; }
 
     // Clasificar items por grupo de agencia
     const mapaGrupos = {}; // grupo → { agencias: Set(), items: [] }
@@ -5810,13 +5821,13 @@ async function previewFotoProducto(e) {
 
   const restante = MAX_FOTOS_CLIENTE - fotoProductoArchivosActuales.length;
   if (restante <= 0) {
-    alert("Ya seleccionaste el máximo de fotos permitidas por producto (" + MAX_FOTOS_CLIENTE + ").");
+    avisoApp("Máximo de fotos", "Ya seleccionaste el máximo de fotos permitidas por producto (" + MAX_FOTOS_CLIENTE + ").");
     e.target.value = "";
     return;
   }
   const aProcesar = archivos.slice(0, restante);
   if (archivos.length > aProcesar.length) {
-    alert("Solo se agregaron " + aProcesar.length + " foto(s); llegaste al máximo de " + MAX_FOTOS_CLIENTE + " por producto.");
+    avisoApp("Máximo de fotos", "Solo se agregaron " + aProcesar.length + " foto(s); llegaste al máximo de " + MAX_FOTOS_CLIENTE + " por producto.");
   }
 
   for (const archivo of aProcesar) {
@@ -6326,7 +6337,7 @@ function filtrarPorMarcaDesdeFooter(palabraClave) {
   }
 
   if (marcasCoincidentes.length === 0) {
-    alert("No se encontraron productos de esta marca por ahora.");
+    avisoApp("Sin resultados", "No se encontraron productos de esta marca por ahora.", "info");
     return;
   }
 
@@ -6542,7 +6553,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-19 · claro v2 y tránsito';
+const APP_VERSION = '2026-10-19 · avisos con la fachada del catálogo y login uniforme';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -6972,8 +6983,8 @@ function cotPisoAbrir() {
     _cpCargarPrecios().then(() => _cpPintarLineas()).catch(e => _cpAviso('No se pudieron mostrar los precios (' + e.message + '). Puedes capturar la cotización: el servidor calcula los precios al guardar.'));
 }
 
-function cotPisoCerrar(forzar) {
-    if (!forzar && _cpLineas.length && !_cpGuardada && !confirm('¿Descartar esta cotización sin guardar?')) return;
+async function cotPisoCerrar(forzar) {
+    if (!forzar && _cpLineas.length && !_cpGuardada && !(await confirmarApp({ titulo: "¿Descartar esta cotización?", mensaje: "Aún no se ha guardado.", icono: "fa-trash", tipo: "peligro", confirmar: "Descartar" }))) return;
     _cpEl('cp-overlay').classList.remove('visible');
     document.body.style.overflow = '';
 }
