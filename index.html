@@ -6694,7 +6694,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-19 · v55';
+const APP_VERSION = '2026-10-20 · v56';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -6873,7 +6873,7 @@ async function _cotReenviar(c, boton) {
     const original = boton ? boton.innerHTML : '';
     if (boton) { boton.disabled = true; boton.innerHTML = '<i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> Preparando…'; }
     try {
-        const [jsPDF, logo] = await Promise.all([_cargarJsPdf(), _hojaLogoDe(c.agencia)]);
+        const [jsPDF, logo] = await Promise.all([_cargarJsPdf(), _hojaLogoDe(c)]);
         const blob = hojaCotizacionConstruir(jsPDF, c, logo).output('blob');
         const nombre = 'Cotizacion-' + String(c.folio).replace(/[^\w-]/g, '') + '.pdf';
         const archivo = new File([blob], nombre, { type: 'application/pdf' });
@@ -6911,7 +6911,7 @@ function cvCerrar() {
 async function cvAbrir(cot, origen) {
     if (!cot || !cot.folio) return;
     try {
-        const [jsPDF, logo] = await Promise.all([_cargarJsPdf(), _hojaLogoDe(cot.agencia)]);
+        const [jsPDF, logo] = await Promise.all([_cargarJsPdf(), _hojaLogoDe(cot)]);
         const blob = hojaCotizacionConstruir(jsPDF, cot, logo).output('blob');
         cvLiberar();
         _cvUrl = URL.createObjectURL(blob); _cvCot = cot;
@@ -6950,7 +6950,7 @@ async function cvCambiarEstado(sel) {
 
 /* ═════ HOJA_COTIZACION_INICIO ═════
    Hoja de cotización: carta, tipo factura, siempre clara (se imprime o se comparte).
-   Logo según la agencia del asesor (Carabela, Suzuki, Bajaj); sin logo, lleva el nombre de la empresa.
+   Logo según la agencia de la cotización (Vento, Carabela, Suzuki, Bajaj); si cotiza un admin o es GENERAL, van todos los logos; sin logo, lleva el nombre de la empresa.
    Nunca lleva número de parte de lo bajo pedido ni costos. jsPDF se carga solo la primera vez que se usa. */
 const HOJA_LOGOS = {
     VENTO:    { archivo: 'logo-vento.png',    w: 444, h: 90 },
@@ -6974,9 +6974,9 @@ function _cargarJsPdf() {
     return _jsPdfPromesa;
 }
 
-/** Logo de la agencia como data URL (se guarda en memoria). Si no hay logo para esa agencia o no carga, devuelve null. */
-async function _hojaLogoDe(agencia) {
-    const l = HOJA_LOGOS[String(agencia || '').toUpperCase()];
+/** Logo de una marca como data URL (se guarda en memoria). Si no hay logo para esa clave o no carga, devuelve null. */
+async function _hojaLogoUno(clave) {
+    const l = HOJA_LOGOS[String(clave || '').toUpperCase()];
     if (!l) return null;
     if (!l.dataUrl) {
         try {
@@ -6985,6 +6985,14 @@ async function _hojaLogoDe(agencia) {
         } catch (e) { return null; }
     }
     return { dataUrl: l.dataUrl, w: l.w, h: l.h };
+}
+/** Logos de la hoja según la cotización: la agencia con su logo (en Carabela, el de Carabela); si la emitió un admin
+ *  (vendedorAgencia = TODAS) o es una cotización GENERAL, van los logos de todas las marcas. Devuelve un logo, una lista o null. */
+async function _hojaLogoDe(cot) {
+    const ag = String((cot && cot.agencia) || '').toUpperCase(), va = String((cot && cot.vendedorAgencia) || '').toUpperCase();
+    const claves = (va.includes('TODAS') || ag === 'GENERAL') ? ['VENTO', 'CARABELA', 'SUZUKI', 'BAJAJ'] : [ag];
+    const logos = (await Promise.all(claves.map(_hojaLogoUno))).filter(Boolean);
+    return !logos.length ? null : (logos.length === 1 ? logos[0] : logos);
 }
 
 /** cot: { folio, fecha, agencia, cliente, telefono, idCliente, moto, anio, vendedorNombre, total, items:[{cantidad, sku, descripcion, disponibilidad, precio, precioAprox, importe}] } */
@@ -7008,8 +7016,9 @@ function hojaCotizacionConstruir(jsPDF, cot, logo) {
 
     // ── Encabezado: logo (o nombre) a la izquierda; título, folio y fecha a la derecha
     if (logo) {
-        const alto = 9, ancho = alto * logo.w / logo.h;
-        try { doc.addImage(logo.dataUrl, 'PNG', MX, y - 2, ancho, alto); } catch (e) {}
+        const lista = Array.isArray(logo) ? logo : [logo], alto = lista.length > 1 ? 5.5 : 9;   // varias marcas: más chicas para que quepan junto al título
+        let x = MX;
+        lista.forEach(l => { const ancho = alto * l.w / l.h; try { doc.addImage(l.dataUrl, 'PNG', x, y - 2 + (9 - alto) / 2, ancho, alto); } catch (e) {} x += ancho + 4; });
     } else {
         fuente('bold', 13, OSC); doc.text('LA BARATA DEL HOGAR', MX, y + 4);
     }
@@ -7139,7 +7148,7 @@ async function hojaCotizacionPdf(cot, boton) {
     const original = boton ? boton.innerHTML : '';
     if (boton) { boton.disabled = true; boton.innerHTML = '<i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> Preparando…'; }
     try {
-        const [jsPDF, logo] = await Promise.all([_cargarJsPdf(), _hojaLogoDe(cot.agencia)]);
+        const [jsPDF, logo] = await Promise.all([_cargarJsPdf(), _hojaLogoDe(cot)]);
         const doc = hojaCotizacionConstruir(jsPDF, cot, logo);
         const nombre = 'Cotizacion-' + String(cot.folio).replace(/[^\w-]/g, '') + '.pdf';
         const blob = doc.output('blob');
