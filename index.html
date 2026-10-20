@@ -4285,6 +4285,12 @@ function pintarCotizacionesAdmin(rs) {
     const usuarios = rs.data || [];
     ultimosCarritosAdminCargados = usuarios;
 
+    // Precios de la lista del catálogo: se piden (o refrescan) y la lista se vuelve a pintar con ellos.
+    if ((!_pendPrecios || Date.now() - _pendPreciosHora >= 180000) && !_pendPreciosPromesa && Date.now() - _pendPreciosFallo > 60000) {
+        _pendCargarPrecios().then(() => { if (_pendCache) pintarCotizacionesAdmin(_pendCache); })
+            .catch(() => { _pendPreciosFallo = Date.now(); });
+    }
+
     // Badge: número TOTAL de cotizaciones solicitadas pendientes
     // (cada bloque "Cotización solicitada" cuenta como una, no cada
     // usuario) — así, si hay 2 cotizaciones esperando, se ve "#2".
@@ -4392,6 +4398,9 @@ function pintarCotizacionesAdmin(rs) {
                                 ${it.enLiquidacion ? `<span class="text-[11px] font-black bg-red-600 text-white px-1.5 py-0.5 rounded ml-1 uppercase"><i aria-hidden="true" class="fa-solid fa-flag"></i> Liquidación</span>` : ""}
                                 </span>
                             <span class="flex items-center gap-2">
+                                ${_pendPrecios ? (() => { const p = _pendPrecioDe(it); return p === null
+                                    ? `<span class="text-[12px] font-bold text-amber-400">Sin precio</span>`
+                                    : `<span class="text-[12px] font-semibold text-slate-200">${_cpMoneda(Math.round(p * (Number(it.cantidad) || 1) * 100) / 100)}</span>`; })() : ""}
                                 <span class="font-bold text-emerald-400">x${it.cantidad}</span>
                                 ${puedeEditar ? `<button onclick="eliminarItemCarritoUsuarioAdmin('${correoSeg}','${escaparHTML(String(it.sku)).replace(/'/g,"\\'")}' )"
                                         title="Eliminar (ya entregado)"
@@ -4404,6 +4413,17 @@ function pintarCotizacionesAdmin(rs) {
             const fechaBloqueTxt = bloqueFecha.fecha
                 ? new Date(bloqueFecha.fecha).toLocaleString("es-MX",{dateStyle:"short",timeStyle:"short"})
                 : "";
+
+            // Total con IVA de la solicitud (se calcula sobre los productos únicos, no por sub-bloque de agencia).
+            let htmlTotal = "";
+            if (_pendPrecios) {
+                const rp = _pendResumenPrecios(bloqueFecha.items);
+                htmlTotal = `<div class="flex items-center justify-between bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 mt-1 text-[13px]">
+                        <span class="text-slate-300 font-semibold">Total con IVA</span>
+                        <strong class="text-emerald-400">${rp.sinPrecio === bloqueFecha.items.length ? "Sin precios" : _cpMoneda(rp.total)}</strong>
+                    </div>
+                    ${rp.sinPrecio ? `<p class="text-[12px] text-amber-400 mt-1"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation mr-1"></i> ${rp.sinPrecio} producto(s) sin precio en la lista: no suman y salen "Por confirmar" en el mensaje.</p>` : ""}`;
+            }
 
             const idBloqueCardSeg = String(bloqueFecha.id).replace(/'/g, "\\'");
             const htmlAcciones = _htmlAccionesCot({
@@ -4420,6 +4440,7 @@ function pintarCotizacionesAdmin(rs) {
                 ${_htmlPasosCot(paso)}
                 ${htmlAcciones}
                 <div>${subBloques}</div>
+                ${htmlTotal}
             </div>`;
         }).join("");
 
@@ -4515,6 +4536,37 @@ function _htmlAccionesCot(c) {
         <div class="cot-acciones">${btn("pri", `cerrarCotizacionAdmin(${a})`, "fa-solid fa-flag-checkered", "Cerrar cotización")}${c.tel ? btn("wa", `enviarCotizacionAdmin(${a},true)`, "fa-brands fa-whatsapp", "Reenviar") : ""}${btn("suave", `avanzarPasoAdmin(${a},'REVISADA')`, "fa-solid fa-rotate-left", "Corregir")}</div>`;
 }
 
+/* ── Precios en Pendientes (solo asesores; el cliente nunca los ve) ──
+   Salen de la lista de precios del catálogo (obtenerPreciosCatalogo, ya con IVA) y se refrescan cada 3 min,
+   para que lo que se manda al cliente por WhatsApp lleve el precio vigente. */
+let _pendPrecios = null, _pendPreciosHora = 0, _pendPreciosPromesa = null, _pendPreciosFallo = 0;
+function _pendCargarPrecios(forzar) {
+    if (!forzar && _pendPrecios && Date.now() - _pendPreciosHora < 180000) return Promise.resolve(_pendPrecios);
+    if (_pendPreciosPromesa) return _pendPreciosPromesa;
+    _pendPreciosPromesa = _cpApi('obtenerPreciosCatalogo').then(rs => {
+        if (!rs || !rs.success) throw new Error((rs && rs.message) || 'No se pudieron cargar los precios.');
+        const m = {};
+        (rs.data || []).forEach(p => { m[_cpSku(p.sku)] = p.precio; });
+        _pendPrecios = m; _pendPreciosHora = Date.now();
+        return m;
+    }).finally(() => { _pendPreciosPromesa = null; });
+    return _pendPreciosPromesa;
+}
+/** Precio (con IVA) de un producto de Pendientes, o null si no está en la lista (o la lista aún no carga). */
+function _pendPrecioDe(it) {
+    const p = _pendPrecios ? _pendPrecios[_cpSku(it.sku)] : undefined;
+    return p === undefined ? null : p;
+}
+/** Total con IVA de una solicitud y cuántos productos no tienen precio en la lista. */
+function _pendResumenPrecios(items) {
+    let total = 0, sinPrecio = 0;
+    (items || []).forEach(it => {
+        const p = _pendPrecioDe(it);
+        if (p === null) sinPrecio++; else total += Math.round(p * (Number(it.cantidad) || 1) * 100) / 100;
+    });
+    return { total: Math.round(total * 100) / 100, sinPrecio };
+}
+
 /** Llamada al servidor del seguimiento (nunca lanza: devuelve { success:false } si no hay conexión). */
 async function _pendLlamar(cuerpo) {
     try {
@@ -4583,7 +4635,12 @@ async function armarCotizacionUnicaAdmin(correoUsuario, bloqueId, solicitudId, p
     if (!rs.success) { mostrarToastInfo(rs.message || 'No se pudo armar la cotización.', 'error'); return; }
     mostrarToastInfo('Cotización ' + rs.folio + ' enviada. El cliente ya la ve en el sistema.');
     if (u && u.telefono) {
-        const url = _urlWhatsAppCliente(u.telefono, 'Hola ' + (u.nombre || '') + ', tu cotización ' + rs.folio + ' ya está lista. Entra al catálogo > Configuración > Mis solicitudes para verla y descargarla. Total con IVA: ' + Number(rs.total).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) + (rs.pendientes.length ? '\nPendiente de confirmar: ' + rs.pendientes.join(', ') + '.' : ''));
+        // Líneas con el precio que calculó el servidor (con IVA); lo que no está en la lista sale "Por confirmar".
+        const lineasUnica = (rs.items || []).map(it => `• ${it.cantidad}× ${it.descripcion || ''}${it.sku ? ' (SKU ' + it.sku + ')' : ''} — ` +
+            (it.precio === null || it.precio === undefined ? 'Por confirmar' : (it.cantidad > 1 ? _cpMoneda(it.precio) + ' c/u · ' + _cpMoneda(it.importe) : _cpMoneda(it.importe)))).join('\n');
+        const url = _urlWhatsAppCliente(u.telefono, 'Hola ' + (u.nombre || '') + ', tu cotización ' + rs.folio + ' ya está lista:\n\n' + lineasUnica +
+            '\n\nTotal con IVA: ' + _cpMoneda(rs.total) + (rs.sinPrecio ? '\n(No incluye ' + rs.sinPrecio + ' producto(s) por confirmar.)' : '') +
+            '\n\nTambién puedes verla y descargarla en el catálogo > Configuración > Mis solicitudes.' + (rs.pendientes.length ? '\nPendiente de confirmar: ' + rs.pendientes.join(', ') + '.' : ''));
         if (url) window.open(url, '_blank', 'noopener');
     }
     cargarCotizacionesAdmin(true, true);
@@ -4594,6 +4651,11 @@ async function enviarCotizacionAdmin(correoUsuario, bloqueId, soloReenviar) {
     const u = (_pendCache?.data || []).find(x => String(x.correo) === String(correoUsuario));
     if (!u) return;
     const productos = (u.items || []).filter(it => it._bloqueId === bloqueId);
+    // Si los precios aún no cargaron, se esperan (el mensaje debe llevarlos); si fallan, se avisa y se manda sin precios.
+    if (!_pendPrecios) {
+        try { await _pendCargarPrecios(); }
+        catch (e) { mostrarToastInfo("No se pudieron cargar los precios: el mensaje saldrá sin ellos.", "error"); }
+    }
     const url = _urlWhatsAppCliente(u.telefono, _mensajeCotizacionWhatsApp(u.nombre, productos));
     // WhatsApp se abre primero, dentro del clic, para que el navegador no bloquee la ventana.
     if (url) window.open(url, "_blank", "noopener");
@@ -4643,8 +4705,23 @@ function _mensajeCotizacionWhatsApp(nombreCliente, productos) {
     const primerNombre = (nombreCliente || "Cliente").trim().split(/\s+/)[0];
     const nombreAsesor = (document.getElementById("nombre-usuario")?.innerText || "Asesor").trim();
     const rolAsesor    = (document.getElementById("rol-usuario")?.innerText || "Asesor de Refacciones").trim();
-    const lineas = (productos || []).map(it => `• ${it.cantidad}× ${it.nombre} (SKU ${it.sku})`).join("\n");
-    return `Hola ${primerNombre}, soy ${nombreAsesor} ${rolAsesor}. Te comparto la cotización de los productos que solicitaste:\n\n${lineas}\n\nCualquier duda con gusto te ayudo.`;
+    const conPrecios = !!_pendPrecios;
+    const lineas = (productos || []).map(it => {
+        const cant = Number(it.cantidad) || 1;
+        const base = `• ${cant}× ${it.nombre} (SKU ${it.sku})`;
+        if (!conPrecios) return base;
+        const p = _pendPrecioDe(it);
+        if (p === null) return base + " — Por confirmar";
+        return base + (cant > 1 ? ` — ${_cpMoneda(p)} c/u · ${_cpMoneda(Math.round(p * cant * 100) / 100)}` : ` — ${_cpMoneda(p)}`);
+    }).join("\n");
+    let cierre = "";
+    if (conPrecios) {
+        const rp = _pendResumenPrecios(productos);
+        cierre = rp.sinPrecio === (productos || []).length
+            ? "\n\nTe confirmo los precios en cuanto los tenga."
+            : `\n\nTotal con IVA: ${_cpMoneda(rp.total)}` + (rp.sinPrecio ? `\n(No incluye ${rp.sinPrecio} producto(s) por confirmar.)` : "");
+    }
+    return `Hola ${primerNombre}, soy ${nombreAsesor} ${rolAsesor}. Te comparto la cotización de los productos que solicitaste:\n\n${lineas}${cierre}\n\nCualquier duda con gusto te ayudo.`;
 }
 
 /** Abre WhatsApp Web/App con el mensaje de plantilla ya escrito, listo
