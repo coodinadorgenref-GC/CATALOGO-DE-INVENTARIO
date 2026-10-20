@@ -2693,6 +2693,7 @@ function _continuarDespuesDeAnimacionCarga() {
         const esSuperAdmin = esAdmin && esZonaValladolid();
         if (btnUsuariosConectados) { btnUsuariosConectados.classList.toggle("hidden", !esSuperAdmin); btnUsuariosConectados.classList.toggle("flex", esSuperAdmin); }
         if (btnUsuariosConectadosMovil) { btnUsuariosConectadosMovil.classList.toggle("hidden", !esSuperAdmin); btnUsuariosConectadosMovil.classList.toggle("flex", esSuperAdmin); }
+        iniciarSondeoConectados();   // el número del encabezado se mantiene al día sin abrir la ventana
 
         // NUEVO: filtro "Por llegar a mi sucursal" — solo admin.
         const wrapperTransito = document.getElementById("filtro-transito-wrapper");
@@ -5999,10 +6000,11 @@ function renderizarPreviewFotos() {
 //  USUARIOS/ADMINS CONECTADOS EN TIEMPO REAL — solo super admin
 //  (almacén = TODAS). Se apoya en Sesiones_Activas, ya existente.
 // ════════════════════════════════════════════════════════════
-let intervaloUsuariosConectados = null;
+let intervaloUsuariosConectados = null, sondeoConectados = null, _ucUltimo = null;
 
 function abrirModalUsuariosConectados() {
     document.getElementById("modal-usuarios-conectados").classList.remove("opacity-0", "pointer-events-none");
+    if (_ucUltimo) _ucPintar(_ucUltimo);   // muestra al instante lo último que se supo mientras llega la lista fresca
     cargarUsuariosConectados();
     clearInterval(intervaloUsuariosConectados);
     intervaloUsuariosConectados = setInterval(cargarUsuariosConectados, 15000);
@@ -6013,32 +6015,28 @@ function cerrarModalUsuariosConectados(e) {
     clearInterval(intervaloUsuariosConectados);
     intervaloUsuariosConectados = null;
 }
-async function cargarUsuariosConectados() {
+/** Mantiene al día el número del encabezado sin abrir la ventana: cada 45 s mientras la pestaña está visible y la cuenta es súper admin. */
+function iniciarSondeoConectados() {
+    const btn = document.getElementById("btn-usuarios-conectados"), btnM = document.getElementById("btn-usuarios-conectados-movil");
+    const visible = b => b && !b.classList.contains("hidden");
+    clearInterval(sondeoConectados); sondeoConectados = null;
+    if (!visible(btn) && !visible(btnM)) return;
+    cargarUsuariosConectados(true);
+    sondeoConectados = setInterval(() => { if (!document.hidden && tokenActual) cargarUsuariosConectados(true); }, 45000);
+}
+function _ucPintar(rs) {
     const contenedor = document.getElementById("uc-lista");
-    try {
-        const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
-            body: JSON.stringify({ action:"obtenerUsuariosConectados", token:tokenActual, correo:usuarioActual }) });
-        const rs = await r.json();
-
-        if (!rs.success) {
-            contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">${rs.message||"No autorizado."}</p>`;
-            return;
-        }
-
-        document.getElementById("uc-total").textContent          = rs.total;
-        document.getElementById("uc-total-admins").textContent   = rs.totalAdmins;
-        document.getElementById("uc-total-clientes").textContent = rs.totalClientes;
-
-        [document.getElementById("badge-usuarios-conectados"), document.getElementById("badge-usuarios-conectados-movil")].forEach(badge => {
-            if (badge) { badge.textContent = rs.total; badge.classList.toggle("hidden", rs.total === 0); badge.classList.toggle("flex", rs.total > 0); }
-        });
-
-        if (!rs.usuarios || rs.usuarios.length === 0) {
-            contenedor.innerHTML = `<p class="text-xs text-slate-400 text-center py-8">Nadie conectado en este momento.</p>`;
-            return;
-        }
-
-        contenedor.innerHTML = rs.usuarios.map(u => `
+    document.getElementById("uc-total").textContent          = rs.total;
+    document.getElementById("uc-total-admins").textContent   = rs.totalAdmins;
+    document.getElementById("uc-total-clientes").textContent = rs.totalClientes;
+    [document.getElementById("badge-usuarios-conectados"), document.getElementById("badge-usuarios-conectados-movil")].forEach(badge => {
+        if (badge) { badge.textContent = rs.total; badge.classList.toggle("hidden", rs.total === 0); badge.classList.toggle("flex", rs.total > 0); }
+    });
+    if (!rs.usuarios || rs.usuarios.length === 0) {
+        contenedor.innerHTML = `<p class="text-xs text-slate-400 text-center py-8">Nadie conectado en este momento.</p>`;
+        return;
+    }
+    contenedor.innerHTML = rs.usuarios.map(u => `
             <div class="bg-slate-900 border border-slate-700 rounded-xl p-3 flex items-center justify-between gap-2">
                 <div class="min-w-0">
                     <p class="text-sm font-bold text-white truncate">${escaparHTML(u.nombre)}</p>
@@ -6051,8 +6049,18 @@ async function cargarUsuariosConectados() {
                 </div>
             </div>
         `).join("");
+}
+async function cargarUsuariosConectados(silencioso) {
+    const contenedor = document.getElementById("uc-lista");
+    try {
+        const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
+            body: JSON.stringify({ action:"obtenerUsuariosConectados", token:tokenActual, correo:usuarioActual }) });
+        const rs = await r.json();
+        if (!rs.success) { if (silencioso !== true) contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">${escaparHTML(rs.message || "No autorizado.")}</p>`; return; }
+        _ucUltimo = rs;
+        _ucPintar(rs);
     } catch (err) {
-        contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">Error de conexión.</p>`;
+        if (silencioso !== true && !_ucUltimo) contenedor.innerHTML = `<p class="text-xs text-red-400 text-center py-8">Error de conexión.</p>`;
     }
 }
 /** Quita UNA foto de la selección pendiente antes de enviarla. */
@@ -6686,7 +6694,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-19 · v54';
+const APP_VERSION = '2026-10-19 · v55';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
