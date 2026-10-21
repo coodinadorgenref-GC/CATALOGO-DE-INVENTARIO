@@ -1540,6 +1540,7 @@
       <button type="button" class="cfg-tab" id="cfg-tab-aspecto" role="tab" aria-selected="true" onclick="cfgTab('aspecto')">Aspecto</button>
       <button type="button" class="cfg-tab" id="cfg-tab-cuenta" role="tab" aria-selected="false" onclick="cfgTab('cuenta')">Cuenta y versión</button>
       <button type="button" class="cfg-tab" id="cfg-tab-cot" role="tab" aria-selected="false" onclick="cfgTab('cot')" style="display:none">Cotizaciones</button>
+      <button type="button" class="cfg-tab" id="cfg-tab-compat" role="tab" aria-selected="false" onclick="cfgTab('compat')" style="display:none">Compatibilidad</button>
       <button type="button" class="cfg-tab" id="cfg-tab-sol" role="tab" aria-selected="false" onclick="cfgTab('sol')" style="display:none">Mis solicitudes</button>
     </div>
     <div class="cfg-cuerpo">
@@ -1568,12 +1569,17 @@
       <h4 class="cfg-muted" style="margin:12px 0 4px;font-weight:800">Historial</h4>
       <div id="cfg-sol-hist"></div>
     </div>
+    <div id="cfg-compat" hidden>
+      <p class="cfg-muted" style="margin:0 0 8px">Productos que se vendieron para una moto que no aparece en su ficha. Corrige la compatibilidad en la ficha del producto y márcalo como revisado.</p>
+      <p id="cfg-compat-estado" class="cp-ayuda" role="status" aria-live="polite"></p>
+      <div id="cfg-compat-lista"></div>
+    </div>
     <div id="cfg-cotizaciones" hidden>
       <div class="cp-campo"><label for="cfg-buscar">Buscar por folio, cliente, teléfono o ID</label>
         <input id="cfg-buscar" type="search" autocomplete="off" enterkeyhint="search" onkeydown="if(event.key==='Enter'){event.preventDefault();cfgCargarCotizaciones(1);}"></div>
       <div class="cfg-filtros">
         <div class="cp-campo"><label for="cfg-f-estado">Estado</label>
-          <select id="cfg-f-estado"><option value="">Todos</option><option>Borrador</option><option>Enviada</option><option>Aceptada</option><option>Rechazada</option><option>Cancelada</option></select></div>
+          <select id="cfg-f-estado"><option value="">Todos</option><option>Borrador</option><option>Enviada</option><option>Vendido</option><option>Traspaso</option><option>Rechazado</option><option>Pedido</option></select></div>
         <div class="cp-campo"><label for="cfg-f-agencia">Agencia</label>
           <select id="cfg-f-agencia"><option value="">Todas</option><option>VENTO</option><option>CARABELA</option><option>BAJAJ</option><option>SUZUKI</option><option>GENERAL</option></select></div>
         <div class="cp-campo"><label for="cfg-f-desde">Desde</label><input id="cfg-f-desde" type="date"></div>
@@ -1600,8 +1606,8 @@
         <div id="cp-error" class="cp-error" role="alert" aria-live="polite"></div>
         <div id="cp-form">
             <div class="cp-grid">
-                <div class="cp-campo"><label for="cp-idcliente">Cliente: ID, nombre o teléfono *</label>
-                    <input id="cp-idcliente" type="text" autocomplete="off" required aria-required="true" enterkeyhint="search" placeholder="Busca al mecánico para traer su ID" oninput="_cpIdResuelto=''" onchange="cotPisoBuscarCliente()" onkeydown="if(event.key==='Enter'){event.preventDefault();cotPisoBuscarCliente();}">
+                <div class="cp-campo"><label for="cp-idcliente">Cliente: ID, nombre o teléfono</label>
+                    <input id="cp-idcliente" type="text" autocomplete="off" enterkeyhint="search" placeholder="Busca al mecánico para traer su ID" oninput="_cpIdResuelto=''" onchange="cotPisoBuscarCliente()" onkeydown="if(event.key==='Enter'){event.preventDefault();cotPisoBuscarCliente();}">
                     <p id="cp-id-estado" class="cp-ayuda" role="status" aria-live="polite"></p>
                     <div id="cp-id-resultados" class="cp-resultados" hidden></div></div>
                 <div class="cp-campo"><label for="cp-cliente">Nombre del cliente *</label>
@@ -1616,7 +1622,7 @@
                 <div class="cp-campo"><label for="cp-vigencia">Vigencia (válida hasta) *</label>
                     <input id="cp-vigencia" type="date" required aria-required="true" enterkeyhint="next"></div>
             </div>
-            <p class="cp-ayuda">* Todos son obligatorios: cliente (con su ID), nombre (solo letras), teléfono (solo números), motocicleta, año (4 números), vigencia y al menos un producto.</p>
+            <p class="cp-ayuda">* Obligatorios: nombre (solo letras), teléfono (solo números), motocicleta, año (4 números), vigencia y al menos un producto. El ID de cliente es opcional.</p>
             <div class="cp-campo" style="margin-top:16px">
                 <label for="cp-buscador">Producto: SKU, nombre o número de parte</label>
                 <input id="cp-buscador" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Escribe o pega el SKU…">
@@ -1652,6 +1658,12 @@
         <p class="cv-aparte"><a id="cv-aparte" href="#" target="_blank" rel="noopener">¿No se ve bien? Ábrela aparte</a></p>
         <div id="cv-estado-fila" class="cp-campo" style="margin-top:8px"><label for="cv-estado">Estado</label>
             <select id="cv-estado" onchange="cvCambiarEstado(this)"></select></div>
+        <div id="cv-motivo-fila" class="cp-campo" hidden>
+            <label for="cv-motivo">Motivo del rechazo *</label>
+            <input id="cv-motivo" type="text" maxlength="200" autocomplete="off" placeholder="Ej. Precio alto, ya lo compró en otro lado" onkeydown="if(event.key==='Enter'){event.preventDefault();cvGuardarRechazo();}">
+            <button type="button" class="cp-btn-sec" onclick="cvGuardarRechazo()" style="margin-top:8px">Guardar rechazo</button>
+        </div>
+        <p id="cv-seg" class="cp-ayuda" role="status" aria-live="polite"></p>
         <div class="cfg-acciones">
             <button type="button" id="cv-wa" onclick="_cotReenviar(_cvCot, this)"><i aria-hidden="true" class="fa-brands fa-whatsapp"></i> Reenviar</button>
             <a id="cv-descargar" href="#" download="Cotización.pdf" role="button"><i aria-hidden="true" class="fa-solid fa-download"></i> Descargar</a>
@@ -1747,7 +1759,8 @@ function _normalizarAlmacenJS(texto) {
 /** true si el admin actual tiene asignado "TODAS" en la Columna H
  *  (Usuarios_Autorizados) — acceso total a todas las sucursales. */
 function esZonaValladolid() {
-    return _normalizarAlmacenJS(almacenAdminActual).includes("TODAS");
+    const h = _normalizarAlmacenJS(almacenAdminActual);
+    return h.includes("TODAS") || h.includes("ZONA VALLADOLID");   // «ZONA VALLADOLID» ve las tres secciones, como TODAS
 }
 
 /** NUEVO — true si una sucursal dada pertenece al almacén asignado al
@@ -1758,6 +1771,7 @@ function _adminVeAlmacenSucursal(nombreSucursal) {
     if (esZonaValladolid()) return true;
     if (!almacenAdminActual) return false;
     const almacenAdminNorm = _normalizarAlmacenJS(almacenAdminActual);
+    if (almacenAdminNorm.includes("ZONA MERIDA")) return /UMAN|CAUCEL|TICUL/.test(_normalizarAlmacenJS(nombreSucursal));   // la zona Mérida solo tiene sucursales Vento
     const grupo         = detectarGrupoSucursal(nombreSucursal);
     const almacenLogico = almacenLogicoDeGrupo(grupo); // BAJAJ / SUZUKI / VENTO_CARABELA / GENERAL
     if (almacenLogico === "VENTO_CARABELA") {
@@ -6697,9 +6711,9 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-21 · v58';
-const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
-const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
+const APP_VERSION = '2026-10-21 · v59';
+const ESTADOS_COT = ['Borrador', 'Enviada', 'Vendido', 'Traspaso', 'Rechazado', 'Pedido'];   // Enviada = en seguimiento: el cliente marca el resultado
+const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Vendido: 'fa-circle-check', Traspaso: 'fa-truck-fast', Rechazado: 'fa-circle-xmark', Pedido: 'fa-box-open' };
 let _cfgCots = [];
 const _cfgMoneda = n => (n === null || n === undefined || n === '') ? 'por confirmar' : Number(n).toLocaleString('es-MX', { style: 'currency', currency: 'MXN' });
 
@@ -6711,6 +6725,7 @@ function cfgAbrir() {
     _cpEl('cfg-tab-cot').style.display = esAdmin ? '' : 'none';
     _cpEl('cfg-tab-sol').style.display = esAdmin ? 'none' : '';
     cfgTab('aspecto');
+    if (esAdmin) cfgPrepararCompat();
     _cpEl('cfg-overlay').classList.add('visible');
 }
 function aspectoActual() { try { return localStorage.getItem('aspecto') || 'oscuro'; } catch (e) { return 'oscuro'; } }   /* oscuro por omisión; quien elija Claro o Sistema en Ajustes conserva su elección */
@@ -6809,6 +6824,7 @@ function cfgCerrar() { _cpEl('cfg-overlay').classList.remove('visible'); biMarca
 function cfgTab(t) {
     biMarcar(t);
     const cot = t === 'cot' && esAdmin;
+    _cpEl('cfg-compat').hidden = t !== 'compat'; _cpEl('cfg-tab-compat').setAttribute('aria-selected', String(t === 'compat')); if (t === 'compat') cfgCargarCompat();
     _cpEl('cfg-aspecto').hidden = t !== 'aspecto'; _cpEl('cfg-cuenta').hidden = t !== 'cuenta'; _cpEl('cfg-cotizaciones').hidden = !cot;
     _cpEl('cfg-solicitudes').hidden = !(t === 'sol' && !esAdmin); _cpEl('cfg-tab-sol').setAttribute('aria-selected', String(t === 'sol'));
     if (t === 'sol' && !esAdmin) cfgCargarSolicitudes();
@@ -6817,6 +6833,40 @@ function cfgTab(t) {
     if (t === 'aspecto') cfgPintarAspecto();
     _cpEl('cfg-tab-cot').setAttribute('aria-selected', String(cot));
     if (cot) cfgCargarCotizaciones();
+}
+/** La pestaña solo aparece para administración (el servidor decide); el número de pendientes va en la pestaña. */
+async function cfgPrepararCompat() {
+    try {
+        const rs = await _cpApi('listarRevisionCompat', {});
+        const tab = _cpEl('cfg-tab-compat'); tab.style.display = rs.success ? '' : 'none';
+        if (rs.success) tab.textContent = 'Compatibilidad' + ((rs.pendientes || []).length ? ' (' + rs.pendientes.length + ')' : '');
+    } catch (e) { _cpEl('cfg-tab-compat').style.display = 'none'; }
+}
+async function cfgCargarCompat() {
+    const est = _cpEl('cfg-compat-estado'), lista = _cpEl('cfg-compat-lista'); est.textContent = 'Cargando…';
+    try {
+        const rs = await _cpApi('listarRevisionCompat', {});
+        if (!rs.success) { est.textContent = rs.message || 'No se pudo cargar.'; lista.innerHTML = ''; return; }
+        const p = rs.pendientes || []; est.textContent = p.length ? p.length + ' por revisar.' : 'No hay nada pendiente.';
+        lista.innerHTML = p.map(x => `<div class="cfg-fila" style="display:block">
+            <div><b>${_cpEsc(x.sku)}</b> · ${_cpEsc(x.descripcion)}</div>
+            <div class="cfg-muted">Se vendió para <b>${_cpEsc(x.moto)}${x.anio ? ' ' + _cpEsc(x.anio) : ''}</b> · cotización ${_cpEsc(x.folio)}</div>
+            <div class="cfg-acciones" style="margin-top:8px">
+              <button type="button" onclick="cfgBuscarSkuCompat('${_cpEsc(x.sku)}')"><i aria-hidden="true" class="fa-solid fa-magnifying-glass"></i> Ver producto</button>
+              <button type="button" onclick="cfgMarcarCompat('${_cpEsc(x.id)}','Revisada')"><i aria-hidden="true" class="fa-solid fa-check"></i> Ya la actualicé</button>
+              <button type="button" onclick="cfgMarcarCompat('${_cpEsc(x.id)}','Descartada')">No aplica</button>
+            </div></div>`).join('');
+        const tab = _cpEl('cfg-tab-compat'); tab.textContent = 'Compatibilidad' + (p.length ? ' (' + p.length + ')' : '');
+    } catch (e) { est.textContent = 'No se pudo cargar. Revisa tu conexión.'; }
+}
+function cfgBuscarSkuCompat(sku) {   // cierra Configuración y deja el SKU en el buscador del catálogo para abrir su ficha
+    cfgCerrar();
+    const b = [document.getElementById('buscador'), document.getElementById('buscador-movil')].find(el => el && el.offsetParent !== null);
+    if (b) { b.value = sku; try { ejecutarBusquedaCombinada(); } catch (e) {} b.focus(); }
+}
+async function cfgMarcarCompat(id, estado) {
+    try { const rs = await _cpApi('marcarRevisionCompat', { id, estado }); if (!rs.success) throw new Error(rs.message); cfgCargarCompat(); }
+    catch (e) { mostrarToastInfo(e.message || 'No se pudo actualizar.', 'error'); }
 }
 let _cfgPag = 1, _cfgTotal = 0, _cfgPorPag = 30;
 async function cfgCargarCotizaciones(pag) {
@@ -6868,33 +6918,10 @@ async function cfgCancelar(folio) {
  *  Celular: abre la hoja de compartir del sistema con el PDF adjunto; ahí se elige WhatsApp y el chat del cliente.
  *  Computadora o navegador que no comparte archivos: descarga el PDF y abre el chat de WhatsApp del cliente con un mensaje corto para adjuntarlo
  *  (WhatsApp Web no permite adjuntar un archivo por enlace). Sin números de parte de lo bajo pedido. boton: se bloquea mientras prepara. */
-async function _cotReenviar(c, boton) {
+async function _cotReenviar(c, boton) {   // abre WhatsApp con la misma plantilla que el primer envío; el PDF se comparte desde la vista previa
     if (!c || !c.folio) return;
-    const tel = String(c.telefono || '').replace(/\D/g, '');
-    const vig = _cotVigIso(c.vigencia);
-    const msg = `Hola ${c.cliente}, te comparto tu cotización ${c.folio} por ${_cfgMoneda(c.total)}${vig ? ', vigente hasta el ' + _cotFechaLarga(vig) : ''}. Va en PDF.`;
-    const original = boton ? boton.innerHTML : '';
-    if (boton) { boton.disabled = true; boton.innerHTML = '<i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> Preparando…'; }
-    try {
-        const [jsPDF, logo] = await Promise.all([_cargarJsPdf(), _hojaLogoDe(c)]);
-        const blob = hojaCotizacionConstruir(jsPDF, c, logo).output('blob');
-        const nombre = _cotNombrePdf(c);
-        const archivo = new File([blob], nombre, { type: 'application/pdf' });
-        if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
-            try { await navigator.share({ files: [archivo], title: 'Cotización ' + c.folio, text: msg }); return; }
-            catch (e) { if (e && e.name === 'AbortError') return; }   // si el celular no deja compartir, se descarga
-        }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = nombre;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 60000);
-        mostrarToastInfo('PDF descargado. Adjúntalo en el chat de WhatsApp.');
-        if (tel) window.open('https://wa.me/' + (tel.length === 10 ? '52' + tel : tel) + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
-    } catch (e) {
-        mostrarToastInfo(e && e.message ? e.message : 'No se pudo preparar el PDF.', 'error');
-    } finally {
-        if (boton) { boton.disabled = false; boton.innerHTML = original; }
-    }
+    _cotAbrirWhats(c);
+    await _cotMarcarEnviada(c);
 }
 function cfgReenviar(folio, boton) { _cotReenviar(_cfgBuscar(folio), boton); }
 
@@ -6928,6 +6955,7 @@ async function cvAbrir(cot, origen) {
         _cpEl('cv-estado-fila').hidden = origen !== 'hist';
         _cpEl('cv-estado').innerHTML = ESTADOS_COT.map(e => `<option${e === cot.estado ? ' selected' : ''}>${e}</option>`).join('');
         _cpEl('cv-wa').hidden = !asesor;
+        _cpEl('cv-motivo-fila').hidden = true; cvPintarSeg();
         cvPintarEditar(origen);
         _cvOrigen = origen;
         _cpEl('cv-overlay').classList.add('visible');
@@ -6942,14 +6970,41 @@ function cvPintarSub() {
 }
 function cvPintarEditar(origen) { _cpEl('cv-editar').hidden = !(origen !== 'cliente' && _cvCot && !_cotMotivoNoEditable(_cvCot)); }
 function cvEditar() { if (_cvCot) cotPisoEditar(_cvCot); }
+/** Texto de seguimiento según el estado: qué sigue y cuánto tarda. */
+function cvPintarSeg() {
+    const el = _cpEl('cv-seg'), c = _cvCot; if (!el) return;
+    const sg = (c && c.seguimiento) || {};
+    const t = !c ? '' : c.estado === 'Enviada' ? 'En seguimiento: cuando el cliente responda, marca si fue Vendido, Traspaso, Rechazado o Pedido.'
+        : c.estado === 'Vendido' ? 'Venta completada.'
+        : c.estado === 'Traspaso' ? 'Traspaso: ' + (sg.eta ? 'llega en aprox. ' + sg.eta + '.' : 'sin tiempo estimado.') + ((sg.lineas || []).length ? ' ' + sg.lineas.map(l => (l.origen || 'otra agencia') + (l.eta ? ' (' + l.eta + ')' : '')).join(' · ') : '')
+        : c.estado === 'Pedido' ? 'Pedido: ' + (sg.eta || '2 a 3 semanas, siempre que VENTO tenga disponible') + '.'
+        : c.estado === 'Rechazado' ? 'Motivo del rechazo: ' + (sg.motivo || 'no registrado') + '.' : '';
+    el.textContent = t;
+}
+async function _cvAplicarEstado(estado, datos) {
+    const c = _cvCot; if (!c) return false;
+    const rs = await _cpApi('cambiarEstadoCotizacion', { folio: c.folio, estado, datos: datos || {} });
+    if (!rs.success) throw new Error(rs.message || 'No se pudo cambiar el estado.');
+    c.estado = estado; c.seguimiento = rs.seguimiento || {};
+    _cpEl('cv-motivo-fila').hidden = true; _cpEl('cv-motivo').value = '';
+    cvPintarSub(); cvPintarSeg(); cvPintarEditar(_cvOrigen); cfgPintarCotizaciones();
+    return true;
+}
 async function cvCambiarEstado(sel) {
     const c = _cvCot; if (!c) return;
     const previo = c.estado;
-    try {
-        const rs = await _cpApi('cambiarEstadoCotizacion', { folio: c.folio, estado: sel.value });
-        if (!rs.success) throw new Error(rs.message || 'No se pudo cambiar el estado.');
-        c.estado = sel.value; cvPintarSub(); cvPintarEditar(_cvOrigen); cfgPintarCotizaciones();
-    } catch (e) { sel.value = previo; mostrarToastInfo(e.message || 'No se pudo cambiar el estado.', 'error'); }
+    if (sel.value === 'Rechazado') {   // el rechazo pide motivo: el estado no cambia hasta guardarlo
+        sel.value = previo; _cpEl('cv-motivo-fila').hidden = false; _cpEl('cv-motivo').focus(); return;
+    }
+    _cpEl('cv-motivo-fila').hidden = true;
+    try { await _cvAplicarEstado(sel.value); }
+    catch (e) { sel.value = previo; mostrarToastInfo(e.message || 'No se pudo cambiar el estado.', 'error'); }
+}
+async function cvGuardarRechazo() {
+    const motivo = _cpEl('cv-motivo').value.trim();
+    if (motivo.length < 3) { mostrarToastInfo('Escribe el motivo del rechazo.', 'error'); _cpEl('cv-motivo').focus(); return; }
+    try { await _cvAplicarEstado('Rechazado', { motivo }); _cpEl('cv-estado').value = 'Rechazado'; }
+    catch (e) { mostrarToastInfo(e.message || 'No se pudo guardar el rechazo.', 'error'); }
 }
 
 /* ═════ HOJA_COTIZACION_INICIO ═════
@@ -7257,7 +7312,7 @@ async function cotPisoEditar(c) {
         if (it.tipo === 'pedido') return { id: ++_cpSeq, tipo: 'pedido', sku: '', descripcion: it.descripcion || '', disponibilidad: 'Bajo pedido', stock: 0, cantidad: cant, numeroParte: it.numeroParte || '', precioAprox: Number(it.precio) > 0 ? String(it.precio) : '' };
         const p = inventarioMaestro.find(x => String(x.SKU) === String(it.sku));
         const st = p ? _cpStock(p) : 0;
-        return { id: ++_cpSeq, tipo: 'catalogo', sku: String(it.sku || ''), descripcion: it.descripcion || (p ? p.Producto : ''), disponibilidad: p ? (st > 0 ? 'En existencia' : 'Bajo pedido') : (it.disponibilidad || ''), stock: st, cantidad: cant, precioAprox: (it.precioAprox === true && Number(it.precio) > 0) ? String(it.precio) : '' };
+        return { id: ++_cpSeq, tipo: 'catalogo', sku: String(it.sku || ''), descripcion: it.descripcion || (p ? p.Producto : ''), disponibilidad: p ? (st > 0 ? 'En existencia' : 'Bajo pedido') : (it.disponibilidad || ''), stock: st, cantidad: cant, origen: it.origen || '', precioAprox: (it.precioAprox === true && Number(it.precio) > 0) ? String(it.precio) : '' };
     });
     _cpPintarLineas();
     _cpMostrarFormulario();
@@ -7269,25 +7324,36 @@ async function cotPisoCerrar(forzar) {
     document.body.style.overflow = '';
 }
 function cotPisoClickFuera(e) { if (e.target.id === 'cp-overlay') cotPisoCerrar(); }
-/** Abre WhatsApp con el mensaje precargado para el cliente. Al enviarlo, una cotización en Borrador pasa a Enviada.
- *  (WhatsApp no avisa si el mensaje salió: se marca al abrir el chat. El PDF se comparte desde «Vista previa».) */
-async function cotPisoEnviarWhats(boton) {
-    const c = _cpUltima; if (!c || !c.folio) return;
+/** Mensaje de WhatsApp: «Hola buen día [cliente] soy [quien cotiza] [rol] lo contacto para compartirle su cotización». */
+function _cotMensajeWhats(c) {
+    const quien = String(c.vendedorNombre || (document.getElementById('nombre-usuario')?.textContent || '')).trim();
+    const rol = String(c.vendedorRol || '').trim();
+    return 'Hola buen día ' + c.cliente + ' soy ' + quien + (rol ? ' ' + rol : '') + ' lo contacto para compartirle su cotización';
+}
+function _cotAbrirWhats(c) {   // se abre en el mismo toque, antes de cualquier espera
     let tel = String(c.telefono || '').replace(/\D/g, ''); if (tel.length === 10) tel = '52' + tel;
-    const quien = (c.vendedorNombre || (document.getElementById('nombre-usuario')?.textContent || '')).trim();
-    const msg = 'Hola buen día ' + c.cliente + ' soy ' + quien + ' lo contacto para compartirle su cotización';
-    window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');   // se abre en el mismo toque, antes de cualquier espera
+    window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(_cotMensajeWhats(c)), '_blank', 'noopener');
+}
+/** Al abrir el chat, una cotización en Borrador pasa a Enviada (WhatsApp no avisa si el mensaje salió). */
+async function _cotMarcarEnviada(c) {
     if (c.estado !== 'Borrador') return;
-    const original = boton ? boton.innerHTML : '';
-    if (boton) { boton.disabled = true; boton.innerHTML = '<i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> Marcando como enviada…'; }
     try {
         const rs = await _cpApi('cambiarEstadoCotizacion', { folio: c.folio, estado: 'Enviada' });
         if (!rs.success) throw new Error(rs.message || 'No se pudo cambiar el estado.');
         c.estado = 'Enviada';
-        _cpEl('cp-listo-detalle').textContent = _cpEl('cp-listo-detalle').textContent.replace('Estado: Borrador', 'Estado: Enviada');
-        if (!_cpEl('cfg-cotizaciones').hidden) cfgCargarCotizaciones(_cfgPag);
+        if (_cpUltima && _cpUltima.folio === c.folio) { _cpUltima.estado = 'Enviada'; const d = _cpEl('cp-listo-detalle'); if (d) d.textContent = d.textContent.replace('Estado: Borrador', 'Estado: Enviada'); }
+        if (_cvCot && _cvCot.folio === c.folio) { _cvCot.estado = 'Enviada'; cvPintarSub(); cvPintarSeg(); const sel = _cpEl('cv-estado'); if (sel) sel.value = 'Enviada'; }
+        if (!_cpEl('cfg-cotizaciones').hidden) cfgPintarCotizaciones();
     } catch (e) { mostrarToastInfo((e && e.message) || 'No se pudo marcar como enviada; cámbiala desde el historial.', 'error'); }
-    finally { if (boton) { boton.disabled = false; boton.innerHTML = original; } }
+}
+async function cotPisoEnviarWhats(boton) {
+    const c = _cpUltima; if (!c || !c.folio) return;
+    _cotAbrirWhats(c);
+    if (c.estado !== 'Borrador') return;
+    const original = boton ? boton.innerHTML : '';
+    if (boton) { boton.disabled = true; boton.innerHTML = '<i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> Marcando como enviada…'; }
+    await _cotMarcarEnviada(c);
+    if (boton) { boton.disabled = false; boton.innerHTML = original; }
 }
 function cotPisoNueva() { _cpReiniciar(); setTimeout(() => _cpEl('cp-idcliente').focus(), 60); }
 document.addEventListener('keydown', e => {
@@ -7309,6 +7375,38 @@ function _cpBuscar(q) {
     out.sort((a, b) => (_cpNorm(b.SKU) === t) - (_cpNorm(a.SKU) === t));
     return out.slice(0, 8);
 }
+/* Zonas de las sucursales: el tiempo estimado de llegada depende de si la pieza viaja dentro de la misma zona o entre zonas. */
+const ZONA_SUCURSAL = {
+    'BAJAJ CANCUN': 'Valladolid', 'BAJAJ TIZIMIN': 'Valladolid', 'BAJAJ VALLADOLID': 'Valladolid', 'BAJAJ PISTE': 'Valladolid', 'CARABELA V1': 'Valladolid',
+    'SUZUKI TIZIMIN': 'Valladolid', 'SUZUKI VALLADOLID': 'Valladolid', 'PISTE VENTO': 'Valladolid', 'TIZIMIN VENTO': 'Valladolid', 'PISTE MUEBLES': 'Valladolid',
+    'UMAN VENTO': 'Mérida', 'CAUCEL VENTO': 'Mérida', 'TICUL VENTO': 'Mérida'
+};
+const ETA_MISMA_ZONA = '3–7 días hábiles', ETA_OTRA_ZONA = '3–5 semanas';
+const _zonaDeSucursal = n => ZONA_SUCURSAL[String(n || '').trim().toUpperCase()] || null;
+/** ¿La cuenta tiene una agencia propia? (las de TODAS o de una zona completa no: para ellas no hay «traspaso») */
+function _cpTieneAgenciaPropia() { const h = _normalizarAlmacenJS(almacenAdminActual || ''); return !!h && !h.includes('TODAS') && !h.includes('ZONA'); }
+function _cpEsMiSucursal(s) {
+    if (!_cpTieneAgenciaPropia()) return false;
+    const n = _normalizarAlmacenJS(s), h = _normalizarAlmacenJS(almacenAdminActual);
+    return n.includes(h) || h.includes(n);
+}
+function _cpZonaDestino() {
+    const h = _normalizarAlmacenJS(almacenAdminActual || '');
+    if (h.includes('ZONA MERIDA')) return 'Mérida'; if (h.includes('ZONA VALLADOLID')) return 'Valladolid';
+    const k = Object.keys(ZONA_SUCURSAL).find(x => _cpEsMiSucursal(x)); return k ? ZONA_SUCURSAL[k] : null;
+}
+/** De dónde puede salir un SKU: sucursales con existencia real (sin lo que viene en tránsito), con su cantidad, si es la propia y el tiempo estimado si pide traspaso. */
+function _cpOpcionesOrigen(sku) {
+    const p = inventarioMaestro.find(x => String(x.SKU) === String(sku)); if (!p) return [];
+    const mapa = {}; (p.Existencias || []).filter(e => !e.enTransito && Number(e.cantidad) > 0).forEach(e => { mapa[e.sucursal] = (mapa[e.sucursal] || 0) + Number(e.cantidad); });
+    const zd = _cpZonaDestino(), propia = _cpTieneAgenciaPropia();
+    return Object.keys(mapa).map(sucursal => {
+        const sin = _cpEsMiSucursal(sucursal), zo = _zonaDeSucursal(sucursal);
+        return { sucursal, cantidad: mapa[sucursal], sin, propia, zonaIgual: !!(zo && zd && zo === zd), eta: (!propia || sin || !zo || !zd) ? '' : (zo === zd ? ETA_MISMA_ZONA : ETA_OTRA_ZONA) };
+    }).sort((a, b) => (b.sin - a.sin) || (b.zonaIgual - a.zonaIgual) || (b.cantidad - a.cantidad));
+}
+function _cpOrigenActual(l) { const o = _cpOpcionesOrigen(l.sku); const cur = o.find(x => x.sucursal === l.origen) || o[0] || null; if (cur) l.origen = cur.sucursal; return { opc: o, cur }; }
+function cotPisoOrigen(id, valor) { const l = _cpLineas.find(x => x.id === id); if (!l) return; l.origen = valor; _cpPintarLineas(); }
 function _cpStock(p) { return (p.Existencias || []).reduce((s, e) => s + Number(e.cantidad || 0), 0); }
 
 function _cpPintarResultados() {
@@ -7402,11 +7500,15 @@ function _cpPintarLineas() {
     cont.innerHTML = _cpLineas.map(l => {
         const ped = l.tipo === 'pedido';
         const p = _cpPrecioLinea(l);
-        const sobre = !ped && l.stock > 0 && l.cantidad > l.stock;
+        const { opc, cur } = ped ? { opc: [], cur: null } : _cpOrigenActual(l);
+        const sobre = !ped && cur && l.cantidad > cur.cantidad;
         const badge = (l.disponibilidad === 'En existencia')
             ? '<span class="cp-badge cp-ok"><i aria-hidden="true" class="fa-solid fa-circle-check"></i> En existencia</span>'
             : '<span class="cp-badge cp-aten"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> Bajo pedido</span>';
-        const aviso = sobre ? `<div class="cp-badge cp-aten"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> Solo hay ${l.stock} en existencia</div>` : '';
+        const aviso = sobre ? `<div class="cp-badge cp-aten"><i aria-hidden="true" class="fa-solid fa-triangle-exclamation"></i> Solo hay ${cur.cantidad} en ${_cpEsc(cur.sucursal)}</div>` : '';
+        const origenHtml = (!ped && opc.length) ? `<div class="cp-campo" style="margin-top:8px"><label for="cp-or-${l.id}">Sale de</label>
+                 <select id="cp-or-${l.id}" onchange="cotPisoOrigen(${l.id}, this.value)">${opc.map(o => `<option value="${_cpEsc(o.sucursal)}"${o.sucursal === cur.sucursal ? ' selected' : ''}>${_cpEsc(o.sucursal)} (${o.cantidad})${o.sin ? ' · mi agencia' : ''}</option>`).join('')}</select></div>
+               ${cur.propia ? (cur.sin ? '<span class="cp-badge cp-ok"><i aria-hidden="true" class="fa-solid fa-circle-check"></i> Sin traspaso</span>' : `<span class="cp-badge cp-aten"><i aria-hidden="true" class="fa-solid fa-truck-fast"></i> Traspaso${cur.eta ? ' · ' + cur.eta : ''}</span>`) : ''}` : '';
         const cabeza = ped
             ? `<div style="flex:1;min-width:0">
                  <div class="cp-campo"><label for="cp-np-${l.id}">Número de parte (solo lo ves tú; no sale en la hoja)</label>
@@ -7416,7 +7518,7 @@ function _cpPintarLineas() {
                    <input id="cp-ds-${l.id}" type="text" autocomplete="off" value="${_cpEsc(l.descripcion)}" oninput="cotPisoCampo(${l.id},'descripcion',this.value)"></div>
                  ${badge}
                </div>`
-            : `<div style="min-width:0"><div class="cp-desc">${_cpEsc(l.descripcion)}</div><div class="cp-sku">${_cpEsc(l.sku)}</div>${badge}${aviso}</div>`;
+            : `<div style="min-width:0"><div class="cp-desc">${_cpEsc(l.descripcion)}</div><div class="cp-sku">${_cpEsc(l.sku)}</div>${badge}${aviso}${origenHtml}</div>`;
         const precioHtml = (!ped && p.lista)
             ? `<div class="cp-ayuda" style="margin:0">${_cpMoneda(p.valor)} c/u</div><div class="cp-imp" id="cp-imp-${l.id}">${_cpMoneda(p.valor * l.cantidad)}</div>`
             : `<div class="cp-campo"><label for="cp-pa-${l.id}">${ped ? 'Precio aproximado' : 'Sin precio en lista: captura uno'}</label>
@@ -7489,7 +7591,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* ── Guardar (el servidor valida, calcula precios y asigna el folio) ── */
 function _cpValidar() {
-    if (!String(_cpIdResuelto || '').trim()) return 'Busca y elige al cliente para traer su ID de cliente.';
     const nombre = _cpEl('cp-cliente').value.trim();
     if (!nombre) return 'Captura el nombre del cliente.';
     if (!_COT_RE_NOMBRE.test(nombre)) return 'El nombre solo puede llevar letras.';
@@ -7521,14 +7622,14 @@ async function cotPisoGuardar() {
             agencia: _cpEdicion ? (_cpEdicion.base.agencia || _cpAgenciaAuto()) : _cpAgenciaAuto(), seccion: seccionActual(), origen: 'PISO',
             lineas: _cpLineas.map(l => l.tipo === 'pedido'
                 ? { tipo: 'pedido', cantidad: l.cantidad, numeroParte: l.numeroParte, descripcion: l.descripcion, precioAprox: l.precioAprox }
-                : { tipo: 'catalogo', sku: l.sku, cantidad: l.cantidad, descripcion: l.descripcion, disponibilidad: l.disponibilidad, precioAprox: l.precioAprox })
+                : (() => { const { cur } = _cpOrigenActual(l); return { tipo: 'catalogo', sku: l.sku, cantidad: l.cantidad, descripcion: l.descripcion, disponibilidad: l.disponibilidad, precioAprox: l.precioAprox, origen: cur ? cur.sucursal : '', traspaso: !!(cur && cur.propia && !cur.sin), eta: cur ? cur.eta : '' }; })())
         };
         const edicion = _cpEdicion;
         const rs = edicion ? await _cpApi('editarCotizacion', { folio: edicion.folio, datos }) : await _cpApi('guardarCotizacion', { datos });
         if (!rs.success) { _cpError(rs.message || (edicion ? 'No se pudieron guardar los cambios.' : 'No se pudo guardar la cotización.')); return; }
         _cpGuardada = true; _motosRecordar(datos.moto);
         _cpUltima = { folio: rs.folio || (edicion && edicion.folio), fecha: rs.fecha || (edicion && edicion.base.fecha), estado: rs.estado || (edicion && edicion.base.estado), agencia: datos.agencia, cliente: datos.cliente, telefono: datos.telefono, idCliente: datos.idCliente,
-            moto: datos.moto, anio: datos.anio, vigencia: _cotVigIso(rs.vigencia) || datos.vigencia, vendedorAgencia: rs.vendedorAgencia, vendedorWhats: rs.vendedorWhats,
+            moto: datos.moto, anio: datos.anio, vigencia: _cotVigIso(rs.vigencia) || datos.vigencia, vendedorAgencia: rs.vendedorAgencia, vendedorWhats: rs.vendedorWhats, vendedorRol: rs.vendedorRol || (edicion && edicion.base.vendedorRol) || '',
             vendedorNombre: (edicion && edicion.base.vendedorNombre) || (document.getElementById('nombre-usuario')?.textContent || '').trim(), total: rs.total, items: rs.items };
         if (!_cpEl('cfg-cotizaciones').hidden) cfgCargarCotizaciones(_cfgPag);   // el historial abierto detrás se actualiza solo
         _cpEl('cp-form').hidden = true; _cpEl('cp-listo').hidden = false;
