@@ -698,6 +698,7 @@
         }
         .cfg-filtros { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .cfg-filtros select, .cfg-filtros input { width: 100%; min-height: 44px; }
+        #cp-moto-sug { position: absolute; left: 0; right: 0; top: 100%; z-index: 30; margin-top: 4px; max-height: 232px; overflow-y: auto; box-shadow: 0 10px 28px rgba(0,0,0,.35); }
         .cfg-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         .cfg-acciones select { flex-basis: 100%; }
         .cfg-acciones button:disabled { opacity: .6; cursor: progress; }
@@ -1599,15 +1600,15 @@
         <div id="cp-error" class="cp-error" role="alert" aria-live="polite"></div>
         <div id="cp-form">
             <div class="cp-grid">
-                <div class="cp-campo"><label for="cp-idcliente">Cliente: ID, nombre o teléfono</label>
-                    <input id="cp-idcliente" type="text" autocomplete="off" enterkeyhint="search" placeholder="Busca al mecánico para traer su ID" oninput="_cpIdResuelto=''" onchange="cotPisoBuscarCliente()" onkeydown="if(event.key==='Enter'){event.preventDefault();cotPisoBuscarCliente();}">
+                <div class="cp-campo"><label for="cp-idcliente">Cliente: ID, nombre o teléfono *</label>
+                    <input id="cp-idcliente" type="text" autocomplete="off" required aria-required="true" enterkeyhint="search" placeholder="Busca al mecánico para traer su ID" oninput="_cpIdResuelto=''" onchange="cotPisoBuscarCliente()" onkeydown="if(event.key==='Enter'){event.preventDefault();cotPisoBuscarCliente();}">
                     <p id="cp-id-estado" class="cp-ayuda" role="status" aria-live="polite"></p>
                     <div id="cp-id-resultados" class="cp-resultados" hidden></div></div>
                 <div class="cp-campo"><label for="cp-cliente">Nombre del cliente *</label>
                     <input id="cp-cliente" type="text" autocomplete="off" autocapitalize="words" maxlength="80" required aria-required="true" placeholder="Solo letras" enterkeyhint="next"></div>
                 <div class="cp-campo"><label for="cp-telefono">Teléfono *</label>
                     <input id="cp-telefono" type="tel" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required aria-required="true" placeholder="Solo números, ej. 9851234567" enterkeyhint="next"></div>
-                <div class="cp-campo"><label for="cp-moto">Motocicleta (modelo) *</label>
+                <div class="cp-campo" style="position:relative"><label for="cp-moto">Motocicleta (modelo) *</label>
                     <input id="cp-moto" type="text" maxlength="60" autocomplete="off" required aria-required="true" placeholder="Escribe el modelo; saldrán sugerencias" enterkeyhint="next" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="cp-moto-sug">
                     <div id="cp-moto-sug" class="cp-resultados" role="listbox" hidden></div></div>
                 <div class="cp-campo"><label for="cp-anio">Año *</label>
@@ -1615,7 +1616,7 @@
                 <div class="cp-campo"><label for="cp-vigencia">Vigencia (válida hasta) *</label>
                     <input id="cp-vigencia" type="date" required aria-required="true" enterkeyhint="next"></div>
             </div>
-            <p class="cp-ayuda">* Obligatorios: nombre (solo letras), teléfono (solo números), motocicleta, año (4 números) y vigencia.</p>
+            <p class="cp-ayuda">* Todos son obligatorios: cliente (con su ID), nombre (solo letras), teléfono (solo números), motocicleta, año (4 números), vigencia y al menos un producto.</p>
             <div class="cp-campo" style="margin-top:16px">
                 <label for="cp-buscador">Producto: SKU, nombre o número de parte</label>
                 <input id="cp-buscador" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Escribe o pega el SKU…">
@@ -1633,7 +1634,7 @@
             <p id="cp-listo-detalle" style="color:var(--text-2);margin:0 0 4px"></p>
             <p id="cp-listo-aviso" class="cp-ayuda" style="margin-bottom:16px"></p>
             <button type="button" id="cp-vista" class="btn-primary" onclick="cvAbrir(_cpUltima, 'nueva')" style="width:100%;min-height:48px;border-radius:8px;font-weight:600;cursor:pointer"><i aria-hidden="true" class="fa-solid fa-eye"></i> Vista previa</button>
-            <button type="button" id="cp-hoja" class="cp-btn-sec" onclick="hojaCotizacionPdf(_cpUltima, this)"><i aria-hidden="true" class="fa-solid fa-file-pdf"></i> Hoja PDF</button>
+            <button type="button" id="cp-hoja" class="cp-btn-sec" onclick="cotPisoEnviarWhats(this)"><i aria-hidden="true" class="fa-brands fa-whatsapp"></i> Enviar WhatsApp</button>
             <button type="button" class="cp-btn-sec" onclick="cotPisoNueva()">Nueva cotización</button>
             <button type="button" class="cp-btn-sec" onclick="cotPisoCerrar(true)">Cerrar</button>
         </div>
@@ -6696,7 +6697,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-20 · v57';
+const APP_VERSION = '2026-10-21 · v58';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -7268,6 +7269,26 @@ async function cotPisoCerrar(forzar) {
     document.body.style.overflow = '';
 }
 function cotPisoClickFuera(e) { if (e.target.id === 'cp-overlay') cotPisoCerrar(); }
+/** Abre WhatsApp con el mensaje precargado para el cliente. Al enviarlo, una cotización en Borrador pasa a Enviada.
+ *  (WhatsApp no avisa si el mensaje salió: se marca al abrir el chat. El PDF se comparte desde «Vista previa».) */
+async function cotPisoEnviarWhats(boton) {
+    const c = _cpUltima; if (!c || !c.folio) return;
+    let tel = String(c.telefono || '').replace(/\D/g, ''); if (tel.length === 10) tel = '52' + tel;
+    const quien = (c.vendedorNombre || (document.getElementById('nombre-usuario')?.textContent || '')).trim();
+    const msg = 'Hola buen día ' + c.cliente + ' soy ' + quien + ' lo contacto para compartirle su cotización';
+    window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');   // se abre en el mismo toque, antes de cualquier espera
+    if (c.estado !== 'Borrador') return;
+    const original = boton ? boton.innerHTML : '';
+    if (boton) { boton.disabled = true; boton.innerHTML = '<i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> Marcando como enviada…'; }
+    try {
+        const rs = await _cpApi('cambiarEstadoCotizacion', { folio: c.folio, estado: 'Enviada' });
+        if (!rs.success) throw new Error(rs.message || 'No se pudo cambiar el estado.');
+        c.estado = 'Enviada';
+        _cpEl('cp-listo-detalle').textContent = _cpEl('cp-listo-detalle').textContent.replace('Estado: Borrador', 'Estado: Enviada');
+        if (!_cpEl('cfg-cotizaciones').hidden) cfgCargarCotizaciones(_cfgPag);
+    } catch (e) { mostrarToastInfo((e && e.message) || 'No se pudo marcar como enviada; cámbiala desde el historial.', 'error'); }
+    finally { if (boton) { boton.disabled = false; boton.innerHTML = original; } }
+}
 function cotPisoNueva() { _cpReiniciar(); setTimeout(() => _cpEl('cp-idcliente').focus(), 60); }
 document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
@@ -7468,6 +7489,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* ── Guardar (el servidor valida, calcula precios y asigna el folio) ── */
 function _cpValidar() {
+    if (!String(_cpIdResuelto || '').trim()) return 'Busca y elige al cliente para traer su ID de cliente.';
     const nombre = _cpEl('cp-cliente').value.trim();
     if (!nombre) return 'Captura el nombre del cliente.';
     if (!_COT_RE_NOMBRE.test(nombre)) return 'El nombre solo puede llevar letras.';
