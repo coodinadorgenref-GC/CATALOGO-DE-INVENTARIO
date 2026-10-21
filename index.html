@@ -701,6 +701,7 @@
         .cfg-acciones { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
         .cfg-acciones select { flex-basis: 100%; }
         .cfg-acciones button:disabled { opacity: .6; cursor: progress; }
+        .cfg-acciones a[role=button] { min-height: 44px; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; font-weight: 600; padding: 0 10px; text-decoration: none; cursor: pointer; }
         .cfg-acciones select, .cfg-acciones button { min-height: 44px; flex: 1; background: var(--surface-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; font-weight: 600; padding: 0 10px; cursor: pointer; }
         .cp-overlay { position: fixed; inset: 0; z-index: 300; background: rgba(15,23,42,.72); display: none; align-items: flex-end; justify-content: center; }
         .cp-overlay.visible { display: flex; }
@@ -1652,6 +1653,7 @@
             <select id="cv-estado" onchange="cvCambiarEstado(this)"></select></div>
         <div class="cfg-acciones">
             <button type="button" id="cv-wa" onclick="_cotReenviar(_cvCot, this)"><i aria-hidden="true" class="fa-brands fa-whatsapp"></i> Reenviar</button>
+            <a id="cv-descargar" href="#" download="Cotización.pdf" role="button"><i aria-hidden="true" class="fa-solid fa-download"></i> Descargar</a>
             <button type="button" id="cv-pdf" onclick="hojaCotizacionPdf(_cvCot, this)"><i aria-hidden="true" class="fa-solid fa-file-pdf"></i> Compartir PDF</button>
             <button type="button" id="cv-editar" onclick="cvEditar()"><i aria-hidden="true" class="fa-solid fa-pen"></i> Editar</button>
         </div>
@@ -6694,7 +6696,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-20 · v56';
+const APP_VERSION = '2026-10-20 · v57';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Aceptada', 'Rechazada', 'Cancelada'];
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Aceptada: 'fa-circle-check', Rechazada: 'fa-circle-xmark', Cancelada: 'fa-ban' };
 let _cfgCots = [];
@@ -6875,7 +6877,7 @@ async function _cotReenviar(c, boton) {
     try {
         const [jsPDF, logo] = await Promise.all([_cargarJsPdf(), _hojaLogoDe(c)]);
         const blob = hojaCotizacionConstruir(jsPDF, c, logo).output('blob');
-        const nombre = 'Cotizacion-' + String(c.folio).replace(/[^\w-]/g, '') + '.pdf';
+        const nombre = _cotNombrePdf(c);
         const archivo = new File([blob], nombre, { type: 'application/pdf' });
         if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
             try { await navigator.share({ files: [archivo], title: 'Cotización ' + c.folio, text: msg }); return; }
@@ -6921,6 +6923,7 @@ async function cvAbrir(cot, origen) {
         const m = _cpEl('cv-marco');
         try { m.contentWindow.location.replace(_cvUrl); } catch (e) { m.src = _cvUrl; }
         _cpEl('cv-aparte').href = _cvUrl;
+        const dl = _cpEl('cv-descargar'); dl.href = _cvUrl; dl.download = _cotNombrePdf(cot);   // el archivo sale como «Cotización C00006.pdf», no con el código del navegador
         _cpEl('cv-estado-fila').hidden = origen !== 'hist';
         _cpEl('cv-estado').innerHTML = ESTADOS_COT.map(e => `<option${e === cot.estado ? ' selected' : ''}>${e}</option>`).join('');
         _cpEl('cv-wa').hidden = !asesor;
@@ -6995,9 +6998,13 @@ async function _hojaLogoDe(cot) {
     return !logos.length ? null : (logos.length === 1 ? logos[0] : logos);
 }
 
+/** Nombre del archivo al guardar o compartir: «Cotización C00006.pdf». */
+function _cotNombrePdf(cot) { return 'Cotización ' + String((cot && cot.folio) || '').replace(/[\\/:*?"<>|\s]+/g, '').trim() + '.pdf'; }
+
 /** cot: { folio, fecha, agencia, cliente, telefono, idCliente, moto, anio, vendedorNombre, total, items:[{cantidad, sku, descripcion, disponibilidad, precio, precioAprox, importe}] } */
 function hojaCotizacionConstruir(jsPDF, cot, logo) {
     const doc = new jsPDF({ unit: 'mm', format: 'letter' });
+    doc.setProperties({ title: _cotNombrePdf(cot).replace(/\.pdf$/, ''), subject: 'Cotización ' + String(cot.folio || '') });
     const PW = 215.9, PH = 279.4, MX = 14, TW = PW - 2 * MX, LIM = PH - 18;
     const VERDE = [34, 177, 76], VERDE_TXT = [4, 120, 87], OSC = [15, 23, 42], GRIS = [71, 85, 105], LINEA = [203, 213, 225], FONDO = [241, 245, 249];
     const moneda = n => '$' + Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -7150,7 +7157,7 @@ async function hojaCotizacionPdf(cot, boton) {
     try {
         const [jsPDF, logo] = await Promise.all([_cargarJsPdf(), _hojaLogoDe(cot)]);
         const doc = hojaCotizacionConstruir(jsPDF, cot, logo);
-        const nombre = 'Cotizacion-' + String(cot.folio).replace(/[^\w-]/g, '') + '.pdf';
+        const nombre = _cotNombrePdf(cot);
         const blob = doc.output('blob');
         const archivo = new File([blob], nombre, { type: 'application/pdf' });
         if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
