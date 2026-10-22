@@ -745,6 +745,17 @@
         .cp-precio { text-align: right; font-variant-numeric: tabular-nums; }
         .cp-precio .cp-imp { font-family: 'Rubik', sans-serif; font-size: 18px; font-weight: 600; }
         .cp-precio input { width: 130px; min-height: 44px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 8px; font-size: 16px; text-align: right; }
+        .cp-sec { border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px 14px; margin: 0 0 14px; min-width: 0; }
+        .cp-sec legend { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); padding: 0 6px; }
+        .cp-fila { display: flex; gap: 8px; }
+        .cp-fila input { flex: 1; min-width: 0; }
+        .cp-btn-buscar { flex-shrink: 0; min-height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface-2); color: var(--text); font-weight: 600; cursor: pointer; }
+        .cp-err-campo { font-size: 13px; font-weight: 600; color: var(--danger); margin: 4px 0 0; }
+        .cp-campo input[aria-invalid="true"], .cp-campo select[aria-invalid="true"] { border-color: var(--danger); border-width: 2px; }
+        .cp-pie { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 4px 0 2px; margin-top: 10px; box-shadow: 0 -10px 14px -10px rgba(0,0,0,.45); z-index: 5; }
+        .cp-pie .cp-total { margin: 8px 0 2px; }
+        .cp-borrador { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; margin-bottom: 12px; font-size: 14px; }
+        .cp-borrador button { min-height: 36px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text); font-weight: 600; cursor: pointer; }
         .cp-ayuda { font-size: 12px; color: var(--text-3); margin: 6px 0 0; }
         .cp-btn-sec { width: 100%; min-height: 44px; margin-top: 12px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-weight: 600; cursor: pointer; }
         .cp-total { display: flex; justify-content: space-between; align-items: baseline; font-family: 'Rubik', sans-serif; font-size: 22px; font-weight: 700; margin: 16px 0 4px; }
@@ -1605,34 +1616,57 @@
         </div>
         <div id="cp-error" class="cp-error" role="alert" aria-live="polite"></div>
         <div id="cp-form">
-            <div class="cp-grid">
-                <div class="cp-campo"><label for="cp-idcliente">Cliente: ID, nombre o teléfono</label>
-                    <input id="cp-idcliente" type="text" autocomplete="off" enterkeyhint="search" placeholder="Busca al mecánico para traer su ID" oninput="_cpIdResuelto=''" onchange="cotPisoBuscarCliente()" onkeydown="if(event.key==='Enter'){event.preventDefault();cotPisoBuscarCliente();}">
-                    <p id="cp-id-estado" class="cp-ayuda" role="status" aria-live="polite"></p>
-                    <div id="cp-id-resultados" class="cp-resultados" hidden></div></div>
-                <div class="cp-campo"><label for="cp-cliente">Nombre del cliente *</label>
-                    <input id="cp-cliente" type="text" autocomplete="off" autocapitalize="words" maxlength="80" required aria-required="true" placeholder="Solo letras" enterkeyhint="next"></div>
-                <div class="cp-campo"><label for="cp-telefono">Teléfono *</label>
-                    <input id="cp-telefono" type="tel" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required aria-required="true" placeholder="Solo números, ej. 9851234567" enterkeyhint="next"></div>
-                <div class="cp-campo" style="position:relative"><label for="cp-moto">Motocicleta (modelo) *</label>
-                    <input id="cp-moto" type="text" maxlength="60" autocomplete="off" required aria-required="true" placeholder="Escribe el modelo; saldrán sugerencias" enterkeyhint="next" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="cp-moto-sug">
-                    <div id="cp-moto-sug" class="cp-resultados" role="listbox" hidden></div></div>
-                <div class="cp-campo"><label for="cp-anio">Año *</label>
-                    <input id="cp-anio" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" required aria-required="true" placeholder="Ej. 2022" enterkeyhint="next"></div>
-                <div class="cp-campo"><label for="cp-vigencia">Vigencia (válida hasta) *</label>
-                    <input id="cp-vigencia" type="date" required aria-required="true" enterkeyhint="next"></div>
+            <div id="cp-borrador" class="cp-borrador" role="status" hidden>
+                <span><i aria-hidden="true" class="fa-solid fa-clock-rotate-left"></i> Recuperamos lo que habías capturado <b id="cp-borrador-hace"></b>.</span>
+                <button type="button" onclick="cotPisoEmpezarDeNuevo()">Empezar de nuevo</button>
             </div>
-            <p class="cp-ayuda">* Obligatorios: nombre (solo letras), teléfono (solo números), motocicleta, año (4 números), vigencia y al menos un producto. El ID de cliente es opcional.</p>
-            <div class="cp-campo" style="margin-top:16px">
-                <label for="cp-buscador">Producto: SKU, nombre o número de parte</label>
-                <input id="cp-buscador" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Escribe o pega el SKU…">
-                <div id="cp-resultados" class="cp-resultados" hidden></div>
+            <fieldset class="cp-sec"><legend>1 · Cliente</legend>
+                <div class="cp-grid">
+                    <div class="cp-campo" style="grid-column:1/-1"><label for="cp-idcliente">ID o teléfono del cliente</label>
+                        <div class="cp-fila">
+                            <input id="cp-idcliente" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="15" autocomplete="off" enterkeyhint="search" placeholder="Solo números" aria-describedby="cp-id-estado" oninput="this.value=this.value.replace(/\D/g,'');_cpIdResuelto=''" onchange="cotPisoBuscarCliente()" onkeydown="if(event.key==='Enter'){event.preventDefault();cotPisoBuscarCliente();}">
+                            <button type="button" class="cp-btn-buscar" onclick="cotPisoBuscarCliente()"><i aria-hidden="true" class="fa-solid fa-magnifying-glass"></i> Buscar</button>
+                        </div>
+                        <p id="cp-id-estado" class="cp-ayuda" role="status" aria-live="polite"></p>
+                        <div id="cp-id-resultados" class="cp-resultados" hidden></div></div>
+                    <div class="cp-campo"><label for="cp-cliente">Nombre del cliente *</label>
+                        <input id="cp-cliente" type="text" autocomplete="off" autocapitalize="words" maxlength="80" required aria-required="true" aria-describedby="cp-cliente-err" placeholder="Solo letras" enterkeyhint="next">
+                        <p id="cp-cliente-err" class="cp-err-campo" hidden></p></div>
+                    <div class="cp-campo"><label for="cp-telefono">Teléfono *</label>
+                        <input id="cp-telefono" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="15" autocomplete="off" required aria-required="true" aria-describedby="cp-telefono-err" placeholder="10 dígitos, ej. 9851234567" enterkeyhint="next">
+                        <p id="cp-telefono-err" class="cp-err-campo" hidden></p></div>
+                </div>
+            </fieldset>
+            <fieldset class="cp-sec"><legend>2 · Motocicleta y vigencia</legend>
+                <div class="cp-grid">
+                    <div class="cp-campo" style="position:relative"><label for="cp-moto">Motocicleta (modelo) *</label>
+                        <input id="cp-moto" type="text" maxlength="60" autocomplete="off" required aria-required="true" aria-describedby="cp-moto-err" placeholder="Escribe el modelo; saldrán sugerencias" enterkeyhint="next" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="cp-moto-sug">
+                        <p id="cp-moto-err" class="cp-err-campo" hidden></p>
+                        <div id="cp-moto-sug" class="cp-resultados" role="listbox" hidden></div></div>
+                    <div class="cp-campo"><label for="cp-anio">Año *</label>
+                        <input id="cp-anio" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" required aria-required="true" aria-describedby="cp-anio-err" placeholder="Ej. 2022" enterkeyhint="next">
+                        <p id="cp-anio-err" class="cp-err-campo" hidden></p></div>
+                    <div class="cp-campo"><label for="cp-vigencia">Vigencia (válida hasta) *</label>
+                        <input id="cp-vigencia" type="date" required aria-required="true" aria-describedby="cp-vigencia-err" enterkeyhint="next">
+                        <p id="cp-vigencia-err" class="cp-err-campo" hidden></p></div>
+                </div>
+            </fieldset>
+            <fieldset class="cp-sec"><legend>3 · Productos</legend>
+                <div class="cp-campo">
+                    <label for="cp-buscador">Producto: SKU, nombre o número de parte</label>
+                    <input id="cp-buscador" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" placeholder="Escribe o pega el SKU…" aria-describedby="cp-buscador-err">
+                    <p id="cp-buscador-err" class="cp-err-campo" hidden></p>
+                    <div id="cp-resultados" class="cp-resultados" hidden></div>
+                </div>
+                <div id="cp-lineas"></div>
+                <button type="button" class="cp-btn-sec" onclick="cotPisoAgregarPedido()"><i aria-hidden="true" class="fa-solid fa-plus"></i> Producto bajo pedido (número de parte)</button>
+            </fieldset>
+            <div class="cp-pie">
+                <div class="cp-total"><span>Total</span><span id="cp-total">$0.00</span></div>
+                <p id="cp-aviso" class="cp-ayuda" aria-live="polite"></p>
+                <p class="cp-ayuda">Los campos con * son obligatorios. El ID de cliente es opcional.</p>
+                <button type="button" id="cp-guardar" class="btn-primary" onclick="cotPisoGuardar()" style="width:100%;min-height:48px;border-radius:8px;font-weight:600;margin-top:8px;cursor:pointer">Guardar cotización</button>
             </div>
-            <div id="cp-lineas"></div>
-            <button type="button" class="cp-btn-sec" onclick="cotPisoAgregarPedido()"><i aria-hidden="true" class="fa-solid fa-plus"></i> Producto bajo pedido (número de parte)</button>
-            <div class="cp-total"><span>Total</span><span id="cp-total">$0.00</span></div>
-            <p id="cp-aviso" class="cp-ayuda" aria-live="polite"></p>
-            <button type="button" id="cp-guardar" class="btn-primary" onclick="cotPisoGuardar()" style="width:100%;min-height:48px;border-radius:8px;font-weight:600;margin-top:12px;cursor:pointer">Guardar cotización</button>
         </div>
         <div id="cp-listo" class="cp-listo" hidden>
             <p id="cp-listo-titulo" style="color:var(--text-2);margin:0">Cotización guardada</p>
@@ -6711,7 +6745,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-21 · v59';
+const APP_VERSION = '2026-10-22 · v60';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Vendido', 'Traspaso', 'Rechazado', 'Pedido'];   // Enviada = en seguimiento: el cliente marca el resultado
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Vendido: 'fa-circle-check', Traspaso: 'fa-truck-fast', Rechazado: 'fa-circle-xmark', Pedido: 'fa-box-open' };
 let _cfgCots = [];
@@ -7237,17 +7271,19 @@ let _cpCoincidencias = [];
 
 /** Cliente (hoja Mecanicos): por ID, nombre o teléfono. Con una sola coincidencia llena todo; con varias, deja elegir. */
 async function cotPisoBuscarCliente() {
-    const q = _cpEl('cp-idcliente').value.trim();
+    const q = _cpEl('cp-idcliente').value.replace(/\D/g, '');   // solo ID o teléfono: ya no se busca por nombre
+    _cpEl('cp-idcliente').value = q;
     const est = _cpEl('cp-id-estado'), lista = _cpEl('cp-id-resultados');
     lista.hidden = true; lista.innerHTML = '';
-    if (q.length < 2) { est.textContent = ''; return; }
+    if (!q) { est.textContent = 'Opcional: con el ID o el teléfono se traen el nombre y el teléfono.'; return; }
+    if (q.length < 2) { est.textContent = 'Escribe al menos 2 números.'; return; }
     est.textContent = 'Buscando…';
     try {
         const rs = await _cpApi('buscarMecanico', { consulta: q });
         if (!rs.success) { est.textContent = rs.message || 'No se pudo buscar.'; return; }
         if (rs.encontrado) { _cpElegirCliente({ id: rs.id, nombre: rs.nombre, telefono: rs.telefono }); return; }
         _cpCoincidencias = rs.coincidencias || [];
-        if (!_cpCoincidencias.length) { est.textContent = 'No se encontró. Captura nombre y teléfono.'; _cpEl('cp-cliente').focus(); return; }
+        if (!_cpCoincidencias.length) { est.textContent = 'No se encontró ese ID o teléfono. Captura el nombre y el teléfono a mano.'; _cpEl('cp-cliente').focus(); return; }
         est.textContent = _cpCoincidencias.length + ' coincidencias: elige una.';
         lista.innerHTML = _cpCoincidencias.map((m, k) => `<button type="button" class="cfg-res" onclick="_cpElegirCliente(_cpCoincidencias[${k}])"><b>${escaparHTML(m.nombre)}</b><span>ID ${escaparHTML(m.id)} · ${escaparHTML(m.telefono)}</span></button>`).join('');
         lista.hidden = false;
@@ -7273,16 +7309,18 @@ function _cpReiniciar() {
     _cpEl('cp-id-estado').textContent = ''; _cpIdResuelto = ''; _cpEl('cp-id-resultados').hidden = true;
     _cpEl('cp-resultados').hidden = true;
     _cpEl('cp-form').hidden = false; _cpEl('cp-listo').hidden = true;
-    _cpError(''); _cpAviso('');
+    _cpError(''); _cpAviso(''); _cpMostrarErrores([]); _cpEl('cp-borrador').hidden = true;
     _cpPintarLineas();
 }
 
 function cotPisoAbrir() {
     if (!esAdmin) return;
     if (!puedeCotizarEn(seccionActual())) { mostrarToastInfo('Solo consulta: esta sección es de otra agencia. Cambia a tu sección para cotizar.', 'error'); return; }
+    const borrador = _cpLeerBorrador();   // se lee antes de reiniciar el formulario
     _cpReiniciar();
     _cpMostrarFormulario();
-    setTimeout(() => _cpEl('cp-idcliente').focus(), 60);
+    if (borrador) _cpRestaurarBorrador(borrador);
+    setTimeout(() => _cpEl((borrador && !borrador.lineas.length) || !borrador ? 'cp-idcliente' : 'cp-buscador').focus(), 60);
 }
 function _cpMostrarFormulario() {
     _cpEl('cp-overlay').classList.add('visible');
@@ -7319,7 +7357,10 @@ async function cotPisoEditar(c) {
 }
 
 async function cotPisoCerrar(forzar) {
-    if (!forzar && _cpLineas.length && !_cpGuardada && !(await confirmarApp({ titulo: _cpEdicion ? "¿Descartar los cambios?" : "¿Descartar esta cotización?", mensaje: _cpEdicion ? "La cotización se queda como estaba." : "Aún no se ha guardado.", icono: "fa-trash", tipo: "peligro", confirmar: "Descartar" }))) return;
+    if (!forzar && !_cpGuardada && !_cpEdicion) {   // cotización nueva: no se pierde, queda como borrador en este dispositivo
+        _cpBorradorAhora();
+        if (_cpLineas.length || _cpEl('cp-cliente').value.trim() || _cpEl('cp-telefono').value) mostrarToastInfo('Se guardó como borrador en este dispositivo. Al volver a abrir «Nueva cotización» lo recuperas.');
+    } else if (!forzar && _cpLineas.length && !_cpGuardada && !(await confirmarApp({ titulo: "¿Descartar los cambios?", mensaje: "La cotización se queda como estaba.", icono: "fa-trash", tipo: "peligro", confirmar: "Descartar" }))) return;
     _cpEl('cp-overlay').classList.remove('visible');
     document.body.style.overflow = '';
 }
@@ -7355,7 +7396,7 @@ async function cotPisoEnviarWhats(boton) {
     await _cotMarcarEnviada(c);
     if (boton) { boton.disabled = false; boton.innerHTML = original; }
 }
-function cotPisoNueva() { _cpReiniciar(); setTimeout(() => _cpEl('cp-idcliente').focus(), 60); }
+function cotPisoNueva() { _cpBorrarBorrador(); _cpReiniciar(); setTimeout(() => _cpEl('cp-idcliente').focus(), 60); }
 document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     if (_cpEl('cv-overlay') && _cpEl('cv-overlay').classList.contains('visible')) { cvCerrar(); return; }
@@ -7483,6 +7524,7 @@ function _cpPrecioLinea(l) {
     return a > 0 ? { valor: a, lista: false } : { valor: null, lista: false };
 }
 function _cpActualizarImportes() {
+    _cpGuardarBorrador();   // cualquier cambio en las líneas actualiza el borrador local
     let total = 0, sin = 0;
     _cpLineas.forEach(l => {
         const p = _cpPrecioLinea(l);
@@ -7587,31 +7629,86 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sug) sug.addEventListener('mousedown', e => { const b = e.target.closest('button[data-i]'); if (b) { e.preventDefault(); _motosElegir(sug._sug[Number(b.dataset.i)]); } });
     if (sug) sug.addEventListener('touchstart', e => { const b = e.target.closest('button[data-i]'); if (b) { e.preventDefault(); _motosElegir(sug._sug[Number(b.dataset.i)]); } }, { passive: false });
     const v = _cpEl('cp-vigencia'); if (v) v.addEventListener('focus', () => { v.min = _cotIso(new Date()); });
+    const form = _cpEl('cp-form');
+    if (form) { form.addEventListener('input', _cpGuardarBorrador); form.addEventListener('change', _cpGuardarBorrador); }
+    ['cp-telefono', 'cp-anio'].forEach(id => { const el = _cpEl(id); if (el) el.addEventListener('input', () => { const d = el.value.replace(/\D/g, ''); if (d !== el.value) el.value = d; }); });
+    _CP_CAMPOS.filter(id => id !== 'cp-buscador').forEach(id => {   // el error se muestra al salir del campo y se corrige mientras se escribe
+        const el = _cpEl(id); if (!el) return;
+        el.addEventListener('blur', () => { if (el.value.trim() || el.getAttribute('aria-invalid') === 'true') _cpValidarUno(id); });
+        el.addEventListener('input', () => { if (el.getAttribute('aria-invalid') === 'true') _cpValidarUno(id); });
+    });
 });
 
 /* ── Guardar (el servidor valida, calcula precios y asigna el folio) ── */
-function _cpValidar() {
+const _CP_CAMPOS = ['cp-cliente', 'cp-telefono', 'cp-moto', 'cp-anio', 'cp-vigencia', 'cp-buscador'];
+/** Lista de [campo, mensaje] con lo que falta o está mal; vacía si todo está bien. */
+function _cpValidarCampos() {
+    const e = [];
     const nombre = _cpEl('cp-cliente').value.trim();
-    if (!nombre) return 'Captura el nombre del cliente.';
-    if (!_COT_RE_NOMBRE.test(nombre)) return 'El nombre solo puede llevar letras.';
+    if (!nombre) e.push(['cp-cliente', 'Captura el nombre del cliente.']);
+    else if (!_COT_RE_NOMBRE.test(nombre)) e.push(['cp-cliente', 'El nombre solo puede llevar letras.']);
     const tel = _cpEl('cp-telefono').value;
-    if (!/^\d+$/.test(tel)) return 'El teléfono solo puede llevar números.';
-    if (tel.length < 10 || tel.length > 15) return 'El teléfono debe tener entre 10 y 15 dígitos.';
-    if (!_cpEl('cp-moto').value.trim()) return 'Captura el modelo de la motocicleta.';
+    if (!tel) e.push(['cp-telefono', 'Captura el teléfono del cliente.']);
+    else if (!/^\d+$/.test(tel)) e.push(['cp-telefono', 'El teléfono solo puede llevar números.']);
+    else if (tel.length < 10 || tel.length > 15) e.push(['cp-telefono', 'El teléfono debe tener entre 10 y 15 dígitos.']);
+    if (!_cpEl('cp-moto').value.trim()) e.push(['cp-moto', 'Captura el modelo de la motocicleta.']);
     const anio = _cpEl('cp-anio').value.trim();
-    if (!/^\d{4}$/.test(anio) || Number(anio) < 1950 || Number(anio) > new Date().getFullYear() + 1) return 'El año debe ser de 4 números (por ejemplo 2022).';
+    if (!/^\d{4}$/.test(anio) || Number(anio) < 1950 || Number(anio) > new Date().getFullYear() + 1) e.push(['cp-anio', 'El año debe ser de 4 números (por ejemplo 2022).']);
     const vig = _cpEl('cp-vigencia').value;
-    if (!vig) return 'Elige hasta qué fecha es válida la cotización.';
-    if (vig < _cotIso(new Date())) return 'La vigencia no puede ser anterior a hoy.';
-    if (!_cpLineas.length) return 'Agrega al menos un producto.';
-    const sinNp = _cpLineas.find(l => l.tipo === 'pedido' && !String(l.numeroParte).trim());
-    if (sinNp) return 'Captura el número de parte de cada producto bajo pedido.';
-    return '';
+    if (!vig) e.push(['cp-vigencia', 'Elige hasta qué fecha es válida.']);
+    else if (vig < _cotIso(new Date())) e.push(['cp-vigencia', 'La vigencia no puede ser anterior a hoy.']);
+    if (!_cpLineas.length) e.push(['cp-buscador', 'Agrega al menos un producto.']);
+    else if (_cpLineas.find(l => l.tipo === 'pedido' && !String(l.numeroParte).trim())) e.push(['cp-buscador', 'Captura el número de parte de cada producto bajo pedido.']);
+    return e;
 }
+function _cpValidar() { const e = _cpValidarCampos(); return e.length ? e[0][1] : ''; }
+function _cpErrCampo(id, msg) {   // el error va pegado al campo y ligado con aria-describedby
+    const p = _cpEl(id + '-err'), c = _cpEl(id); if (p) { p.textContent = msg || ''; p.hidden = !msg; }
+    if (c) c.setAttribute('aria-invalid', msg ? 'true' : 'false');
+}
+function _cpMostrarErrores(errs) { _CP_CAMPOS.forEach(id => _cpErrCampo(id, '')); errs.forEach(([id, m]) => _cpErrCampo(id, m)); }
+function _cpValidarUno(id) { const hit = _cpValidarCampos().find(x => x[0] === id); _cpErrCampo(id, hit ? hit[1] : ''); }
+
+/* ── Borrador local: lo capturado en «Nueva cotización» se guarda en este dispositivo y se recupera al volver a abrir el panel ── */
+const _CP_BORRADOR_DIAS = 7;
+let _cpBorradorTimer = null;
+const _cpClaveBorrador = () => 'cotBorrador:' + String(usuarioActual || '').toLowerCase() + ':' + seccionActual();
+function _cpBorradorAhora() {
+    if (_cpEdicion || _cpGuardada || !_cpEl('cp-overlay').classList.contains('visible')) return;
+    try {
+        const d = { v: 1, t: Date.now(), idCliente: _cpIdResuelto, idTexto: _cpEl('cp-idcliente').value, cliente: _cpEl('cp-cliente').value, telefono: _cpEl('cp-telefono').value,
+            moto: _cpEl('cp-moto').value, anio: _cpEl('cp-anio').value, vigencia: _cpEl('cp-vigencia').value, lineas: _cpLineas };
+        const vacio = !d.idTexto && !d.cliente.trim() && !d.telefono && !d.moto.trim() && !d.anio && !d.lineas.length;
+        if (vacio) localStorage.removeItem(_cpClaveBorrador()); else localStorage.setItem(_cpClaveBorrador(), JSON.stringify(d));
+    } catch (e) {}   // sin almacenamiento disponible (modo privado, lleno): la cotización se captura igual
+}
+function _cpGuardarBorrador() { clearTimeout(_cpBorradorTimer); _cpBorradorTimer = setTimeout(_cpBorradorAhora, 400); }
+function _cpBorrarBorrador() { clearTimeout(_cpBorradorTimer); try { localStorage.removeItem(_cpClaveBorrador()); } catch (e) {} }
+function _cpLeerBorrador() {
+    try {
+        const d = JSON.parse(localStorage.getItem(_cpClaveBorrador()) || 'null');
+        if (!d || d.v !== 1 || Date.now() - d.t > _CP_BORRADOR_DIAS * 86400000) { if (d) _cpBorrarBorrador(); return null; }
+        return d;
+    } catch (e) { return null; }
+}
+function _cpHaceCuanto(t) {
+    const m = Math.round((Date.now() - t) / 60000);
+    return m < 1 ? 'hace un momento' : m < 60 ? 'hace ' + m + ' min' : m < 1440 ? 'hace ' + Math.round(m / 60) + ' h' : 'hace ' + Math.round(m / 1440) + ' d';
+}
+function _cpRestaurarBorrador(d) {
+    _cpEl('cp-idcliente').value = d.idTexto || ''; _cpIdResuelto = d.idCliente || '';
+    _cpEl('cp-cliente').value = d.cliente || ''; _cpEl('cp-telefono').value = d.telefono || '';
+    _cpEl('cp-moto').value = d.moto || ''; _cpEl('cp-anio').value = d.anio || '';
+    if (d.vigencia && d.vigencia >= _cotIso(new Date())) _cpEl('cp-vigencia').value = d.vigencia;   // una vigencia ya vencida se reemplaza por la de omisión
+    _cpLineas = (d.lineas || []).map(l => Object.assign({}, l, { id: ++_cpSeq }));
+    _cpEl('cp-borrador-hace').textContent = _cpHaceCuanto(d.t); _cpEl('cp-borrador').hidden = false;
+    _cpPintarLineas();
+}
+function cotPisoEmpezarDeNuevo() { _cpBorrarBorrador(); _cpReiniciar(); _cpEl('cp-borrador').hidden = true; setTimeout(() => _cpEl('cp-idcliente').focus(), 60); }
 async function cotPisoGuardar() {
     if (_cpGuardando) return;
-    const err = _cpValidar();
-    if (err) { _cpError(err); return; }
+    const errs = _cpValidarCampos(); _cpMostrarErrores(errs);
+    if (errs.length) { _cpError(errs.length === 1 ? errs[0][1] : 'Revisa los ' + errs.length + ' campos marcados.'); const f = _cpEl(errs[0][0]); if (f) f.focus(); return; }
     _cpError('');
     const btn = _cpEl('cp-guardar');
     _cpGuardando = true; btn.disabled = true; btn.innerHTML = '<i aria-hidden="true" class="fa-solid fa-spinner fa-spin"></i> Guardando…';
@@ -7627,7 +7724,7 @@ async function cotPisoGuardar() {
         const edicion = _cpEdicion;
         const rs = edicion ? await _cpApi('editarCotizacion', { folio: edicion.folio, datos }) : await _cpApi('guardarCotizacion', { datos });
         if (!rs.success) { _cpError(rs.message || (edicion ? 'No se pudieron guardar los cambios.' : 'No se pudo guardar la cotización.')); return; }
-        _cpGuardada = true; _motosRecordar(datos.moto);
+        _cpGuardada = true; _cpBorrarBorrador(); _motosRecordar(datos.moto);
         _cpUltima = { folio: rs.folio || (edicion && edicion.folio), fecha: rs.fecha || (edicion && edicion.base.fecha), estado: rs.estado || (edicion && edicion.base.estado), agencia: datos.agencia, cliente: datos.cliente, telefono: datos.telefono, idCliente: datos.idCliente,
             moto: datos.moto, anio: datos.anio, vigencia: _cotVigIso(rs.vigencia) || datos.vigencia, vendedorAgencia: rs.vendedorAgencia, vendedorWhats: rs.vendedorWhats, vendedorRol: rs.vendedorRol || (edicion && edicion.base.vendedorRol) || '',
             vendedorNombre: (edicion && edicion.base.vendedorNombre) || (document.getElementById('nombre-usuario')?.textContent || '').trim(), total: rs.total, items: rs.items };
