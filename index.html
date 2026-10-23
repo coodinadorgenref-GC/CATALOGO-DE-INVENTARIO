@@ -1787,7 +1787,7 @@ let accesoOfflinePermitido = false; // NUEVO — solo cuentas autorizadas conser
 
 /** Normaliza un texto de almacén: mayúsculas, sin acentos, sin espacios extra. */
 function _normalizarAlmacenJS(texto) {
-    return (texto || "").toString().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    return (texto || "").toString().toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\bPISTE MUEBLES\b/g, "BAJAJ PISTE");   // PISTE MUEBLES es Bajaj Piste
 }
 
 /** true si el admin actual tiene asignado "TODAS" en la Columna H
@@ -2011,6 +2011,10 @@ function obtenerListaImagenes(item) {
 // coincide con las fotos actuales del producto". optimizarEnlaceImagen()
 // se aplica SOLO al armar el <img src="..."> en el momento de dibujar,
 // nunca se guarda su resultado en esta variable.
+/* Edición por sección: vendedor y gerente solo editan (fotos, ficha, estator…) los productos de la sección de su agencia; el admin, todos.
+   seccionesEditablesActual viene del inicio de sesión (null = sesión anterior sin ese dato: se deja intentar y el servidor decide). */
+let seccionesEditablesActual = null;
+let puedeEditarProductoActual = false;   // ¿la cuenta puede editar el producto que está abierto en el modal?
 let galeriaActual       = [];   // URLs crudas de la foto actual del producto abierto
 let galeriaIndiceActual = 0;
 let galeriaSkuActual    = "";
@@ -2054,7 +2058,7 @@ function renderizarGaleria() {
   // eliminar -- esos controles solo aparecen al tocar "Editar fotos".
   const toggleCont = document.getElementById("galeria-editar-toggle");
   if (toggleCont) {
-    if (esAdmin && galeriaReal.length >= 1) {
+    if (esAdmin && puedeEditarProductoActual && galeriaReal.length >= 1) {
       toggleCont.innerHTML = `
         <button onclick="toggleModoEdicionGaleria()"
                 class="text-xs font-bold ${galeriaModoEdicion ? 'text-emerald-400' : 'text-slate-400'} hover:text-emerald-400 transition flex items-center gap-1.5 cursor-pointer">
@@ -2066,7 +2070,7 @@ function renderizarGaleria() {
     }
   }
 
-  const modoEdicion = esAdmin && galeriaModoEdicion;
+  const modoEdicion = esAdmin && puedeEditarProductoActual && galeriaModoEdicion;
 
   // Fuera de modo edición: tira de navegación simple, sin Portada, sin
   // eliminar, sin flechas de reordenar -- solo para saltar entre fotos.
@@ -2075,7 +2079,7 @@ function renderizarGaleria() {
   // así se evita generarles miniaturas de más (menos peticiones de
   // imagen, especialmente en catálogos con varias fotos por producto).
   if (!modoEdicion) {
-    minis.innerHTML = (esAdmin && galeriaReal.length > 1) ? galeriaReal.map((urlCruda, i) => `
+    minis.innerHTML = (esAdmin && puedeEditarProductoActual && galeriaReal.length > 1) ? galeriaReal.map((urlCruda, i) => `
         <img src="${optimizarEnlaceImagen(urlCruda)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="gestionarFalloImagenDrive(this)"
              onclick="irAGaleria(${i})"
              class="w-14 h-14 shrink-0 object-cover rounded-lg cursor-pointer border-2 ${i===galeriaIndiceActual?'border-emerald-500':'border-slate-700'}">
@@ -2304,6 +2308,7 @@ function verificarSesionGuardada() {
             // guardado; en cuanto vuelva la señal, el heartbeat normal
             // confirma si la sesión sigue siendo válida en el servidor.
             usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false;
+            seccionesEditablesActual = Array.isArray(s.seccionesEditables) ? s.seccionesEditables : null;
             almacenAdminActual = s.almacenAdmin || "";
             accesoNumeroParteBajaj = s.accesoNumeroParteBajaj || false;
             accesoOfflinePermitido = true;
@@ -2322,6 +2327,7 @@ function verificarSesionGuardada() {
     }
     accesoOfflinePermitido = s.accesoOffline || false;
     usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false;
+    seccionesEditablesActual = Array.isArray(s.seccionesEditables) ? s.seccionesEditables : null;
     almacenAdminActual = s.almacenAdmin || "";
     accesoNumeroParteBajaj = s.accesoNumeroParteBajaj || false;
     document.getElementById("nombre-usuario").innerText = s.nombre;
@@ -2345,6 +2351,7 @@ function guardarSesionEnDispositivo(correo, token, nombre, admin, rol, almacenAd
         correo, token, nombre, esAdmin: admin, rol: rol || "",
         almacenAdmin: almacenAdmin || "", accesoNumeroParteBajaj: !!accesoNumParteBajaj,
         accesoOffline: !!accesoOffline,
+        seccionesEditables: seccionesEditablesActual,
         duracionMs: duracionMs || TIEMPO_EXPIRACION_MS,
         timestamp: new Date().getTime()
     }));
@@ -2520,6 +2527,7 @@ async function manejarInicioDeSesion() {
             usuarioActual = rs.correo || valorIngresado;
             tokenActual = rs.token; esAdmin = !!(rs.esAdmin || rs.esGerente); // gerente: permisos de vendedor (el servidor no lo marca esAdmin para que Maps lo rechace)
             almacenAdminActual = rs.almacenAdmin || "";
+            seccionesEditablesActual = Array.isArray(rs.seccionesEditables) ? rs.seccionesEditables : null;
             accesoNumeroParteBajaj = rs.accesoNumeroParteBajaj || false;
             document.getElementById("nombre-usuario").innerText = rs.nombre;
             document.getElementById("rol-usuario").innerText = rs.rol || "";
@@ -5073,6 +5081,7 @@ function abrirDetalleProducto(item) {
     const marca           = item.Marca || "GENÉRICO";
     const urlImg          = optimizarEnlaceImagen(item.Imagen||""); // usado abajo para el carrito, no para la galería
     galeriaSkuActual      = sku;
+    puedeEditarProductoActual = puedeEditarProducto(item);
     galeriaActual         = obtenerListaImagenes(item);
     if (galeriaActual.length === 0) galeriaActual = [item.Imagen || ""];
     galeriaIndiceActual   = 0;
@@ -5208,7 +5217,9 @@ if (puedeVerNumParteModal && item.Pr_Numero_Parte) {
 
     // Botón admin
     let htmlBtnAdmin = "";
-    if (esAdmin) {
+    if (esAdmin && !puedeEditarProductoActual) {
+        htmlBtnAdmin = `<p class="text-xs text-slate-400 mt-6 p-3 rounded-xl border border-slate-700 flex items-center gap-2"><i aria-hidden="true" class="fa-solid fa-lock"></i> Solo lectura: este producto es de otra sección. Solo administración puede editarlo.</p>`;
+    } else if (esAdmin) {
         htmlBtnAdmin = `
         <div class="grid grid-cols-2 gap-4 mt-6">
             <button onclick='abrirFormularioFoto("${sku}")'
@@ -6263,7 +6274,7 @@ function manejarTecladoBuscador(e) { if (e.key==="Enter") document.getElementByI
 
 
 document.addEventListener("keydown", function (e) {
-  if (!esAdmin) return;
+  if (!esAdmin || !puedeEditarProductoActual) return;   // fuera de su sección no hay atajos de edición
   if (!e.altKey || e.ctrlKey || e.metaKey) return;
 
   const tecla = e.key.toLowerCase();
@@ -6692,6 +6703,17 @@ function seccionPropia() {
     return (!a || esZonaValladolid()) ? null : seccionDeTexto(a);
 }
 function puedeCotizarEn(sec) { const p = seccionPropia(); return !p || p === sec; }
+/** Secciones de un producto: donde tiene existencias; sin existencias, la de su marca (Suzuki, Bajaj o Vento). Igual que en el servidor. */
+function seccionesDeProducto(item) {
+    const v = new Set((item.Existencias || []).map(e => seccionDeTexto(e.sucursal)));
+    if (!v.size) v.add(seccionDeTexto(item.Marca));
+    return [...v];
+}
+function puedeEditarProducto(item) {
+    if (!esAdmin) return false;
+    if (!Array.isArray(seccionesEditablesActual) || seccionesEditablesActual.length >= 3) return true;
+    return seccionesDeProducto(item).some(s => seccionesEditablesActual.includes(s));
+}
 function seccionActual() {
     const ok = seccionesPermitidas(); let g = '';
     try { g = localStorage.getItem('seccion') || ''; } catch (e) {}
@@ -6745,7 +6767,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-22 · v60';
+const APP_VERSION = '2026-10-23 · v61';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Vendido', 'Traspaso', 'Rechazado', 'Pedido'];   // Enviada = en seguimiento: el cliente marca el resultado
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Vendido: 'fa-circle-check', Traspaso: 'fa-truck-fast', Rechazado: 'fa-circle-xmark', Pedido: 'fa-box-open' };
 let _cfgCots = [];
