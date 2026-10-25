@@ -6092,6 +6092,7 @@ function iniciarSondeoConectados() {
 }
 /* Conectados: el rol viene de la columna F de Usuarios_Autorizados (admin · vendedor · gerente · cliente) y la app, de la sesión (catálogo · reporteador · maps). */
 const ROL_UC = { admin: ['Admin', 'bg-blue-900/60 text-blue-300'], vendedor: ['Vendedor', 'bg-emerald-900/60 text-emerald-300'], gerente: ['Gerente', 'bg-amber-900/60 text-amber-300'], cliente: ['Cliente', 'bg-slate-700 text-slate-300'] };
+const ROL_SIN_DATO_UC = ['Cuenta', 'bg-slate-700 text-slate-300'];   // si el servidor aún es una versión anterior y no manda el rol, no se inventa «Cliente»
 const APP_UC = { catalogo: ['Catálogo', 'fa-boxes-stacked'], reporteador: ['Reporteador', 'fa-chart-column'], maps: ['Maps', 'fa-map-location-dot'] };
 function _ucPintar(rs) {
     const contenedor = document.getElementById("uc-lista");
@@ -6115,7 +6116,7 @@ function _ucPintar(rs) {
                     <p class="mt-1.5 flex flex-wrap gap-1">${(u.apps || []).map(a => { const x = APP_UC[a] || [a, 'fa-mobile-screen']; return `<span class="text-[12px] text-slate-200 bg-slate-700/70 rounded-md px-1.5 py-0.5"><i aria-hidden="true" class="fa-solid ${x[1]} mr-1"></i>${escaparHTML(x[0])}</span>`; }).join("")}</p>
                 </div>
                 <div class="flex flex-col items-end gap-1 shrink-0">
-                    <span class="text-[12px] font-black px-2 py-0.5 rounded-md uppercase ${(ROL_UC[u.rol] || ROL_UC.cliente)[1]}">${(ROL_UC[u.rol] || ROL_UC.cliente)[0]}</span>
+                    <span class="text-[12px] font-black px-2 py-0.5 rounded-md uppercase ${(ROL_UC[u.rol] || ROL_SIN_DATO_UC)[1]}">${(ROL_UC[u.rol] || ROL_SIN_DATO_UC)[0]}</span>
                     ${u.dispositivos > 1 ? `<span class="text-[12px] text-amber-400"><i aria-hidden="true" class="fa-solid fa-mobile-screen mr-1"></i>${u.dispositivos} dispositivos</span>` : ""}
                 </div>
             </div>
