@@ -2350,8 +2350,26 @@ function verificarSesionGuardada() {
     iniciarControlDeSesion();
 }
 
+/* ── Espacio de localStorage ──
+   Maps y el catálogo viven en el mismo origen (coodinadorgenref-gc.github.io) y comparten ~5 MB.
+   Si se llena, guardar la sesión lanzaba QuotaExceededError y el login lo mostraba como «sin conexión».
+   Aquí se liberan SOLO cachés que se vuelven a bajar con señal (nunca prospectos ni colas pendientes). */
+function liberarEspacioLocalStorage(){
+  const CACHES_REGENERABLES_LS = ['gc_inventario_gc_cache_v1','gc_existencias_origen_v2','gc_existencias_catalogo_v1','gc_lista_precios_v1','gc_precios_venta_v3','gc_promociones_v1','gc_kits_v1','inventario_cache'];
+  let n = 0;
+  CACHES_REGENERABLES_LS.forEach(k => { try{ if(localStorage.getItem(k) !== null){ localStorage.removeItem(k); n++; } }catch(e){} });
+  return n;
+}
+function setItemSeguro(k, v){
+  try{ localStorage.setItem(k, v); return true; }
+  catch(e){
+    liberarEspacioLocalStorage();
+    try{ localStorage.setItem(k, v); return true; }catch(e2){ console.warn('localStorage lleno, no se pudo guardar', k, e2); return false; }
+  }
+}
+
 function guardarSesionEnDispositivo(correo, token, nombre, admin, rol, almacenAdmin, accesoNumParteBajaj, duracionMs, accesoOffline) {
-    localStorage.setItem("sesion_catalogo", JSON.stringify({
+    setItemSeguro("sesion_catalogo", JSON.stringify({
         correo, token, nombre, esAdmin: admin, rol: rol || "",
         almacenAdmin: almacenAdmin || "", accesoNumeroParteBajaj: !!accesoNumParteBajaj,
         accesoOffline: !!accesoOffline,
@@ -2362,7 +2380,7 @@ function guardarSesionEnDispositivo(correo, token, nombre, admin, rol, almacenAd
 }
 function actualizarTimestampSesion() {
     const s = localStorage.getItem("sesion_catalogo");
-    if (s) { const o = JSON.parse(s); o.timestamp = new Date().getTime(); localStorage.setItem("sesion_catalogo", JSON.stringify(o)); }
+    if (s) { const o = JSON.parse(s); o.timestamp = new Date().getTime(); setItemSeguro("sesion_catalogo", JSON.stringify(o)); }
 }
 
 /* ══════════════════════════════════════════
@@ -2515,6 +2533,7 @@ async function manejarInicioDeSesion() {
     if (!validacion.valido) { mostrarErrorLogin(errorEl, validacion.mensaje); return; }
     if (!pinIngresado) { mostrarErrorLogin(errorEl, "Ingresa el código de acceso."); return; }
     ocultarErrorLogin(errorEl); btnEl.disabled = true; btnEl.innerText = "Verificando...";
+    let respondio = false;   // true cuando el servidor ya contestó: un error posterior NO es un problema de conexión
     try {
         const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
             body: JSON.stringify({ action:"login", app:"catalogo", correo: valorIngresado, codigoAcceso: pinIngresado, dispositivo: (navigator.userAgent||"").slice(0,180),
@@ -2524,6 +2543,7 @@ async function manejarInicioDeSesion() {
                 // igual mataba la sesión a los 15 min fijos.
                 recordarme: document.getElementById("input-recordarme")?.checked || false }) });
         const rs = await r.json();
+        respondio = true;
         if (rs.success) {
             // Usamos el identificador REAL que regresa el backend (correo dado de alta),
             // sin importar si el usuario tecleó su correo o su teléfono — así el carrito
@@ -2556,8 +2576,11 @@ async function manejarInicioDeSesion() {
             mostrarErrorLogin(errorEl, rs.message);
             btnEl.disabled = false; btnEl.innerText = "Acceder al Catálogo";
         }
-    } catch {
-        mostrarErrorLogin(errorEl, "Error de conexión con el servidor.");
+    } catch (e) {
+        if (respondio) console.error("Login catálogo: error después de la respuesta del servidor", e);
+        mostrarErrorLogin(errorEl, respondio
+            ? "El servidor respondió, pero no se pudo abrir la sesión en este dispositivo: " + ((e && e.message) || e)
+            : "Error de conexión con el servidor.");
         btnEl.disabled = false; btnEl.innerText = "Acceder al Catálogo";
     }
 }
@@ -6777,7 +6800,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-24 · v62';
+const APP_VERSION = '2026-10-27 · v63';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Vendido', 'Traspaso', 'Rechazado', 'Pedido'];   // Enviada = en seguimiento: el cliente marca el resultado
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Vendido: 'fa-circle-check', Traspaso: 'fa-truck-fast', Rechazado: 'fa-circle-xmark', Pedido: 'fa-box-open' };
 let _cfgCots = [];
