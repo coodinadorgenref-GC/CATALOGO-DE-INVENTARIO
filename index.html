@@ -1785,6 +1785,7 @@ let productosFiltradosGlobal = [];
 let usuarioActual            = "";
 let tokenActual               = "";
 let esAdmin                  = false;
+let esAdminReal              = false;   // administración de verdad (el login marca esAdmin también a vendedores y Gerente): solo ella cambia los precios sugeridos de VENTO
 let almacenAdminActual        = ""; // Columna H del admin logueado (vacío si es usuario normal)
 let accesoNumeroParteBajaj = false;
 let accesoOfflinePermitido = false; // NUEVO — solo cuentas autorizadas conservan sesión/catálogo sin internet
@@ -2311,7 +2312,7 @@ function verificarSesionGuardada() {
             // mismo: NO borramos nada a ciegas. Entra con lo que ya tiene
             // guardado; en cuanto vuelva la señal, el heartbeat normal
             // confirma si la sesión sigue siendo válida en el servidor.
-            usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false;
+            usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false; esAdminReal = !!s.adminReal;
             seccionesEditablesActual = Array.isArray(s.seccionesEditables) ? s.seccionesEditables : null;
             almacenAdminActual = s.almacenAdmin || "";
             accesoNumeroParteBajaj = s.accesoNumeroParteBajaj || false;
@@ -2330,7 +2331,7 @@ function verificarSesionGuardada() {
         }
     }
     accesoOfflinePermitido = s.accesoOffline || false;
-    usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false;
+    usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false; esAdminReal = !!s.adminReal;
     seccionesEditablesActual = Array.isArray(s.seccionesEditables) ? s.seccionesEditables : null;
     almacenAdminActual = s.almacenAdmin || "";
     accesoNumeroParteBajaj = s.accesoNumeroParteBajaj || false;
@@ -2368,11 +2369,11 @@ function setItemSeguro(k, v){
   }
 }
 
-function guardarSesionEnDispositivo(correo, token, nombre, admin, rol, almacenAdmin, accesoNumParteBajaj, duracionMs, accesoOffline) {
+function guardarSesionEnDispositivo(correo, token, nombre, admin, rol, almacenAdmin, accesoNumParteBajaj, duracionMs, accesoOffline, adminReal) {
     setItemSeguro("sesion_catalogo", JSON.stringify({
         correo, token, nombre, esAdmin: admin, rol: rol || "",
         almacenAdmin: almacenAdmin || "", accesoNumeroParteBajaj: !!accesoNumParteBajaj,
-        accesoOffline: !!accesoOffline,
+        accesoOffline: !!accesoOffline, adminReal: !!adminReal,
         seccionesEditables: seccionesEditablesActual,
         duracionMs: duracionMs || TIEMPO_EXPIRACION_MS,
         timestamp: new Date().getTime()
@@ -2549,7 +2550,7 @@ async function manejarInicioDeSesion() {
             // sin importar si el usuario tecleó su correo o su teléfono — así el carrito
             // y las cotizaciones siempre quedan ligadas a la misma llave única por persona.
             usuarioActual = rs.correo || valorIngresado;
-            tokenActual = rs.token; esAdmin = !!(rs.esAdmin || rs.esGerente); // gerente: permisos de vendedor (el servidor no lo marca esAdmin para que Maps lo rechace)
+            tokenActual = rs.token; esAdmin = !!(rs.esAdmin || rs.esGerente); esAdminReal = !!rs.esAdmin && !rs.esVendedor; // gerente: permisos de vendedor (el servidor no lo marca esAdmin para que Maps lo rechace)
             almacenAdminActual = rs.almacenAdmin || "";
             seccionesEditablesActual = Array.isArray(rs.seccionesEditables) ? rs.seccionesEditables : null;
             accesoNumeroParteBajaj = rs.accesoNumeroParteBajaj || false;
@@ -2564,7 +2565,7 @@ async function manejarInicioDeSesion() {
             const recordarme = document.getElementById("input-recordarme")?.checked || false;
             duracionSesionActualMs = recordarme ? DURACION_RECORDARME_MS : TIEMPO_EXPIRACION_MS;
             accesoOfflinePermitido = rs.accesoOffline || false;
-            guardarSesionEnDispositivo(usuarioActual, rs.token, rs.nombre, esAdmin, rs.rol, almacenAdminActual, accesoNumeroParteBajaj, duracionSesionActualMs, accesoOfflinePermitido);
+            guardarSesionEnDispositivo(usuarioActual, rs.token, rs.nombre, esAdmin, rs.rol, almacenAdminActual, accesoNumeroParteBajaj, duracionSesionActualMs, accesoOfflinePermitido, esAdminReal);
             document.getElementById("vista-login").classList.add("hidden");
             document.getElementById("vista-catalogo").classList.remove("hidden");
             document.getElementById("cargando-datos").classList.remove("hidden");
@@ -6800,7 +6801,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-27 · v63';
+const APP_VERSION = '2026-10-28 · v64';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Vendido', 'Traspaso', 'Rechazado', 'Pedido'];   // Enviada = en seguimiento: el cliente marca el resultado
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Vendido: 'fa-circle-check', Traspaso: 'fa-truck-fast', Rechazado: 'fa-circle-xmark', Pedido: 'fa-box-open' };
 let _cfgCots = [];
@@ -7407,7 +7408,7 @@ async function cotPisoEditar(c) {
         const st = p ? _cpStock(p) : 0;
         return { id: ++_cpSeq, tipo: 'catalogo', sku: String(it.sku || ''), descripcion: it.descripcion || (p ? p.Producto : ''), disponibilidad: p ? (st > 0 ? 'En existencia' : 'Bajo pedido') : (it.disponibilidad || ''), stock: st, cantidad: cant, origen: it.origen || '', precioAprox: (it.precioAprox === true && Number(it.precio) > 0) ? String(it.precio) : '' };
     });
-    _cpPintarLineas();
+    _cpPintarLineas(); _cpVerificarBloqueos();
     _cpMostrarFormulario();
 }
 
@@ -7540,31 +7541,49 @@ function cotPisoQuitar(id) { _cpLineas = _cpLineas.filter(l => l.id !== id); _cp
 function cotPisoCantidad(id, d) { const l = _cpLineas.find(x => x.id === id); if (!l) return; l.cantidad = Math.max(1, Math.min(9999, l.cantidad + d)); _cpPintarLineas(); }
 function cotPisoCampo(id, campo, valor) {
     const l = _cpLineas.find(x => x.id === id); if (!l) return;
+    if (campo === 'precioAprox' && _cpPrecioBloqueado(l)) { const pa = _cpEl('cp-pa-' + id); if (pa) pa.value = l.precioAprox; return; }   // precio sugerido de VENTO: solo administración
     if (campo === 'cantidad') { const n = Math.floor(Number(valor)); l.cantidad = n >= 1 ? Math.min(n, 9999) : 1; }
     else l[campo] = valor;
     if (campo === 'precioAprox') l.precioManual = true;   // si el asesor lo cambia, una búsqueda posterior ya no lo pisa
     _cpActualizarImportes();
 }
 
-/** Línea bajo pedido: al capturar el número de parte, trae de la lista de VENTO el precio aproximado (costo × 1.16 / 0.6, editable),
- *  la descripción si está vacía y la disponibilidad. Solo en la sección Vento / Carabela. Si no está en la lista, todo se captura a mano. */
-async function cotPisoBuscarParte(id) {
+/** Precio sugerido de la lista de VENTO (bajo pedido): solo administración lo puede cambiar.
+ *  Vendedores y Gerente lo ven bloqueado; si la parte no está en la lista o no trae precio, se captura a mano. */
+function _cpPrecioBloqueado(l) { return !esAdminReal && !!l && l.tipo === 'pedido' && Number(l.precioVento) > 0; }
+function _cpAplicarBloqueoPrecio(l) {
+    const pa = _cpEl('cp-pa-' + l.id); if (!pa) return;
+    const b = _cpPrecioBloqueado(l);
+    pa.readOnly = b; pa.title = b ? 'Precio sugerido de VENTO: solo administración lo puede cambiar' : ''; pa.setAttribute('aria-readonly', b ? 'true' : 'false');
+}
+/** Cotización o borrador cargado: se confirma en la lista qué precios están bloqueados (sin cambiar lo ya capturado). */
+function _cpVerificarBloqueos() {
+    if (esAdminReal) return;
+    _cpLineas.forEach(l => { if (l.tipo === 'pedido' && String(l.numeroParte || '').trim().length >= 3) cotPisoBuscarParte(l.id, true); });
+}
+
+/** Línea bajo pedido: al capturar el número de parte, trae de la lista de VENTO el precio sugerido (costo × 1.16 / 0.6),
+ *  la descripción si está vacía y la disponibilidad. Solo en la sección Vento / Carabela. Si no está en la lista, todo se captura a mano.
+ *  El precio sugerido solo lo cambia administración (_cpPrecioBloqueado). soloBloquear: solo confirma el bloqueo, sin tocar lo capturado. */
+async function cotPisoBuscarParte(id, soloBloquear) {
     const l0 = _cpLineas.find(x => x.id === id); if (!l0) return;
     const np = String(l0.numeroParte || '').trim();
     const estado = (t) => { l0.vnTexto = t; const el = _cpEl('cp-vn-' + id); if (el) el.textContent = t; };
-    if (np.length < 3 || seccionActual() !== 'VENTO') { estado(''); return; }
+    if (np.length < 3 || seccionActual() !== 'VENTO') { l0.precioVento = 0; _cpAplicarBloqueoPrecio(l0); estado(''); return; }
     estado('Buscando en la lista de VENTO…');
     try {
         const rs = await _cpApi('consultarParteVento', { numeroParte: np });
         const l = _cpLineas.find(x => x.id === id); if (!l || String(l.numeroParte || '').trim() !== np) return;   // la línea cambió mientras se buscaba
         if (!rs.success) { estado(rs.message || 'No se pudo consultar la lista de VENTO.'); return; }
-        if (!rs.encontrado) { estado('No está en la lista de VENTO: captura el precio aproximado a mano.'); return; }
-        if (!String(l.descripcion || '').trim() && rs.descripcion) { l.descripcion = rs.descripcion; const d = _cpEl('cp-ds-' + id); if (d) d.value = rs.descripcion; }
+        if (!rs.encontrado) { l.precioVento = 0; _cpAplicarBloqueoPrecio(l); estado('No está en la lista de VENTO: captura el precio aproximado a mano.'); return; }
+        if (!soloBloquear && !String(l.descripcion || '').trim() && rs.descripcion) { l.descripcion = rs.descripcion; const d = _cpEl('cp-ds-' + id); if (d) d.value = rs.descripcion; }
         let partes = [];
         if (rs.precio > 0) {
-            if (!l.precioManual) { l.precioAprox = rs.precio.toFixed(2); const pa = _cpEl('cp-pa-' + id); if (pa) pa.value = l.precioAprox; }
-            partes.push('Precio aproximado de lista: ' + _cpMoneda(rs.precio) + ' (editable)');
-        } else partes.push('Precio pendiente en la lista: captura uno aproximado');
+            l.precioVento = Number(rs.precio);
+            if (!soloBloquear && (!l.precioManual || !esAdminReal)) { l.precioAprox = rs.precio.toFixed(2); const pa = _cpEl('cp-pa-' + id); if (pa) pa.value = l.precioAprox; }   // quien no es admin siempre queda con el precio de lista
+            partes.push('Precio sugerido de lista: ' + _cpMoneda(rs.precio) + (esAdminReal ? ' (editable)' : ' (solo administración lo modifica)'));
+        } else { l.precioVento = 0; partes.push('Precio pendiente en la lista: captura uno aproximado'); }
+        _cpAplicarBloqueoPrecio(l);
         if (rs.disponibilidad) partes.push('Disponibilidad: ' + rs.disponibilidad + (rs.fechaRecibo ? ' · recibo ' + rs.fechaRecibo : ''));
         if (rs.aplicacion) partes.push('Aplicación: ' + rs.aplicacion);
         estado(partes.join(' · '));
@@ -7620,7 +7639,7 @@ function _cpPintarLineas() {
         const precioHtml = (!ped && p.lista)
             ? `<div class="cp-ayuda" style="margin:0">${_cpMoneda(p.valor)} c/u</div><div class="cp-imp" id="cp-imp-${l.id}">${_cpMoneda(p.valor * l.cantidad)}</div>`
             : `<div class="cp-campo"><label for="cp-pa-${l.id}">${ped ? 'Precio aproximado' : 'Sin precio en lista: captura uno'}</label>
-                 <input id="cp-pa-${l.id}" type="number" inputmode="decimal" min="0" step="0.01" value="${_cpEsc(l.precioAprox)}" oninput="cotPisoCampo(${l.id},'precioAprox',this.value)"></div>
+                 <input id="cp-pa-${l.id}" type="number" inputmode="decimal" min="0" step="0.01" value="${_cpEsc(l.precioAprox)}"${_cpPrecioBloqueado(l) ? ' readonly aria-readonly="true" title="Precio sugerido de VENTO: solo administración lo puede cambiar"' : ''} oninput="cotPisoCampo(${l.id},'precioAprox',this.value)"></div>
                <div class="cp-imp" id="cp-imp-${l.id}">${p.valor === null ? '—' : _cpMoneda(p.valor * l.cantidad)}</div>`;
         return `<div class="cp-linea" id="cp-l-${l.id}">
             <div class="cp-linea-top">${cabeza}<button type="button" class="cp-quitar" aria-label="Quitar ${_cpEsc(ped ? (l.numeroParte || 'producto bajo pedido') : l.sku)}" onclick="cotPisoQuitar(${l.id})"><i aria-hidden="true" class="fa-solid fa-trash-can"></i></button></div>
@@ -7758,7 +7777,7 @@ function _cpRestaurarBorrador(d) {
     if (d.vigencia && d.vigencia >= _cotIso(new Date())) _cpEl('cp-vigencia').value = d.vigencia;   // una vigencia ya vencida se reemplaza por la de omisión
     _cpLineas = (d.lineas || []).map(l => Object.assign({}, l, { id: ++_cpSeq }));
     _cpEl('cp-borrador-hace').textContent = _cpHaceCuanto(d.t); _cpEl('cp-borrador').hidden = false;
-    _cpPintarLineas();
+    _cpPintarLineas(); _cpVerificarBloqueos();
 }
 function cotPisoEmpezarDeNuevo() { _cpBorrarBorrador(); _cpReiniciar(); _cpEl('cp-borrador').hidden = true; setTimeout(() => _cpEl('cp-idcliente').focus(), 60); }
 async function cotPisoGuardar() {
