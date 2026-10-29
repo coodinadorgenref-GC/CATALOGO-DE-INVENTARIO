@@ -657,8 +657,8 @@
         .cfg-res { display: flex; flex-direction: column; align-items: flex-start; width: 100%; min-height: 44px; padding: 8px 12px; background: transparent; border: 0; border-bottom: 1px solid var(--border); color: var(--text); text-align: left; cursor: pointer; }
         .cfg-res span { font-size: 12px; color: var(--text-3); }
         .cfg-res:hover { background: var(--surface); }
-        .cfg-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
-        .cfg-tab { flex: 1; min-width: 0; padding: 0 6px; font-size: 13px; min-height: 44px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-2); font-weight: 700; cursor: pointer; }
+        .cfg-tabs { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; scrollbar-width: none; }
+        .cfg-tab { flex: 1 0 auto; white-space: nowrap; padding: 0 12px; font-size: 13px; min-height: 44px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-2); font-weight: 700; cursor: pointer; }
         .cfg-tab[aria-selected="true"] { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
         .cfg-fila { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
         .cfg-fila span:first-child { color: var(--text-3); }
@@ -724,6 +724,35 @@
         .cp-error.visible { display: block; }
         .cp-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
         @media (min-width: 560px) { .cp-grid { grid-template-columns: 1fr 1fr; } }
+        /* Pedido masivo a Vento (solo admin real) */
+        .pm-linea { display: grid; grid-template-columns: minmax(0, 1fr) 84px 44px; gap: 8px; align-items: end; padding: 10px 0; border-bottom: 1px solid var(--divider); }
+        .pm-linea .cp-campo { margin: 0; }
+        .pm-linea input { font-variant-numeric: tabular-nums; }
+        .pm-np { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; text-transform: uppercase; }
+        .pm-desc { grid-column: 1 / -1; min-height: 16px; font-size: 12px; color: var(--text-3); overflow-wrap: anywhere; }
+        .pm-quitar { min-width: 44px; min-height: 44px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--danger); cursor: pointer; }
+        .pm-quitar:hover { background: var(--surface-2); }
+        .pm-pegar { width: 100%; min-height: 88px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 16px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; resize: vertical; }
+        .pm-resumen { position: sticky; bottom: 0; margin-top: 12px; padding: 10px 0 2px; background: var(--surface); border-top: 1px solid var(--border); }
+        .pm-enviar { width: 100%; min-height: 48px; border: 0; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; }
+        /* Compatibilidad (índice NP): resultados escaneables, con listado copiable */
+        .np-cab { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+        .np-titulo { font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--brand-text); }
+        .np-resumen { flex: 1 1 160px; min-width: 0; font-size: 12px; color: var(--text-3); }
+        .np-btn { min-height: 44px; padding: 0 14px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: transparent; border: 1px solid var(--border-strong); border-radius: 8px; color: var(--text); font-weight: 700; font-size: 13px; cursor: pointer; white-space: nowrap; }
+        .np-btn:hover { background: var(--surface-2); }
+        .np-btn[data-ok="1"] { border-color: var(--ok); color: var(--ok); }
+        .np-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+        .np-codigo { padding: 10px 0; border-top: 1px solid var(--divider); }
+        .np-codigo-cab { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+        .np-cod { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 800; font-size: 15px; color: var(--brand-text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+        .np-cuenta { font-size: 12px; color: var(--text-3); }
+        .np-desc { flex: 1 1 100%; font-size: 12px; color: var(--text-3); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .np-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .np-chip { display: inline-flex; gap: 6px; align-items: baseline; max-width: 100%; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; font-size: 12px; color: var(--text-2); }
+        .np-chip b { color: var(--text); font-weight: 700; overflow-wrap: anywhere; }
+        .np-chip span { color: var(--text-3); font-variant-numeric: tabular-nums; }
+        .np-pie { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--divider); font-size: 12px; }
         .cp-campo label { display: block; font-size: 12px; font-weight: 700; color: var(--text-3); margin-bottom: 4px; }
         .cp-campo input, .cp-campo select { width: 100%; min-height: 44px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 12px; font-size: 16px; }
         .cp-campo input:focus-visible, .cp-campo select:focus-visible, .cp-card button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
@@ -1556,6 +1585,7 @@
       <button type="button" class="cfg-tab" id="cfg-tab-cuenta" role="tab" aria-selected="false" onclick="cfgTab('cuenta')">Cuenta y versión</button>
       <button type="button" class="cfg-tab" id="cfg-tab-cot" role="tab" aria-selected="false" onclick="cfgTab('cot')" style="display:none">Cotizaciones</button>
       <button type="button" class="cfg-tab" id="cfg-tab-compat" role="tab" aria-selected="false" onclick="cfgTab('compat')" style="display:none">Compatibilidad</button>
+      <button type="button" class="cfg-tab" id="cfg-tab-pedvento" role="tab" aria-selected="false" onclick="cfgTab('pedvento')" style="display:none">Pedido Vento</button>
       <button type="button" class="cfg-tab" id="cfg-tab-sol" role="tab" aria-selected="false" onclick="cfgTab('sol')" style="display:none">Mis solicitudes</button>
     </div>
     <div class="cfg-cuerpo">
@@ -1588,6 +1618,23 @@
       <p class="cfg-muted" style="margin:0 0 8px">Productos que se vendieron para una moto que no aparece en su ficha. Corrige la compatibilidad en la ficha del producto y márcalo como revisado.</p>
       <p id="cfg-compat-estado" class="cp-ayuda" role="status" aria-live="polite"></p>
       <div id="cfg-compat-lista"></div>
+    </div>
+    <div id="cfg-pedvento" hidden>
+      <p class="cfg-muted" style="margin:0 0 8px">Pide piezas a Vento en cantidad para repartirlas después a otras agencias. Se escribe en la hoja de pedidos de Vento (como «Piso de venta (stock)») y te llega el aviso por Telegram.</p>
+      <div class="cp-campo"><label for="pm-sucursal">Sucursal que solicita *</label>
+        <select id="pm-sucursal"><option value="">Elige la sucursal…</option><option>CARABELA V1</option><option>CAUCEL VENTO</option><option>PISTE VENTO</option><option>TICUL VENTO</option><option>TIZIMIN VENTO</option><option>UMAN VENTO</option></select></div>
+      <div class="cp-campo" style="margin-top:8px"><label for="pm-ref">Referencia (opcional)</label>
+        <input id="pm-ref" type="text" maxlength="80" autocomplete="off" placeholder="Ej. Reparto semana 44"></div>
+      <div style="margin-top:8px"><label for="pm-pegar" class="cfg-muted" style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">Pegar listado (opcional)</label>
+        <textarea id="pm-pegar" class="pm-pegar" rows="3" spellcheck="false" placeholder="Una parte por línea: número de parte y cantidad (también sirve pegar desde Excel)&#10;MO1050108 12&#10;IR2020118 4"></textarea>
+        <button type="button" class="cp-btn-sec" onclick="pmImportar()" style="margin-top:6px"><i aria-hidden="true" class="fa-solid fa-paste"></i> Agregar al pedido</button>
+        <p id="pm-pegar-estado" class="cp-ayuda" role="status" aria-live="polite"></p></div>
+      <div id="pm-lineas" style="margin-top:8px"></div>
+      <button type="button" class="cp-btn-sec" onclick="pmAgregarLinea()"><i aria-hidden="true" class="fa-solid fa-plus"></i> Agregar parte</button>
+      <div class="pm-resumen">
+        <p id="pm-resumen" class="cp-ayuda" role="status" aria-live="polite" style="margin:0 0 8px"></p>
+        <button type="button" id="pm-enviar" class="pm-enviar btn-primary" onclick="pmEnviar()"><i aria-hidden="true" class="fa-solid fa-truck-fast"></i> Enviar pedido a Vento</button>
+      </div>
     </div>
     <div id="cfg-cotizaciones" hidden>
       <div class="cp-campo"><label for="cfg-buscar">Buscar por folio, cliente, teléfono o ID</label>
@@ -3081,7 +3128,7 @@ let NP_INDEX = null;
 let npIndiceCargando = false;
 
 async function cargarIndiceNP() {
-    if (!esAdmin || NP_INDEX || npIndiceCargando) return;
+    if (!esAdmin || !_cuentaComercializaVento() || NP_INDEX || npIndiceCargando) return;   // el índice NP es de Vento: las agencias que no lo comercializan no lo descargan (28 MB)
     npIndiceCargando = true;
     try {
         // force-cache: GitHub Pages sirve este archivo con cache de CDN;
@@ -3095,6 +3142,17 @@ async function cargarIndiceNP() {
     } finally {
         npIndiceCargando = false;
     }
+}
+
+/** ¿La cuenta comercializa Vento? El índice NP son números de parte de Vento, así que solo se muestra a quien los vende:
+ *  administración, cuentas TODAS o de zona (Mérida / Valladolid) y las agencias con Vento o Carabela en la columna H.
+ *  Una cuenta solo de Bajaj o Suzuki no lo ve. Es una regla de pantalla: el archivo del índice es público en GitHub Pages. */
+function _cuentaComercializaVento() {
+    if (!esAdmin) return false;
+    if (esAdminReal) return true;
+    const h = _normalizarAlmacenJS(almacenAdminActual);
+    if (!h || h.includes("TODAS") || h.includes("ZONA")) return true;
+    return h.split(/[,;|]+/).some(v => /VENTO|CARABELA/.test(v));
 }
 
 function normalizarCodigoNP(s) {
@@ -3153,47 +3211,108 @@ function ocultarPanelCompatibilidadNP() {
     if (panel) { panel.classList.add("hidden"); panel.innerHTML = ""; }
 }
 
+/** Años sueltos → «2019–2022 · 2025»: los consecutivos se juntan. */
+function _npAnios(anios) {
+    const n = [...new Set(anios.map(a => parseInt(a, 10)).filter(Number.isFinite))].sort((a, b) => a - b);
+    const otros = [...new Set(anios.filter(a => !Number.isFinite(parseInt(a, 10))))];
+    const tramos = [];
+    n.forEach(y => { const t = tramos[tramos.length - 1]; if (t && y === t[1] + 1) t[1] = y; else tramos.push([y, y]); });
+    return tramos.map(t => t[0] === t[1] ? String(t[0]) : t[0] + "–" + t[1]).concat(otros).join(" · ");
+}
+/** Modelos vigentes de un código, uno por modelo con sus años. */
+function _npModelosDe(entry) {
+    const por = new Map();
+    (entry.aplicaciones || []).filter(a => a.activo !== false).forEach(a => {
+        const m = String(a.modelo || "").trim(); if (!m) return;
+        if (!por.has(m)) por.set(m, []);
+        por.get(m).push(String(a.anio || ""));
+    });
+    return [...por.entries()].sort((a, b) => a[0].localeCompare(b[0], "es", { numeric: true })).map(([modelo, anios]) => ({ modelo, anios: _npAnios(anios) }));
+}
+/** La descripción del índice sale de un PDF escaneado y a veces es ruido; solo se muestra si parece texto. */
+function _npDescripcionLegible(d) {
+    const t = String(d || "").trim(); if (t.length < 4) return "";
+    const letras = (t.match(/[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]/g) || []).length;
+    return letras / t.length >= 0.7 && /[A-Za-zÁÉÍÓÚÑáéíóúñ]{3,}/.test(t) ? t : "";
+}
+let _npCopiables = { todos: "", porCodigo: [] };
+/** Copia al portapapeles (con respaldo para navegadores sin la API) y confirma en el mismo botón. */
+async function npCopiar(cual, btn) {
+    const texto = cual === "todos" ? _npCopiables.todos : (_npCopiables.porCodigo[cual] || "");
+    if (!texto) return;
+    let ok = false;
+    try { await navigator.clipboard.writeText(texto); ok = true; }
+    catch (e) {
+        try { const ta = document.createElement("textarea"); ta.value = texto; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;top:-1000px;opacity:0"; document.body.appendChild(ta); ta.select(); ok = document.execCommand("copy"); ta.remove(); } catch (e2) { ok = false; }
+    }
+    if (!ok) { mostrarToastInfo("No se pudo copiar. Selecciona el texto y cópialo a mano.", "error"); return; }
+    mostrarToastInfo(cual === "todos" ? "Listado copiado." : "Código copiado con sus modelos.");
+    if (btn) {
+        const previo = btn.innerHTML; btn.dataset.ok = "1"; btn.innerHTML = '<i aria-hidden="true" class="fa-solid fa-check"></i> Copiado';
+        setTimeout(() => { btn.dataset.ok = ""; btn.innerHTML = previo; }, 1800);
+    }
+}
+function npAlternar(btn) {
+    const abierto = btn.getAttribute("aria-expanded") === "true";
+    const cont = document.getElementById(btn.getAttribute("aria-controls"));
+    if (cont) cont.querySelectorAll("[data-np-extra]").forEach(e => { e.hidden = abierto; });
+    btn.setAttribute("aria-expanded", String(!abierto));
+    btn.textContent = abierto ? "Ver los " + btn.dataset.total + " modelos" : "Ver menos";
+}
+
 /** Pinta el panel de compatibilidad arriba de la grilla y regresa la
  *  lista de SKU en existencia que hacen match (para que filtrarProductos
- *  los pueda anteponer a los resultados normales de texto). */
+ *  los pueda anteponer a los resultados normales de texto).
+ *  Cada código lleva sus modelos juntando los años («Ruda F4 170 · 2024–2026»), los primeros 12 a la vista
+ *  y el resto plegado, y el listado completo se copia con un botón (todo el resultado o un código). */
 function renderPanelCompatibilidadNP(resultadoNP) {
     const panel = document.getElementById("panel-compatibilidad-np");
     if (!panel || !resultadoNP) { ocultarPanelCompatibilidadNP(); return []; }
 
-    const { codigos } = resultadoNP;
+    const { codigos, modo } = resultadoNP;
     const skusMatch = _skusConCodigosNP(codigos);
+    const VISIBLES = 12;
+    const textoBuscado = (document.getElementById("buscador") || {}).value || "";
+    const datos = codigos.map(codigo => {
+        const entry = NP_INDEX[codigo]; if (!entry) return null;
+        return { codigo, desc: _npDescripcionLegible(entry.descripcion), modelos: _npModelosDe(entry) };
+    }).filter(Boolean);
+    const unicos = new Set(); datos.forEach(d => d.modelos.forEach(m => unicos.add(m.modelo)));
 
-    const bloques = codigos.map(codigo => {
-        const entry = NP_INDEX[codigo];
-        if (!entry) return "";
-        const aplicacionesActivas = (entry.aplicaciones || []).filter(a => a.activo !== false);
-        const modelos = [...new Map(aplicacionesActivas.map(a => [a.modelo + "|" + a.anio, a])).values()]
-            .sort((a, b) => a.modelo.localeCompare(b.modelo) || a.anio.localeCompare(b.anio));
+    _npCopiables = {
+        porCodigo: datos.map(d => d.codigo + (d.desc ? " — " + d.desc : "") + "\n" + (d.modelos.length ? d.modelos.map(m => "  " + m.modelo + (m.anios ? ": " + m.anios : "")).join("\n") : "  Sin modelos vigentes")),
+        todos: ""
+    };
+    _npCopiables.todos = "Compatibilidad NP — búsqueda: " + textoBuscado.trim() + "\n\n" + _npCopiables.porCodigo.join("\n\n");
 
-        const chipsModelos = modelos.map(m =>
-            `<span class="inline-block bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[12px] text-slate-300 mr-1 mb-1">${escaparHTML(m.modelo)} ${escaparHTML(m.anio)}</span>`
-        ).join("");
-
+    const bloques = datos.map((d, k) => {
+        const idc = "np-chips-" + k;
+        const chips = d.modelos.map((m, i) => `<span class="np-chip"${i >= VISIBLES ? " data-np-extra hidden" : ""}><b>${escaparHTML(m.modelo)}</b>${m.anios ? `<span>${escaparHTML(m.anios)}</span>` : ""}</span>`).join("");
         return `
-        <div class="mb-3 last:mb-0">
-            <div class="flex items-center gap-2 flex-wrap mb-1.5">
-                <span class="font-mono font-bold text-emerald-400 text-sm">${escaparHTML(codigo)}</span>
-                <span class="text-slate-300 text-xs">${escaparHTML(entry.descripcion || "")}</span>
+        <div class="np-codigo">
+            <div class="np-codigo-cab">
+                <span class="np-cod">${escaparHTML(d.codigo)}</span>
+                <span class="np-cuenta">${d.modelos.length} ${d.modelos.length === 1 ? "modelo" : "modelos"}</span>
+                ${datos.length > 1 ? `<button type="button" class="np-btn" style="margin-left:auto" onclick="npCopiar(${k}, this)" aria-label="Copiar ${escaparHTML(d.codigo)} con sus modelos"><i aria-hidden="true" class="fa-regular fa-copy"></i> Copiar</button>` : ""}
+                ${d.desc ? `<span class="np-desc">${escaparHTML(d.desc)}</span>` : ""}
             </div>
-            <div class="flex flex-wrap">${chipsModelos || '<span class="text-[12px] text-slate-400 italic">Sin modelos vigentes</span>'}</div>
+            <div class="np-chips" id="${idc}">${chips || '<span class="np-cuenta" style="font-style:italic">Sin modelos vigentes</span>'}</div>
+            ${d.modelos.length > VISIBLES ? `<button type="button" class="np-btn" style="margin-top:8px" aria-expanded="false" aria-controls="${idc}" data-total="${d.modelos.length}" onclick="npAlternar(this)">Ver los ${d.modelos.length} modelos</button>` : ""}
         </div>`;
     }).join("");
 
     panel.innerHTML = `
-        <div class="flex items-center gap-2 mb-2">
-            <i aria-hidden="true" class="fa-solid fa-shuffle text-emerald-400"></i>
-            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wide">Compatibilidad (índice NP)</span>
+        <div class="np-cab">
+            <i aria-hidden="true" class="fa-solid fa-shuffle" style="color:var(--brand-text)"></i>
+            <span class="np-titulo">Compatibilidad (índice NP)</span>
+            <span class="np-resumen" role="status" aria-atomic="true">${datos.length} ${datos.length === 1 ? "código" : "códigos"} · ${unicos.size} ${unicos.size === 1 ? "modelo" : "modelos"}${modo === "parcial" ? " · coincidencias parciales" : ""}</span>
+            <button type="button" class="np-btn" onclick="npCopiar('todos', this)"><i aria-hidden="true" class="fa-regular fa-copy"></i> Copiar listado</button>
         </div>
         ${bloques}
-        <div class="mt-2 pt-2 border-t border-slate-700/50 text-[12px] ${skusMatch.length ? "text-emerald-400" : "text-slate-400"}">
+        <div class="np-pie" style="color:${skusMatch.length ? "var(--ok)" : "var(--text-3)"}">
             ${skusMatch.length
                 ? `<i aria-hidden="true" class="fa-solid fa-circle-check mr-1"></i>${skusMatch.length} producto${skusMatch.length!==1?"s":""} en catálogo con este número de parte`
-                : `<i aria-hidden="true" class="fa-solid fa-circle-info mr-1"></i>Compatibilidad encontrada, pero sin SKU asociado en el inventario todavía`}
+                : `<i aria-hidden="true" class="fa-solid fa-circle-info mr-1"></i>Compatibilidad encontrada, pero sin SKU asociado en el inventario todavía. Puedes pedirlo bajo pedido desde Cotizar.`}
         </div>`;
     panel.classList.remove("hidden");
 
@@ -3297,8 +3416,12 @@ function filtrarProductos() {
     // panel y se guardan los SKU coincidentes para anteponerlos.
     let skusPorCompatibilidadNP = [];
     if (esAdmin && textoBuscado.trim()) {
-        const resultadoNP = buscarCompatibilidadNP(textoBuscado);
-        skusPorCompatibilidadNP = renderPanelCompatibilidadNP(resultadoNP);
+        if (_cuentaComercializaVento()) {
+            const resultadoNP = buscarCompatibilidadNP(textoBuscado);
+            skusPorCompatibilidadNP = renderPanelCompatibilidadNP(resultadoNP);
+        } else {
+            ocultarPanelCompatibilidadNP();   // agencia sin Vento (Bajaj / Suzuki): no ve compatibilidad por número de parte Vento
+        }
         renderPanelKitsProveedor(buscarKitsProveedor(textoBuscado));
     } else {
         ocultarPanelCompatibilidadNP();
@@ -6812,7 +6935,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-29 · v65';
+const APP_VERSION = '2026-10-29 · v66';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Vendido', 'Traspaso', 'Rechazado', 'Pedido'];   // Enviada = en seguimiento: el cliente marca el resultado
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Vendido: 'fa-circle-check', Traspaso: 'fa-truck-fast', Rechazado: 'fa-circle-xmark', Pedido: 'fa-box-open' };
 let _cfgCots = [];
@@ -6825,6 +6948,7 @@ function cfgAbrir() {
     _cpEl('cfg-version').textContent = APP_VERSION;
     _cpEl('cfg-tab-cot').style.display = esAdmin ? '' : 'none';
     _cpEl('cfg-tab-sol').style.display = esAdmin ? 'none' : '';
+    _cpEl('cfg-tab-pedvento').style.display = esAdminReal ? '' : 'none';   // el servidor vuelve a validar que sea admin real
     cfgTab('aspecto');
     if (esAdmin) cfgPrepararCompat();
     _cpEl('cfg-overlay').classList.add('visible');
@@ -6925,6 +7049,7 @@ function cfgCerrar() { _cpEl('cfg-overlay').classList.remove('visible'); biMarca
 function cfgTab(t) {
     biMarcar(t);
     const cot = t === 'cot' && esAdmin;
+    _cpEl('cfg-pedvento').hidden = !(t === 'pedvento' && esAdminReal); _cpEl('cfg-tab-pedvento').setAttribute('aria-selected', String(t === 'pedvento' && esAdminReal)); if (t === 'pedvento' && esAdminReal) pmAlAbrir();
     _cpEl('cfg-compat').hidden = t !== 'compat'; _cpEl('cfg-tab-compat').setAttribute('aria-selected', String(t === 'compat')); if (t === 'compat') cfgCargarCompat();
     _cpEl('cfg-aspecto').hidden = t !== 'aspecto'; _cpEl('cfg-cuenta').hidden = t !== 'cuenta'; _cpEl('cfg-cotizaciones').hidden = !cot;
     _cpEl('cfg-solicitudes').hidden = !(t === 'sol' && !esAdmin); _cpEl('cfg-tab-sol').setAttribute('aria-selected', String(t === 'sol'));
@@ -6960,6 +7085,110 @@ async function cfgCargarCompat() {
         const tab = _cpEl('cfg-tab-compat'); tab.textContent = 'Compatibilidad' + (p.length ? ' (' + p.length + ')' : '');
     } catch (e) { est.textContent = 'No se pudo cargar. Revisa tu conexión.'; }
 }
+/* ── Pedido masivo a Vento (solo admin real; el servidor lo valida) ── */
+let _pmLineas = [], _pmSeq = 0, _pmEnviando = false;
+const _pmSucursales = ['CARABELA V1', 'CAUCEL VENTO', 'PISTE VENTO', 'TICUL VENTO', 'TIZIMIN VENTO', 'UMAN VENTO'];
+function pmAlAbrir() {
+    const sel = _pmSucursalesSel();
+    if (sel && !sel.value) { const propia = _pmSucursales.find(x => _normalizarAlmacenJS(almacenAdminActual) === x); if (propia) sel.value = propia; }   // por omisión, la sucursal de la cuenta
+    if (!_pmLineas.length) { pmAgregarLinea('', '1', '', false); pmAgregarLinea('', '1', '', false); pmAgregarLinea('', '1', '', false); }
+    pmPintar(); pmResumen();
+}
+function _pmSucursalesSel() { return _cpEl('pm-sucursal'); }
+function pmAgregarLinea(np, cant, desc, enfocar) {
+    _pmLineas.push({ id: ++_pmSeq, np: np || '', cant: cant || '1', desc: desc || '', estado: '' });
+    if (enfocar === false) return;
+    pmPintar(); pmResumen();
+    const el = _cpEl('pm-np-' + _pmSeq); if (el) el.focus();
+}
+function pmQuitar(id) { _pmLineas = _pmLineas.filter(l => l.id !== id); if (!_pmLineas.length) pmAgregarLinea('', '1', '', false); pmPintar(); pmResumen(); }
+function pmSet(id, campo, valor) {
+    const l = _pmLineas.find(x => x.id === id); if (!l) return;
+    l[campo] = campo === 'np' ? String(valor).toUpperCase().replace(/\s+/g, '') : String(valor);
+    if (campo === 'np' && l.estado === 'lista') { l.desc = ''; l.estado = ''; const d = _cpEl('pm-d-' + id); if (d) d.textContent = ''; }   // la descripción traída de la lista ya no corresponde
+    pmResumen();
+}
+function pmPintar() {
+    _cpEl('pm-lineas').innerHTML = _pmLineas.map((l, i) => `<div class="pm-linea">
+        <div class="cp-campo"><label for="pm-np-${l.id}">Parte ${i + 1}</label>
+            <input id="pm-np-${l.id}" class="pm-np" type="text" maxlength="60" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Número de parte" value="${_cpEsc(l.np)}"
+                oninput="pmSet(${l.id},'np',this.value)" onchange="pmBuscarParte(${l.id})"></div>
+        <div class="cp-campo"><label for="pm-ct-${l.id}">Cant.</label>
+            <input id="pm-ct-${l.id}" type="text" inputmode="numeric" maxlength="4" autocomplete="off" value="${_cpEsc(l.cant)}" oninput="this.value=this.value.replace(/\\D/g,'');pmSet(${l.id},'cant',this.value)"></div>
+        <button type="button" class="pm-quitar" aria-label="Quitar la parte ${i + 1}" onclick="pmQuitar(${l.id})"><i aria-hidden="true" class="fa-solid fa-trash-can"></i></button>
+        <div class="pm-desc" id="pm-d-${l.id}">${_cpEsc(l.desc)}</div>
+    </div>`).join('');
+}
+async function pmBuscarParte(id) {
+    const l = _pmLineas.find(x => x.id === id); if (!l) return;
+    const np = l.np.trim(), el = _cpEl('pm-d-' + id);
+    if (np.length < 3) { l.desc = ''; l.estado = ''; if (el) el.textContent = ''; return; }
+    if (el) el.textContent = 'Buscando en la lista de VENTO…';
+    try {
+        const rs = await _cpApi('consultarParteVento', { numeroParte: np });
+        if (l.np.trim() !== np) return;   // la línea cambió mientras se buscaba
+        if (!rs.success || !rs.encontrado) { l.desc = ''; l.estado = ''; if (el) el.textContent = rs.success ? 'No está en la lista de VENTO (se pedirá igual).' : (rs.message || ''); return; }
+        l.desc = [rs.descripcion, rs.disponibilidad ? 'Disp.: ' + rs.disponibilidad : '', rs.sku ? 'Ya existe como SKU ' + rs.sku : ''].filter(Boolean).join(' · ');
+        l.estado = 'lista'; if (el) el.textContent = l.desc;
+    } catch (e) { if (el) el.textContent = ''; }
+}
+/** Pegado desde Excel o texto: «NÚMERO_DE_PARTE  CANTIDAD» por línea; repetidos se suman; las líneas vacías del formulario se reemplazan. */
+function pmImportar() {
+    const txt = _cpEl('pm-pegar').value, est = _cpEl('pm-pegar-estado');
+    const mapa = new Map(), invalidas = [];
+    txt.split(/\r?\n/).map(x => x.trim()).filter(Boolean).forEach((fila, i) => {
+        const t = fila.split(/[\t;,|]+|\s+/).filter(Boolean);
+        const np = String(t[0] || '').toUpperCase();
+        const cant = t.length > 1 && /^\d{1,4}$/.test(t[1]) ? Number(t[1]) : (t.length > 1 ? NaN : 1);
+        if (!np || np.length < 3 || !(cant >= 1 && cant <= 9999)) { invalidas.push(i + 1); return; }
+        mapa.set(np, (mapa.get(np) || 0) + cant);
+    });
+    if (!mapa.size) { est.textContent = txt.trim() ? 'No encontré partes válidas. Usa «número de parte» y «cantidad» en cada línea.' : 'Pega primero el listado.'; return; }
+    _pmLineas = _pmLineas.filter(l => l.np.trim());
+    mapa.forEach((c, np) => {
+        const ya = _pmLineas.find(l => l.np === np);
+        if (ya) ya.cant = String(Math.min(9999, Number(ya.cant || 0) + c)); else _pmLineas.push({ id: ++_pmSeq, np, cant: String(c), desc: '', estado: '' });
+    });
+    _cpEl('pm-pegar').value = '';
+    est.textContent = mapa.size + (mapa.size === 1 ? ' parte agregada' : ' partes agregadas') + (invalidas.length ? ' · se omitieron las líneas ' + invalidas.join(', ') + ' (revísalas)' : '') + '.';
+    pmPintar(); pmResumen();
+}
+function _pmRevisar() {
+    const lineas = [], vistos = new Map();
+    for (const l of _pmLineas) {
+        const np = l.np.trim(); if (!np && (!l.cant || l.cant === '1')) continue;   // línea vacía sin tocar: se ignora
+        if (!np) return { error: 'Falta el número de parte en una de las líneas.' };
+        const cant = Number(l.cant);
+        if (!Number.isInteger(cant) || cant < 1 || cant > 9999) return { error: 'La cantidad de ' + np + ' debe ser de 1 a 9999.' };
+        if (vistos.has(np)) return { error: 'La parte ' + np + ' está repetida: súmala en una sola línea.' };
+        vistos.set(np, true); lineas.push({ numeroParte: np, cantidad: cant, descripcion: l.estado === 'lista' ? '' : l.desc });
+    }
+    if (!lineas.length) return { error: 'Agrega al menos una parte.' };
+    if (lineas.length > 60) return { error: 'Máximo 60 partes por pedido; divídelo en dos.' };
+    return { lineas, piezas: lineas.reduce((a, x) => a + x.cantidad, 0) };
+}
+function pmResumen() {
+    const r = _pmRevisar(), el = _cpEl('pm-resumen'); if (!el) return;
+    el.textContent = r.error ? '' : r.lineas.length + (r.lineas.length === 1 ? ' parte' : ' partes') + ' · ' + r.piezas + (r.piezas === 1 ? ' pieza' : ' piezas');
+}
+async function pmEnviar() {
+    if (_pmEnviando) return;
+    const sucursal = _cpEl('pm-sucursal').value;
+    if (!sucursal) { mostrarToastInfo('Elige la sucursal que solicita.', 'error'); _cpEl('pm-sucursal').focus(); return; }
+    const r = _pmRevisar();
+    if (r.error) { mostrarToastInfo(r.error, 'error'); return; }
+    const ok = await confirmarApp({ titulo: '¿Enviar el pedido a Vento?', mensaje: r.lineas.length + (r.lineas.length === 1 ? ' parte' : ' partes') + ' · ' + r.piezas + ' piezas, a nombre de ' + sucursal + '. Se escribe en la hoja de pedidos de Vento y te avisa por Telegram.', tipo: 'info', icono: 'fa-truck-fast', confirmar: 'Enviar pedido', cancelar: 'Revisar' });
+    if (!ok) return;
+    const btn = _cpEl('pm-enviar'); _pmEnviando = true; btn.disabled = true; btn.innerHTML = 'Enviando…';
+    try {
+        const rs = await _cpApi('pedidoMasivoVento', { datos: { sucursal, referencia: _cpEl('pm-ref').value.trim(), lineas: r.lineas } });
+        if (!rs.success) throw new Error(rs.message || 'No se pudo enviar el pedido.');
+        _pmLineas = []; _cpEl('pm-ref').value = ''; pmAlAbrir();
+        await avisoApp('Pedido enviado', rs.partes + (rs.partes === 1 ? ' parte' : ' partes') + ' · ' + rs.piezas + ' piezas, a nombre de ' + rs.sucursal + '. Ya está en la hoja de pedidos de Vento.', 'info');
+    } catch (e) { mostrarToastInfo(e.message || 'No se pudo enviar el pedido.', 'error'); }
+    finally { _pmEnviando = false; btn.disabled = false; btn.innerHTML = '<i aria-hidden="true" class="fa-solid fa-truck-fast"></i> Enviar pedido a Vento'; }
+}
+
 function cfgBuscarSkuCompat(sku) {   // cierra Configuración y deja el SKU en el buscador del catálogo para abrir su ficha
     cfgCerrar();
     const b = [document.getElementById('buscador'), document.getElementById('buscador-movil')].find(el => el && el.offsetParent !== null);
