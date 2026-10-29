@@ -1701,6 +1701,17 @@
             <input id="cv-motivo" type="text" maxlength="200" autocomplete="off" placeholder="Ej. Precio alto, ya lo compró en otro lado" onkeydown="if(event.key==='Enter'){event.preventDefault();cvGuardarRechazo();}">
             <button type="button" class="cp-btn-sec" onclick="cvGuardarRechazo()" style="margin-top:8px">Guardar rechazo</button>
         </div>
+        <div id="cv-pedido-fila" class="cp-campo" hidden>
+            <label for="cv-anticipo">Anticipo del cliente (MXN) *</label>
+            <input id="cv-anticipo" type="text" inputmode="decimal" autocomplete="off" maxlength="12" placeholder="0 si no dejó anticipo" onkeydown="if(event.key==='Enter'){event.preventDefault();cvGuardarPedido();}">
+            <label for="cv-sucursal" style="margin-top:8px">Sucursal que solicita</label>
+            <select id="cv-sucursal">
+                <option value="">La de mi cuenta</option>
+                <option>CARABELA V1</option><option>CAUCEL VENTO</option><option>PISTE VENTO</option><option>TICUL VENTO</option><option>TIZIMIN VENTO</option><option>UMAN VENTO</option>
+            </select>
+            <p id="cv-pedido-ayuda" class="cp-ayuda"></p>
+            <button type="button" id="cv-pedido-guardar" class="cp-btn-sec" onclick="cvGuardarPedido()" style="margin-top:8px">Guardar pedido</button>
+        </div>
         <p id="cv-seg" class="cp-ayuda" role="status" aria-live="polite"></p>
         <div class="cfg-acciones">
             <button type="button" id="cv-wa" onclick="_cotReenviar(_cvCot, this)"><i aria-hidden="true" class="fa-brands fa-whatsapp"></i> Reenviar</button>
@@ -6801,7 +6812,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-28 · v64';
+const APP_VERSION = '2026-10-29 · v65';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Vendido', 'Traspaso', 'Rechazado', 'Pedido'];   // Enviada = en seguimiento: el cliente marca el resultado
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Vendido: 'fa-circle-check', Traspaso: 'fa-truck-fast', Rechazado: 'fa-circle-xmark', Pedido: 'fa-box-open' };
 let _cfgCots = [];
@@ -7045,7 +7056,7 @@ async function cvAbrir(cot, origen) {
         _cpEl('cv-estado-fila').hidden = origen !== 'hist';
         _cpEl('cv-estado').innerHTML = ESTADOS_COT.map(e => `<option${e === cot.estado ? ' selected' : ''}>${e}</option>`).join('');
         _cpEl('cv-wa').hidden = !asesor;
-        _cpEl('cv-motivo-fila').hidden = true; cvPintarSeg();
+        _cpEl('cv-motivo-fila').hidden = true; _cpEl('cv-pedido-fila').hidden = true; cvPintarSeg();
         cvPintarEditar(origen);
         _cvOrigen = origen;
         _cpEl('cv-overlay').classList.add('visible');
@@ -7067,7 +7078,7 @@ function cvPintarSeg() {
     const t = !c ? '' : c.estado === 'Enviada' ? 'En seguimiento: cuando el cliente responda, marca si fue Vendido, Traspaso, Rechazado o Pedido.'
         : c.estado === 'Vendido' ? 'Venta completada.'
         : c.estado === 'Traspaso' ? 'Traspaso: ' + (sg.eta ? 'llega en aprox. ' + sg.eta + '.' : 'sin tiempo estimado.') + ((sg.lineas || []).length ? ' ' + sg.lineas.map(l => (l.origen || 'otra agencia') + (l.eta ? ' (' + l.eta + ')' : '')).join(' · ') : '')
-        : c.estado === 'Pedido' ? 'Pedido: ' + (sg.eta || '2 a 3 semanas, siempre que VENTO tenga disponible') + '.'
+        : c.estado === 'Pedido' ? 'Pedido: ' + (sg.eta || '2 a 3 semanas, siempre que VENTO tenga disponible') + '.' + (sg.pedidoVento ? ' Enviado a la hoja de Vento (' + (sg.pedidoVento.sucursal || '') + ')' + (sg.anticipo !== undefined && sg.anticipo !== '' ? ' · Anticipo ' + _cfgMoneda(sg.anticipo) : '') + '.' : '')
         : c.estado === 'Rechazado' ? 'Motivo del rechazo: ' + (sg.motivo || 'no registrado') + '.' : '';
     el.textContent = t;
 }
@@ -7077,6 +7088,7 @@ async function _cvAplicarEstado(estado, datos) {
     if (!rs.success) throw new Error(rs.message || 'No se pudo cambiar el estado.');
     c.estado = estado; c.seguimiento = rs.seguimiento || {};
     _cpEl('cv-motivo-fila').hidden = true; _cpEl('cv-motivo').value = '';
+    _cpEl('cv-pedido-fila').hidden = true; _cpEl('cv-anticipo').value = '';
     cvPintarSub(); cvPintarSeg(); cvPintarEditar(_cvOrigen); cfgPintarCotizaciones();
     return true;
 }
@@ -7084,11 +7096,35 @@ async function cvCambiarEstado(sel) {
     const c = _cvCot; if (!c) return;
     const previo = c.estado;
     if (sel.value === 'Rechazado') {   // el rechazo pide motivo: el estado no cambia hasta guardarlo
-        sel.value = previo; _cpEl('cv-motivo-fila').hidden = false; _cpEl('cv-motivo').focus(); return;
+        sel.value = previo; _cpEl('cv-pedido-fila').hidden = true; _cpEl('cv-motivo-fila').hidden = false; _cpEl('cv-motivo').focus(); return;
     }
     _cpEl('cv-motivo-fila').hidden = true;
+    const nVento = sel.value === 'Pedido' ? _cvLineasPedidoVento(c).length : 0;
+    if (nVento && !(c.seguimiento && c.seguimiento.pedidoVento)) {   // Pedido con líneas bajo pedido de Vento: pide el anticipo y las manda a la hoja de Vento
+        sel.value = previo;
+        _cpEl('cv-pedido-ayuda').textContent = 'Se enviarán ' + nVento + (nVento === 1 ? ' línea bajo pedido' : ' líneas bajo pedido') + ' de Vento a la hoja de pedidos. El anticipo es de toda la cotización.';
+        _cpEl('cv-pedido-fila').hidden = false; _cpEl('cv-anticipo').focus(); return;
+    }
+    _cpEl('cv-pedido-fila').hidden = true;
     try { await _cvAplicarEstado(sel.value); }
     catch (e) { sel.value = previo; mostrarToastInfo(e.message || 'No se pudo cambiar el estado.', 'error'); }
+}
+/** Líneas bajo pedido de Vento de una cotización (las de catálogo, Suzuki y Bajaj no se mandan). */
+function _cvLineasPedidoVento(c) {
+    const ag = String((c && c.agencia) || '').toUpperCase();
+    if (ag !== 'VENTO' && ag !== 'CARABELA') return [];
+    return (c.items || []).filter(it => it && it.tipo === 'pedido' && String(it.numeroParte || '').trim());
+}
+async function cvGuardarPedido() {
+    const anticipo = _cpEl('cv-anticipo').value.trim().replace(/[$,\s]/g, '');
+    if (!/^\d+(\.\d{1,2})?$/.test(anticipo)) { mostrarToastInfo('Captura el anticipo (si no dejó, escribe 0).', 'error'); _cpEl('cv-anticipo').focus(); return; }
+    const btn = _cpEl('cv-pedido-guardar'); btn.disabled = true; btn.textContent = 'Enviando…';
+    try {
+        await _cvAplicarEstado('Pedido', { anticipo, sucursal: _cpEl('cv-sucursal').value });
+        _cpEl('cv-estado').value = 'Pedido';
+        mostrarToastInfo('Pedido enviado a la hoja de Vento.');
+    } catch (e) { mostrarToastInfo(e.message || 'No se pudo guardar el pedido.', 'error'); }
+    finally { btn.disabled = false; btn.textContent = 'Guardar pedido'; }
 }
 async function cvGuardarRechazo() {
     const motivo = _cpEl('cv-motivo').value.trim();
