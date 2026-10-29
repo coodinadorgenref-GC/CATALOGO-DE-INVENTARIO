@@ -7122,7 +7122,8 @@ async function cvGuardarPedido() {
     try {
         await _cvAplicarEstado('Pedido', { anticipo, sucursal: _cpEl('cv-sucursal').value });
         _cpEl('cv-estado').value = 'Pedido';
-        mostrarToastInfo('Pedido enviado a la hoja de Vento.');
+        if (_cvCot && _cvCot.seguimiento && _cvCot.seguimiento.pedidoVento) mostrarToastInfo('Pedido enviado a la hoja de Vento.');
+        else mostrarToastInfo('La cotización quedó en Pedido, pero el servidor aún no tiene la versión nueva: NO se envió a la hoja de Vento.', 'error');   // backend sin desplegar
     } catch (e) { mostrarToastInfo(e.message || 'No se pudo guardar el pedido.', 'error'); }
     finally { btn.disabled = false; btn.textContent = 'Guardar pedido'; }
 }
