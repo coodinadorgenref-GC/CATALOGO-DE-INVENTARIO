@@ -2,7 +2,7 @@
 
 PWA con el catálogo de refacciones de Grupo Camejo (Vento, Carabela, Suzuki, Bajaj). Administración y vendedores cotizan en piso de venta; los clientes arman su cotización con login. Corre en GitHub Pages y usa Google Sheets mediante Apps Script.
 
-- **Estado actual y reglas:** [`ESTADO.md`](./ESTADO.md)
+- **Estado actual y reglas:** [`ESTADO_CATALOGO-DE-INVENTARIO.md`](./ESTADO_CATALOGO-DE-INVENTARIO.md)
 - **Bitácora completa:** [`HISTORIAL.md`](./HISTORIAL.md)
 - **Sistema visual:** [`MASTER.md`](./MASTER.md)
 - **Backend:** repo `apps-script`

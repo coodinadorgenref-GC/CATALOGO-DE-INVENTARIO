@@ -1,6 +1,6 @@
 # HISTORIAL — Catálogo de Inventario (Grupo Camejo)
 
-> Bitácora y detalle completo (antes vivía en `README.md`). El estado vigente, en corto, está en `ESTADO.md`. Aquí se agrega una entrada por cambio; no se reescribe. Algunas secciones (p. ej. «Estado y pendientes (18-oct)» y «Cómo probar») son de su fecha y pueden estar desactualizadas.
+> Bitácora y detalle completo (antes vivía en `README.md`). El estado vigente, en corto, está en `ESTADO_CATALOGO-DE-INVENTARIO.md`. Aquí se agrega una entrada por cambio; no se reescribe. Algunas secciones (p. ej. «Estado y pendientes (18-oct)» y «Cómo probar») son de su fecha y pueden estar desactualizadas.
 
 ## Qué es
 PWA de un solo archivo con el catálogo de refacciones de Grupo Camejo. La usan administración, vendedores y clientes (con login). Corre en GitHub Pages y lee/escribe en Google Sheets mediante Apps Script.

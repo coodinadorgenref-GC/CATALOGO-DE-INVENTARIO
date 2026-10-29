@@ -35,4 +35,4 @@ PWA de un solo archivo (`index.html`) con el catálogo de refacciones de Grupo C
 - Probar con datos reales: cuenta gerente, cliente con productos de dos secciones, envío parcial, PDF del cliente, aspecto claro en celular.
 
 ## Documentos
-`README.md` (presentación) · `ESTADO.md` (este) · `HISTORIAL.md` (bitácora completa: decisiones 1–24 y secciones por fecha) · `MASTER.md` (sistema visual).
+`README.md` (presentación) · `ESTADO_CATALOGO-DE-INVENTARIO.md` (este) · `HISTORIAL.md` (bitácora completa: decisiones 1–24 y secciones por fecha) · `MASTER.md` (sistema visual).
