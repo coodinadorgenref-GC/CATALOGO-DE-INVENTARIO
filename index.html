@@ -724,17 +724,34 @@
         .cp-error.visible { display: block; }
         .cp-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
         @media (min-width: 560px) { .cp-grid { grid-template-columns: 1fr 1fr; } }
-        /* Pedido masivo a Vento (solo admin real) */
-        .pm-linea { display: grid; grid-template-columns: minmax(0, 1fr) 84px 44px; gap: 8px; align-items: end; padding: 10px 0; border-bottom: 1px solid var(--divider); }
-        .pm-linea .cp-campo { margin: 0; }
-        .pm-linea input { font-variant-numeric: tabular-nums; }
+        /* Pedido masivo a Vento (solo admin real): tabla con las columnas de la hoja de pedidos */
+        .pm-tabla-caja { margin-top: 10px; border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }
+        .pm-tabla { width: 100%; border-collapse: collapse; min-width: 680px; }
+        .pm-tabla th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); font-size: 12px; font-weight: 700; color: var(--text-3); text-align: left; padding: 8px; white-space: nowrap; border-bottom: 1px solid var(--border); }
+        .pm-tabla td { padding: 4px; border-bottom: 1px solid var(--divider); vertical-align: top; }
+        .pm-tabla tr:last-child td { border-bottom: 0; }
+        .pm-in { width: 100%; min-height: 44px; background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--text); padding: 0 8px; font-size: 16px; }
+        .pm-in:hover { border-color: var(--border); }
+        .pm-in:focus-visible { background: var(--surface-2); border-color: var(--ring); outline: 2px solid var(--ring); outline-offset: -1px; }
+        .pm-in[aria-invalid="true"] { border-color: var(--danger); border-width: 2px; }
         .pm-np { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; text-transform: uppercase; }
-        .pm-desc { grid-column: 1 / -1; min-height: 16px; font-size: 12px; color: var(--text-3); overflow-wrap: anywhere; }
-        .pm-quitar { min-width: 44px; min-height: 44px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--danger); cursor: pointer; }
-        .pm-quitar:hover { background: var(--surface-2); }
-        .pm-pegar { width: 100%; min-height: 88px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 10px 12px; font-size: 16px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; resize: vertical; }
+        .pm-cant { text-align: right; font-variant-numeric: tabular-nums; }
+        .pm-nota { padding: 0 8px 4px; font-size: 12px; color: var(--text-3); overflow-wrap: anywhere; }
+        .pm-nota:empty { display: none; }
+        .pm-quitar { width: 44px; min-height: 44px; background: transparent; border: 1px solid transparent; border-radius: 8px; color: var(--danger); cursor: pointer; }
+        .pm-quitar:hover { background: var(--surface-2); border-color: var(--border); }
         .pm-resumen { position: sticky; bottom: 0; margin-top: 12px; padding: 10px 0 2px; background: var(--surface); border-top: 1px solid var(--border); }
         .pm-enviar { width: 100%; min-height: 48px; border: 0; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; }
+        @media (max-width: 719px) {   /* en celular cada fila es una tarjeta con sus etiquetas: nada de scroll horizontal */
+            .pm-tabla { min-width: 0; }
+            .pm-tabla thead { display: none; }
+            .pm-tabla, .pm-tabla tbody, .pm-tabla tr, .pm-tabla td { display: block; width: 100%; }
+            .pm-tabla tr { padding: 8px 4px; border-bottom: 1px solid var(--border); }
+            .pm-tabla td { border: 0; padding: 2px 4px; }
+            .pm-tabla td[data-label]::before { content: attr(data-label); display: block; padding: 0 8px; font-size: 12px; font-weight: 700; color: var(--text-3); }
+            .pm-tabla td.pm-td-quitar { text-align: right; }
+            .pm-in { border-color: var(--border); }
+        }
         /* Compatibilidad (índice NP): resultados escaneables, con listado copiable */
         .np-cab { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
         .np-titulo { font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--brand-text); }
@@ -1620,17 +1637,13 @@
       <div id="cfg-compat-lista"></div>
     </div>
     <div id="cfg-pedvento" hidden>
-      <p class="cfg-muted" style="margin:0 0 8px">Pide piezas a Vento en cantidad para repartirlas después a otras agencias. Se escribe en la hoja de pedidos de Vento (como «Piso de venta (stock)») y te llega el aviso por Telegram.</p>
+      <p class="cfg-muted" style="margin:0 0 8px">Pide piezas a Vento en cantidad para repartirlas después a otras agencias. Cada fila se escribe en la hoja de pedidos de Vento (como «Piso de venta (stock)») y te llega el aviso por Telegram. Captura directo en la tabla o pega desde Excel en cualquier celda.</p>
       <div class="cp-campo"><label for="pm-sucursal">Sucursal que solicita *</label>
         <select id="pm-sucursal"><option value="">Elige la sucursal…</option><option>CARABELA V1</option><option>CAUCEL VENTO</option><option>PISTE VENTO</option><option>TICUL VENTO</option><option>TIZIMIN VENTO</option><option>UMAN VENTO</option></select></div>
-      <div class="cp-campo" style="margin-top:8px"><label for="pm-ref">Referencia (opcional)</label>
-        <input id="pm-ref" type="text" maxlength="80" autocomplete="off" placeholder="Ej. Reparto semana 44"></div>
-      <div style="margin-top:8px"><label for="pm-pegar" class="cfg-muted" style="display:block;font-size:12px;font-weight:700;margin-bottom:4px">Pegar listado (opcional)</label>
-        <textarea id="pm-pegar" class="pm-pegar" rows="3" spellcheck="false" placeholder="Una parte por línea: número de parte y cantidad (también sirve pegar desde Excel)&#10;MO1050108 12&#10;IR2020118 4"></textarea>
-        <button type="button" class="cp-btn-sec" onclick="pmImportar()" style="margin-top:6px"><i aria-hidden="true" class="fa-solid fa-paste"></i> Agregar al pedido</button>
-        <p id="pm-pegar-estado" class="cp-ayuda" role="status" aria-live="polite"></p></div>
-      <div id="pm-lineas" style="margin-top:8px"></div>
-      <button type="button" class="cp-btn-sec" onclick="pmAgregarLinea()"><i aria-hidden="true" class="fa-solid fa-plus"></i> Agregar parte</button>
+      <div class="pm-tabla-caja"><table class="pm-tabla" aria-label="Partes del pedido masivo a Vento">
+        <thead><tr><th scope="col">Número de parte *</th><th scope="col">Modelo y año</th><th scope="col">Descripción</th><th scope="col">Cant. *</th><th scope="col">Nombre del cliente</th><th scope="col"><span class="sr-only">Quitar fila</span></th></tr></thead>
+        <tbody id="pm-lineas"></tbody></table></div>
+      <button type="button" class="cp-btn-sec" onclick="pmAgregarLinea()"><i aria-hidden="true" class="fa-solid fa-plus"></i> Agregar fila</button>
       <div class="pm-resumen">
         <p id="pm-resumen" class="cp-ayuda" role="status" aria-live="polite" style="margin:0 0 8px"></p>
         <button type="button" id="pm-enviar" class="pm-enviar btn-primary" onclick="pmEnviar()"><i aria-hidden="true" class="fa-solid fa-truck-fast"></i> Enviar pedido a Vento</button>
@@ -7085,83 +7098,119 @@ async function cfgCargarCompat() {
         const tab = _cpEl('cfg-tab-compat'); tab.textContent = 'Compatibilidad' + (p.length ? ' (' + p.length + ')' : '');
     } catch (e) { est.textContent = 'No se pudo cargar. Revisa tu conexión.'; }
 }
-/* ── Pedido masivo a Vento (solo admin real; el servidor lo valida) ── */
+/* ── Pedido masivo a Vento (solo admin real; el servidor lo valida) ──
+   Tabla con las columnas de la hoja: D número de parte · E modelo y año · F descripción · G cantidad · I nombre del cliente (opcional). */
 let _pmLineas = [], _pmSeq = 0, _pmEnviando = false;
 const _pmSucursales = ['CARABELA V1', 'CAUCEL VENTO', 'PISTE VENTO', 'TICUL VENTO', 'TIZIMIN VENTO', 'UMAN VENTO'];
+const PM_COLS = ['np', 'modelo', 'desc', 'cant', 'cliente'];
+const PM_ETQ = { np: 'Número de parte', modelo: 'Modelo y año', desc: 'Descripción', cant: 'Cant.', cliente: 'Nombre del cliente' };
+const _pmNueva = v => Object.assign({ id: ++_pmSeq, np: '', modelo: '', desc: '', cant: '', cliente: '', auto: false, nota: '', pista: '' }, v || {});
+const _pmVacia = l => !PM_COLS.some(c => String(l[c] || '').trim());
 function pmAlAbrir() {
-    const sel = _pmSucursalesSel();
+    const sel = _cpEl('pm-sucursal');
     if (sel && !sel.value) { const propia = _pmSucursales.find(x => _normalizarAlmacenJS(almacenAdminActual) === x); if (propia) sel.value = propia; }   // por omisión, la sucursal de la cuenta
-    if (!_pmLineas.length) { pmAgregarLinea('', '1', '', false); pmAgregarLinea('', '1', '', false); pmAgregarLinea('', '1', '', false); }
+    if (!_pmLineas.length) for (let i = 0; i < 8; i++) _pmLineas.push(_pmNueva());
     pmPintar(); pmResumen();
 }
-function _pmSucursalesSel() { return _cpEl('pm-sucursal'); }
-function pmAgregarLinea(np, cant, desc, enfocar) {
-    _pmLineas.push({ id: ++_pmSeq, np: np || '', cant: cant || '1', desc: desc || '', estado: '' });
-    if (enfocar === false) return;
-    pmPintar(); pmResumen();
-    const el = _cpEl('pm-np-' + _pmSeq); if (el) el.focus();
+function _pmFilaHtml(l, i) {
+    const inp = (col, extra) => `<input id="pm-${col}-${l.id}" class="pm-in ${extra || ''}" data-col="${col}" type="text" aria-label="${PM_ETQ[col]}, fila ${i + 1}" autocomplete="off" value="${_cpEsc(l[col])}"
+        oninput="pmSet(${l.id},'${col}',this)" onkeydown="pmTecla(event,${l.id},'${col}')" onpaste="pmPegar(event,${l.id},'${col}')"`;
+    return `<tr id="pm-fila-${l.id}">
+        <td data-label="${PM_ETQ.np} *">${inp('np', 'pm-np')} maxlength="60" autocapitalize="characters" spellcheck="false" onchange="pmBuscarParte(${l.id})"></td>
+        <td data-label="${PM_ETQ.modelo}">${inp('modelo')} maxlength="60" placeholder="${_cpEsc(l.pista)}"></td>
+        <td data-label="${PM_ETQ.desc}">${inp('desc')} maxlength="120"><div class="pm-nota" id="pm-nota-${l.id}">${_cpEsc(l.nota)}</div></td>
+        <td data-label="${PM_ETQ.cant} *">${inp('cant', 'pm-cant')} inputmode="numeric" maxlength="4"></td>
+        <td data-label="${PM_ETQ.cliente}">${inp('cliente')} maxlength="80"></td>
+        <td class="pm-td-quitar"><button type="button" class="pm-quitar" aria-label="Quitar la fila ${i + 1}" onclick="pmQuitar(${l.id})"><i aria-hidden="true" class="fa-solid fa-trash-can"></i></button></td>
+    </tr>`;
 }
-function pmQuitar(id) { _pmLineas = _pmLineas.filter(l => l.id !== id); if (!_pmLineas.length) pmAgregarLinea('', '1', '', false); pmPintar(); pmResumen(); }
-function pmSet(id, campo, valor) {
+function pmPintar() { _cpEl('pm-lineas').innerHTML = _pmLineas.map(_pmFilaHtml).join(''); }
+function pmAgregarLinea(enfocar) {
+    const l = _pmNueva(); _pmLineas.push(l);
+    _cpEl('pm-lineas').insertAdjacentHTML('beforeend', _pmFilaHtml(l, _pmLineas.length - 1));
+    if (enfocar !== false) { const el = _cpEl('pm-np-' + l.id); if (el) el.focus(); }
+    return l;
+}
+function pmQuitar(id) {
+    _pmLineas = _pmLineas.filter(l => l.id !== id);
+    if (!_pmLineas.length) _pmLineas.push(_pmNueva());
+    pmPintar(); pmResumen();
+}
+function _pmLimpiar(col, v) {
+    v = String(v == null ? '' : v);
+    if (col === 'np') return v.toUpperCase().replace(/\s+/g, '');
+    if (col === 'cant') return v.replace(/\D/g, '').slice(0, 4);
+    return v.replace(/\s+/g, ' ').trimStart();
+}
+function pmSet(id, col, el) {
     const l = _pmLineas.find(x => x.id === id); if (!l) return;
-    l[campo] = campo === 'np' ? String(valor).toUpperCase().replace(/\s+/g, '') : String(valor);
-    if (campo === 'np' && l.estado === 'lista') { l.desc = ''; l.estado = ''; const d = _cpEl('pm-d-' + id); if (d) d.textContent = ''; }   // la descripción traída de la lista ya no corresponde
+    const v = _pmLimpiar(col, el.value);
+    if (col === 'cant' && el.value !== v) el.value = v;
+    l[col] = v; el.removeAttribute('aria-invalid');
+    if (col === 'np' && l.auto) { l.desc = ''; l.auto = false; l.nota = ''; l.pista = ''; const d = _cpEl('pm-desc-' + id), n = _cpEl('pm-nota-' + id), m = _cpEl('pm-modelo-' + id); if (d) d.value = ''; if (n) n.textContent = ''; if (m) m.placeholder = ''; }   // lo traído de la lista ya no corresponde
+    if (col === 'desc') l.auto = false;
+    if (col === 'np' && v && l === _pmLineas[_pmLineas.length - 1]) pmAgregarLinea(false);   // como en una hoja: al escribir en la última fila aparece otra
     pmResumen();
 }
-function pmPintar() {
-    _cpEl('pm-lineas').innerHTML = _pmLineas.map((l, i) => `<div class="pm-linea">
-        <div class="cp-campo"><label for="pm-np-${l.id}">Parte ${i + 1}</label>
-            <input id="pm-np-${l.id}" class="pm-np" type="text" maxlength="60" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Número de parte" value="${_cpEsc(l.np)}"
-                oninput="pmSet(${l.id},'np',this.value)" onchange="pmBuscarParte(${l.id})"></div>
-        <div class="cp-campo"><label for="pm-ct-${l.id}">Cant.</label>
-            <input id="pm-ct-${l.id}" type="text" inputmode="numeric" maxlength="4" autocomplete="off" value="${_cpEsc(l.cant)}" oninput="this.value=this.value.replace(/\\D/g,'');pmSet(${l.id},'cant',this.value)"></div>
-        <button type="button" class="pm-quitar" aria-label="Quitar la parte ${i + 1}" onclick="pmQuitar(${l.id})"><i aria-hidden="true" class="fa-solid fa-trash-can"></i></button>
-        <div class="pm-desc" id="pm-d-${l.id}">${_cpEsc(l.desc)}</div>
-    </div>`).join('');
+/** Enter baja a la misma columna de la fila siguiente (y crea la fila si no hay). */
+function pmTecla(ev, id, col) {
+    if (ev.key !== 'Enter' || ev.isComposing) return;
+    ev.preventDefault();
+    const i = _pmLineas.findIndex(x => x.id === id); if (i < 0) return;
+    const sig = _pmLineas[i + 1] || pmAgregarLinea(false);
+    const el = _cpEl('pm-' + col + '-' + sig.id); if (el) el.focus();
+}
+/** Pegado desde Excel o texto: reparte las celdas por filas y columnas desde donde se pegó. Con un solo valor por línea
+ *  puede venir «NÚMERO_DE_PARTE  CANTIDAD». Las filas nuevas se agregan solas. */
+function pmPegar(ev, id, col) {
+    const txt = (ev.clipboardData || window.clipboardData).getData('text');
+    if (!/[\t\n]/.test(txt.replace(/\n$/, ''))) return;   // un valor suelto: pegado normal
+    ev.preventDefault();
+    let filas = txt.replace(/\r/g, '').split('\n'); while (filas.length && !filas[filas.length - 1].trim()) filas.pop();
+    let matriz = filas.map(f => f.split('\t'));
+    if (col === 'np' && matriz.every(f => f.length === 1)) matriz = filas.map(f => { const t = f.trim().split(/\s+/); return t.length === 2 && /^\d{1,4}$/.test(t[1]) ? [t[0], '', '', t[1]] : [f.trim()]; });
+    const c0 = PM_COLS.indexOf(col), i0 = _pmLineas.findIndex(x => x.id === id); if (i0 < 0) return;
+    let omitidas = 0;
+    matriz.forEach((celdas, r) => {
+        if (r + i0 >= 60 + 8) { omitidas++; return; }
+        while (_pmLineas.length <= i0 + r) _pmLineas.push(_pmNueva());
+        const l = _pmLineas[i0 + r];
+        celdas.forEach((v, c) => { const k = PM_COLS[c0 + c]; if (!k) return; l[k] = _pmLimpiar(k, v).trim(); if (k === 'np' || k === 'desc') { l.auto = false; l.nota = ''; l.pista = ''; } });
+    });
+    if (_pmLineas[_pmLineas.length - 1].np) _pmLineas.push(_pmNueva());
+    pmPintar(); pmResumen();
+    mostrarToastInfo(matriz.length + (matriz.length === 1 ? ' fila pegada.' : ' filas pegadas.') + (omitidas ? ' Se omitieron ' + omitidas + ' de más.' : ''));
 }
 async function pmBuscarParte(id) {
     const l = _pmLineas.find(x => x.id === id); if (!l) return;
-    const np = l.np.trim(), el = _cpEl('pm-d-' + id);
-    if (np.length < 3) { l.desc = ''; l.estado = ''; if (el) el.textContent = ''; return; }
-    if (el) el.textContent = 'Buscando en la lista de VENTO…';
+    const np = l.np.trim(), nota = _cpEl('pm-nota-' + id);
+    if (np.length < 3) return;
+    if (nota) nota.textContent = 'Buscando en la lista de VENTO…';
     try {
         const rs = await _cpApi('consultarParteVento', { numeroParte: np });
-        if (l.np.trim() !== np) return;   // la línea cambió mientras se buscaba
-        if (!rs.success || !rs.encontrado) { l.desc = ''; l.estado = ''; if (el) el.textContent = rs.success ? 'No está en la lista de VENTO (se pedirá igual).' : (rs.message || ''); return; }
-        l.desc = [rs.descripcion, rs.disponibilidad ? 'Disp.: ' + rs.disponibilidad : '', rs.sku ? 'Ya existe como SKU ' + rs.sku : ''].filter(Boolean).join(' · ');
-        l.estado = 'lista'; if (el) el.textContent = l.desc;
-    } catch (e) { if (el) el.textContent = ''; }
+        if (l.np.trim() !== np) return;   // la fila cambió mientras se buscaba
+        if (!rs.success || !rs.encontrado) { l.nota = rs.success ? 'No está en la lista de VENTO (se pedirá igual).' : (rs.message || ''); }
+        else {
+            if (!l.desc.trim() && rs.descripcion) { l.desc = rs.descripcion; l.auto = true; const d = _cpEl('pm-desc-' + id); if (d) d.value = l.desc; }
+            l.nota = [rs.disponibilidad ? 'Disp.: ' + rs.disponibilidad : '', rs.sku ? 'Ya existe como SKU ' + rs.sku : ''].filter(Boolean).join(' · ');
+            l.pista = rs.aplicacion ? String(rs.aplicacion).slice(0, 60) : ''; const m = _cpEl('pm-modelo-' + id); if (m) m.placeholder = l.pista;   // solo sugerencia: no se escribe si no la capturas
+        }
+        if (nota) nota.textContent = l.nota;
+    } catch (e) { if (nota) nota.textContent = ''; }
 }
-/** Pegado desde Excel o texto: «NÚMERO_DE_PARTE  CANTIDAD» por línea; repetidos se suman; las líneas vacías del formulario se reemplazan. */
-function pmImportar() {
-    const txt = _cpEl('pm-pegar').value, est = _cpEl('pm-pegar-estado');
-    const mapa = new Map(), invalidas = [];
-    txt.split(/\r?\n/).map(x => x.trim()).filter(Boolean).forEach((fila, i) => {
-        const t = fila.split(/[\t;,|]+|\s+/).filter(Boolean);
-        const np = String(t[0] || '').toUpperCase();
-        const cant = t.length > 1 && /^\d{1,4}$/.test(t[1]) ? Number(t[1]) : (t.length > 1 ? NaN : 1);
-        if (!np || np.length < 3 || !(cant >= 1 && cant <= 9999)) { invalidas.push(i + 1); return; }
-        mapa.set(np, (mapa.get(np) || 0) + cant);
-    });
-    if (!mapa.size) { est.textContent = txt.trim() ? 'No encontré partes válidas. Usa «número de parte» y «cantidad» en cada línea.' : 'Pega primero el listado.'; return; }
-    _pmLineas = _pmLineas.filter(l => l.np.trim());
-    mapa.forEach((c, np) => {
-        const ya = _pmLineas.find(l => l.np === np);
-        if (ya) ya.cant = String(Math.min(9999, Number(ya.cant || 0) + c)); else _pmLineas.push({ id: ++_pmSeq, np, cant: String(c), desc: '', estado: '' });
-    });
-    _cpEl('pm-pegar').value = '';
-    est.textContent = mapa.size + (mapa.size === 1 ? ' parte agregada' : ' partes agregadas') + (invalidas.length ? ' · se omitieron las líneas ' + invalidas.join(', ') + ' (revísalas)' : '') + '.';
-    pmPintar(); pmResumen();
-}
+/** Revisa la tabla: ignora filas vacías; devuelve las líneas o el primer error con la celda que hay que corregir. */
 function _pmRevisar() {
-    const lineas = [], vistos = new Map();
+    const lineas = [], vistos = new Set();
     for (const l of _pmLineas) {
-        const np = l.np.trim(); if (!np && (!l.cant || l.cant === '1')) continue;   // línea vacía sin tocar: se ignora
-        if (!np) return { error: 'Falta el número de parte en una de las líneas.' };
+        if (_pmVacia(l)) continue;
+        const np = l.np.trim();
+        if (!np) return { error: 'Falta el número de parte en una fila.', id: l.id, col: 'np' };
         const cant = Number(l.cant);
-        if (!Number.isInteger(cant) || cant < 1 || cant > 9999) return { error: 'La cantidad de ' + np + ' debe ser de 1 a 9999.' };
-        if (vistos.has(np)) return { error: 'La parte ' + np + ' está repetida: súmala en una sola línea.' };
-        vistos.set(np, true); lineas.push({ numeroParte: np, cantidad: cant, descripcion: l.estado === 'lista' ? '' : l.desc });
+        if (!l.cant || !Number.isInteger(cant) || cant < 1 || cant > 9999) return { error: 'Falta la cantidad de ' + np + ' (de 1 a 9999).', id: l.id, col: 'cant' };
+        const clave = np + '|' + l.modelo.trim().toUpperCase().replace(/\s+/g, ' ');
+        if (vistos.has(clave)) return { error: 'La parte ' + np + (l.modelo.trim() ? ' (' + l.modelo.trim() + ')' : '') + ' está repetida: súmala en una sola fila.', id: l.id, col: 'np' };
+        vistos.add(clave);
+        lineas.push({ numeroParte: np, cantidad: cant, modelo: l.modelo.trim(), descripcion: l.desc.trim(), cliente: l.cliente.trim() });
     }
     if (!lineas.length) return { error: 'Agrega al menos una parte.' };
     if (lineas.length > 60) return { error: 'Máximo 60 partes por pedido; divídelo en dos.' };
@@ -7169,21 +7218,25 @@ function _pmRevisar() {
 }
 function pmResumen() {
     const r = _pmRevisar(), el = _cpEl('pm-resumen'); if (!el) return;
-    el.textContent = r.error ? '' : r.lineas.length + (r.lineas.length === 1 ? ' parte' : ' partes') + ' · ' + r.piezas + (r.piezas === 1 ? ' pieza' : ' piezas');
+    el.textContent = r.lineas ? r.lineas.length + (r.lineas.length === 1 ? ' parte' : ' partes') + ' · ' + r.piezas + (r.piezas === 1 ? ' pieza' : ' piezas') : '';
 }
 async function pmEnviar() {
     if (_pmEnviando) return;
     const sucursal = _cpEl('pm-sucursal').value;
     if (!sucursal) { mostrarToastInfo('Elige la sucursal que solicita.', 'error'); _cpEl('pm-sucursal').focus(); return; }
     const r = _pmRevisar();
-    if (r.error) { mostrarToastInfo(r.error, 'error'); return; }
+    if (r.error) {
+        mostrarToastInfo(r.error, 'error');
+        const el = r.id ? _cpEl('pm-' + r.col + '-' + r.id) : null; if (el) { el.setAttribute('aria-invalid', 'true'); el.focus(); }
+        return;
+    }
     const ok = await confirmarApp({ titulo: '¿Enviar el pedido a Vento?', mensaje: r.lineas.length + (r.lineas.length === 1 ? ' parte' : ' partes') + ' · ' + r.piezas + ' piezas, a nombre de ' + sucursal + '. Se escribe en la hoja de pedidos de Vento y te avisa por Telegram.', tipo: 'info', icono: 'fa-truck-fast', confirmar: 'Enviar pedido', cancelar: 'Revisar' });
     if (!ok) return;
-    const btn = _cpEl('pm-enviar'); _pmEnviando = true; btn.disabled = true; btn.innerHTML = 'Enviando…';
+    const btn = _cpEl('pm-enviar'); _pmEnviando = true; btn.disabled = true; btn.textContent = 'Enviando…';
     try {
-        const rs = await _cpApi('pedidoMasivoVento', { datos: { sucursal, referencia: _cpEl('pm-ref').value.trim(), lineas: r.lineas } });
+        const rs = await _cpApi('pedidoMasivoVento', { datos: { sucursal, lineas: r.lineas } });
         if (!rs.success) throw new Error(rs.message || 'No se pudo enviar el pedido.');
-        _pmLineas = []; _cpEl('pm-ref').value = ''; pmAlAbrir();
+        _pmLineas = []; pmAlAbrir();
         await avisoApp('Pedido enviado', rs.partes + (rs.partes === 1 ? ' parte' : ' partes') + ' · ' + rs.piezas + ' piezas, a nombre de ' + rs.sucursal + '. Ya está en la hoja de pedidos de Vento.', 'info');
     } catch (e) { mostrarToastInfo(e.message || 'No se pudo enviar el pedido.', 'error'); }
     finally { _pmEnviando = false; btn.disabled = false; btn.innerHTML = '<i aria-hidden="true" class="fa-solid fa-truck-fast"></i> Enviar pedido a Vento'; }
