@@ -7895,8 +7895,20 @@ async function cotPisoBuscarParte(id, soloBloquear) {
         const l = _cpLineas.find(x => x.id === id); if (!l || String(l.numeroParte || '').trim() !== np) return;   // la línea cambió mientras se buscaba
         if (!rs.success) { estado(rs.message || 'No se pudo consultar la lista de VENTO.'); return; }
         if (!rs.encontrado) { l.precioVento = 0; _cpAplicarBloqueoPrecio(l); estado('No está en la lista de VENTO: captura el precio aproximado a mano.'); return; }
+        if (!soloBloquear && (rs.tipo === 'PISO' || rs.tipo === 'SKU') && rs.sku) {   // ya tiene SKU: deja de ser bajo pedido
+        const p = inventarioMaestro.find(x => String(x.SKU) === String(rs.sku));
+        const idx = _cpLineas.findIndex(x => x.id === id);
+        if (p && idx >= 0) {
+            const ya = _cpLineas.find(x => x.tipo === 'catalogo' && String(x.sku) === String(p.SKU));
+            if (ya) { ya.cantidad = Math.min(ya.cantidad + (Number(l.cantidad) || 1), 9999); _cpLineas.splice(idx, 1); }
+            else { const st = _cpStock(p); _cpLineas.splice(idx, 1, { id: ++_cpSeq, tipo: 'catalogo', sku: String(p.SKU), descripcion: p.Producto || '', disponibilidad: st > 0 ? 'En existencia' : 'Bajo pedido', stock: st, cantidad: Number(l.cantidad) || 1, precioAprox: '' }); }
+            _cpError(''); _cpPintarLineas();
+            return;
+        }
+    }
         if (!soloBloquear && !String(l.descripcion || '').trim() && rs.descripcion) { l.descripcion = rs.descripcion; const d = _cpEl('cp-ds-' + id); if (d) d.value = rs.descripcion; }
         let partes = [];
+        if ((rs.tipo === 'PISO' || rs.tipo === 'SKU') && rs.sku) partes.push('Ya tiene SKU ' + rs.sku + ': búscalo por SKU en el catálogo');
         if (rs.precio > 0) {
             l.precioVento = Number(rs.precio);
             if (!soloBloquear && (!l.precioManual || !esAdminReal)) { l.precioAprox = rs.precio.toFixed(2); const pa = _cpEl('cp-pa-' + id); if (pa) pa.value = l.precioAprox; }   // quien no es admin siempre queda con el precio de lista
