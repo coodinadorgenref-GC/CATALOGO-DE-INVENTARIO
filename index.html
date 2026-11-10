@@ -1856,6 +1856,7 @@ let productosFiltradosGlobal = [];
 let usuarioActual            = "";
 let tokenActual               = "";
 let esAdmin                  = false;
+let esGerente                = false;   // rol Gerente (permisos de vendedor + puede renovar la vigencia de cotizaciones vencidas)
 let esAdminReal              = false;   // administración de verdad (el login marca esAdmin también a vendedores y Gerente): solo ella cambia los precios sugeridos de VENTO
 let almacenAdminActual        = ""; // Columna H del admin logueado (vacío si es usuario normal)
 let accesoNumeroParteBajaj = false;
@@ -2383,7 +2384,7 @@ function verificarSesionGuardada() {
             // mismo: NO borramos nada a ciegas. Entra con lo que ya tiene
             // guardado; en cuanto vuelva la señal, el heartbeat normal
             // confirma si la sesión sigue siendo válida en el servidor.
-            usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false; esAdminReal = !!s.adminReal;
+            usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false; esAdminReal = !!s.adminReal; esGerente = /gerente/i.test(String(s.rol || ''));
             seccionesEditablesActual = Array.isArray(s.seccionesEditables) ? s.seccionesEditables : null;
             almacenAdminActual = s.almacenAdmin || "";
             accesoNumeroParteBajaj = s.accesoNumeroParteBajaj || false;
@@ -2402,7 +2403,7 @@ function verificarSesionGuardada() {
         }
     }
     accesoOfflinePermitido = s.accesoOffline || false;
-    usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false; esAdminReal = !!s.adminReal;
+    usuarioActual = s.correo; tokenActual = s.token; esAdmin = s.esAdmin || false; esAdminReal = !!s.adminReal; esGerente = /gerente/i.test(String(s.rol || ''));
     seccionesEditablesActual = Array.isArray(s.seccionesEditables) ? s.seccionesEditables : null;
     almacenAdminActual = s.almacenAdmin || "";
     accesoNumeroParteBajaj = s.accesoNumeroParteBajaj || false;
@@ -2621,7 +2622,7 @@ async function manejarInicioDeSesion() {
             // sin importar si el usuario tecleó su correo o su teléfono — así el carrito
             // y las cotizaciones siempre quedan ligadas a la misma llave única por persona.
             usuarioActual = rs.correo || valorIngresado;
-            tokenActual = rs.token; esAdmin = !!(rs.esAdmin || rs.esGerente); esAdminReal = !!rs.esAdmin && !rs.esVendedor; // gerente: permisos de vendedor (el servidor no lo marca esAdmin para que Maps lo rechace)
+            tokenActual = rs.token; esAdmin = !!(rs.esAdmin || rs.esGerente); esAdminReal = !!rs.esAdmin && !rs.esVendedor; esGerente = !!rs.esGerente || /gerente/i.test(String(rs.rol || '')); // gerente: permisos de vendedor (el servidor no lo marca esAdmin para que Maps lo rechace)
             almacenAdminActual = rs.almacenAdmin || "";
             seccionesEditablesActual = Array.isArray(rs.seccionesEditables) ? rs.seccionesEditables : null;
             accesoNumeroParteBajaj = rs.accesoNumeroParteBajaj || false;
@@ -6823,6 +6824,8 @@ function _cotVigIso(v) { const m = /^(\d{4}-\d{2}-\d{2})/.exec(String(v == null 
 function _cotFechaLarga(iso) { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '')); return m ? Number(m[3]) + ' de ' + _COT_MESES[Number(m[2]) - 1] + ' de ' + m[1] : ''; }
 /** Vencida: pasó su vigencia y todavía sigue abierta (Borrador o Enviada). */
 function _cotVencida(c) { const v = _cotVigIso(c && c.vigencia); return !!v && v < _cotIso(new Date()) && (c.estado === 'Borrador' || c.estado === 'Enviada'); }
+/** Solo administración real y Gerente pueden renovar (mover) la vigencia de una cotización vencida. El servidor lo vuelve a validar. */
+function _cotPuedeRenovar() { return esAdminReal || esGerente; }
 const _cotSeccionDeAgencia = a => (String(a || '').toUpperCase() === 'SUZUKI' || String(a || '').toUpperCase() === 'BAJAJ') ? String(a).toUpperCase() : 'VENTO';
 /** '' si se puede editar; si no, el motivo. El servidor lo vuelve a validar. */
 function _cotMotivoNoEditable(c) {
@@ -7268,7 +7271,9 @@ function cfgPintarCotizaciones() {
     _cpEl('cfg-cot-estado').textContent = _cfgTotal ? _cfgTotal + ' cotización(es) · página ' + _cfgPag + ' de ' + pags : 'Sin cotizaciones con esos filtros.';
     _cpEl('cfg-cot-pag').innerHTML = pags > 1 ? `<button type="button" ${_cfgPag <= 1 ? 'disabled' : ''} onclick="cfgCargarCotizaciones(${_cfgPag - 1})">Anterior</button><button type="button" ${_cfgPag >= pags ? 'disabled' : ''} onclick="cfgCargarCotizaciones(${_cfgPag + 1})">Siguiente</button>` : '';
     // Como "Mis ventas" en Maps: una fila por cotización; al tocarla se abre la vista previa de la hoja (sin lista de líneas).
-    _cpEl('cfg-cot-lista').innerHTML = lista.map(c => {
+    const _nf = c => parseInt(String(c.folio || '').replace(/\D/g, ''), 10) || 0;
+    const orden = lista.slice().sort((a, b) => (_cotVencida(b) - _cotVencida(a)) || (_nf(b) - _nf(a)));   // vencidas primero; luego folio mayor primero
+    _cpEl('cfg-cot-lista').innerHTML = orden.map(c => {
         const f = escaparHTML(c.folio), vig = _cotVigIso(c.vigencia), venc = _cotVencida(c);
         const abierta = c.estado === 'Borrador' || c.estado === 'Enviada';
         const vigTxt = vig ? (venc ? 'Venció el ' : 'Vigente hasta el ') + _cotFechaLarga(vig) : 'Sin vigencia';
@@ -7679,7 +7684,7 @@ let _cpEdicion = null;   // { folio, base } mientras se edita una cotización ya
 function _cpReiniciar() {
     _cpLineas = []; _cpGuardada = false; _cpEdicion = null;
     ['cp-cliente', 'cp-telefono', 'cp-moto', 'cp-anio', 'cp-idcliente', 'cp-buscador'].forEach(id => { _cpEl(id).value = ''; });
-    _cpEl('cp-vigencia').value = _cotVigenciaPorOmision();
+    _cpEl('cp-vigencia').value = _cotVigenciaPorOmision(); _cpEl('cp-vigencia').disabled = false;
     _cpEl('cp-titulo').textContent = 'Nueva cotización'; _cpEl('cp-guardar').textContent = 'Guardar cotización'; _cpEl('cp-listo-titulo').textContent = 'Cotización guardada';
     _cpEl('cp-id-estado').textContent = ''; _cpIdResuelto = ''; _cpEl('cp-id-resultados').hidden = true;
     _cpEl('cp-resultados').hidden = true;
@@ -7720,6 +7725,9 @@ async function cotPisoEditar(c) {
     _cpEl('cp-idcliente').value = c.idCliente || ''; _cpIdResuelto = c.idCliente || '';
     _cpEl('cp-moto').value = c.moto || ''; _cpEl('cp-anio').value = c.anio || '';
     _cpEl('cp-vigencia').value = _cotVigIso(c.vigencia) || _cotVigenciaPorOmision();
+    _cpEdicion.vencida = _cotVencida(c);   // la vigencia vencida se conserva a la vista: hay que renovarla para poder guardar
+    _cpEl('cp-vigencia').disabled = _cpEdicion.vencida && !_cotPuedeRenovar();
+    if (_cpEdicion.vencida) _cpAviso(_cotPuedeRenovar() ? 'Esta cotización está vencida. Elige una nueva fecha de vigencia para poder guardarla.' : 'Esta cotización está vencida. Solo administración o un gerente puede renovar la vigencia.');
     _cpLineas = (c.items || []).map(it => {
         const cant = Math.max(1, Math.min(9999, Math.floor(Number(it.cantidad)) || 1));
         if (it.tipo === 'pedido') return { id: ++_cpSeq, tipo: 'pedido', sku: '', descripcion: it.descripcion || '', disponibilidad: 'Bajo pedido', stock: 0, cantidad: cant, numeroParte: it.numeroParte || '', precioAprox: Number(it.precio) > 0 ? String(it.precio) : '' };
@@ -8062,7 +8070,8 @@ function _cpValidarCampos() {
     if (!/^\d{4}$/.test(anio) || Number(anio) < 1950 || Number(anio) > new Date().getFullYear() + 1) e.push(['cp-anio', 'El año debe ser de 4 números (por ejemplo 2022).']);
     const vig = _cpEl('cp-vigencia').value;
     if (!vig) e.push(['cp-vigencia', 'Elige hasta qué fecha es válida.']);
-    else if (vig < _cotIso(new Date())) e.push(['cp-vigencia', 'La vigencia no puede ser anterior a hoy.']);
+    else if (_cpEdicion && _cpEdicion.vencida && !_cotPuedeRenovar()) e.push(['cp-vigencia', 'Cotización vencida: solo administración o un gerente puede renovar la vigencia.']);
+    else if (vig < _cotIso(new Date())) e.push(['cp-vigencia', _cpEdicion && _cpEdicion.vencida ? 'La cotización está vencida: elige una vigencia de hoy en adelante.' : 'La vigencia no puede ser anterior a hoy.']);
     if (!_cpLineas.length) e.push(['cp-buscador', 'Agrega al menos un producto.']);
     else if (_cpLineas.find(l => l.tipo === 'pedido' && !String(l.numeroParte).trim())) e.push(['cp-buscador', 'Captura el número de parte de cada producto bajo pedido.']);
     return e;
