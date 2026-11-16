@@ -7260,7 +7260,7 @@ async function cfgCargarCotizaciones(pag) {
     const est = _cpEl('cfg-cot-estado'); est.textContent = 'Cargando…';
     const v = id => (_cpEl(id).value || '').trim();
     try {
-        const rs = await _cpApi('consultarCotizaciones', { filtros: { texto: v('cfg-buscar'), estado: v('cfg-f-estado'), agencia: v('cfg-f-agencia'), desde: v('cfg-f-desde'), hasta: v('cfg-f-hasta'), pagina: _cfgPag } });
+        const rs = await _cpApi('consultarCotizaciones', { filtros: { texto: v('cfg-buscar'), estado: v('cfg-f-estado'), agencia: v('cfg-f-agencia'), desde: v('cfg-f-desde'), hasta: v('cfg-f-hasta'), pagina: _cfgPag, app: 'catalogo' } });   // solo las capturadas en el catálogo: las de Maps no se mezclan aquí
         if (!rs.success) { est.textContent = rs.message || 'No se pudieron cargar.'; return; }
         _cfgCots = rs.cotizaciones || []; _cfgTotal = rs.total || 0; _cfgPorPag = rs.porPagina || 30;
         cfgPintarCotizaciones();
