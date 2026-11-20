@@ -2519,13 +2519,31 @@ function avisoSesionVencida(titulo, mensaje) {
     }).then(() => location.reload());
 }
 
+/** ¿La respuesta del servidor dice DE VERDAD que la sesión ya no existe? Un límite de solicitudes del Worker («Demasiadas
+ *  solicitudes»), un error 429/5xx, un fallo de Google o una respuesta que no es JSON NO son sesión inválida: sacar a la
+ *  persona por eso la desconectaba aunque su sesión siguiera viva en el servidor. */
+function respuestaDeSesionInvalida(rs) {
+    if (!rs || rs.success) return false;
+    if (rs.sesionInvalida === true) return true;
+    const m = String(rs.message || "");
+    if (/demasiad|solicitud|intenta de nuevo|ocupad|tiempo de espera|timeout|cuota|quota|servicio/i.test(m)) return false;
+    return /sesi[oó]n/i.test(m) && /(ya no est[aá] activa|inv[aá]lida|expirada|vuelve a iniciar)/i.test(m);
+}
+let _ultimoHeartbeatMs = 0;
 async function heartbeatSesion() {
     if (!usuarioActual || !tokenActual) return;
+    // Al cambiar de ventana se disparan «focus» y «visibilitychange» a la vez (y también en Maps y Reporteador, desde la misma red):
+    // sin este tope se acumulaban llamadas y el Worker las rechazaba por exceso de solicitudes.
+    const ahora = Date.now();
+    if (ahora - _ultimoHeartbeatMs < 45000) return;
+    _ultimoHeartbeatMs = ahora;
     try {
         const r  = await fetch(API_URL, { method:"POST", mode:"cors", headers:{"Content-Type":"text/plain"},
             body: JSON.stringify({ action:"validarSesion", correo:usuarioActual, token:tokenActual }) });
-        const rs = await r.json();
-        if (!rs.success) manejarSesionInvalidaDelServidor(rs.message);
+        if (r.status === 429 || r.status >= 500) return;   // el servidor está limitando o falló: se reintenta en el siguiente ciclo
+        let rs = null;
+        try { rs = await r.json(); } catch { return; }
+        if (respuestaDeSesionInvalida(rs)) manejarSesionInvalidaDelServidor(rs.message);
     } catch { /* sin conexión: se reintenta en el siguiente ciclo */ }
 }
 
@@ -6951,7 +6969,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-10-29 · v89';
+const APP_VERSION = '2026-11-19 · v90 · la sesión ya no se cierra por límite de solicitudes';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Vendido', 'Traspaso', 'Rechazado', 'Pedido'];   // Enviada = en seguimiento: el cliente marca el resultado
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Vendido: 'fa-circle-check', Traspaso: 'fa-truck-fast', Rechazado: 'fa-circle-xmark', Pedido: 'fa-box-open' };
 let _cfgCots = [];
