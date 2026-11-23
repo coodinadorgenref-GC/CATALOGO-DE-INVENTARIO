@@ -712,6 +712,7 @@
         /* Configuración: mismo tamaño en todas las pestañas; el encabezado y las pestañas quedan fijos y solo el cuerpo se desplaza */
         .cp-card.cfg-card { box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; height: 88dvh; max-height: 88dvh; }
         @media (min-width: 768px) { .cp-card.cfg-card { height: min(680px, 88dvh); } }
+        @media (min-width: 768px) { .cp-card.cfg-card.cfg-ancho { max-width: min(1120px, 96vw); } }   /* Pedido Vento necesita ancho para la tabla */
         .cfg-card > .cp-cab, .cfg-card > .cfg-tabs { flex: 0 0 auto; }
         .cfg-cuerpo { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
         @keyframes cp-sube { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -725,15 +726,26 @@
         .cp-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
         @media (min-width: 560px) { .cp-grid { grid-template-columns: 1fr 1fr; } }
         /* Pedido masivo a Vento (solo admin real): tabla con las columnas de la hoja de pedidos + sucursal por fila */
-        .pm-tabla-caja { container: pmcaja / inline-size; margin-top: 10px; border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; background: var(--surface); }
-        .pm-tabla { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; min-width: 680px; }
+        .pm-tabla-caja { container: pmcaja / inline-size; margin-top: 8px; border: 1px solid var(--border); border-radius: 12px; overflow-x: auto; background: var(--surface); }
+        .pm-tabla { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; min-width: 780px; }
         .pm-tabla col.c-n { width: 30px; } .pm-tabla col.c-suc { width: 21%; } .pm-tabla col.c-np { width: 13%; } .pm-tabla col.c-mod { width: 13%; } .pm-tabla col.c-desc { width: 16%; } .pm-tabla col.c-cant { width: 8%; } .pm-tabla col.c-cli { width: auto; } .pm-tabla col.c-del { width: 46px; }
         .pm-tabla th { background: var(--surface-2); font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 10px 4px; white-space: nowrap; border-bottom: 1px solid var(--border); }
         .pm-tabla td { padding: 6px 3px; border-bottom: 1px solid var(--divider, var(--border)); vertical-align: top; }
         .pm-tabla tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--surface-2) 38%, transparent); }
         .pm-tabla tbody tr:hover td { background: color-mix(in srgb, var(--surface-2) 75%, transparent); }
         .pm-tabla tr:last-child td { border-bottom: 0; }
+        /* # y Sucursal quedan fijas a la izquierda: al desplazar de lado siempre sabes a qué sucursal pertenece cada fila */
+        .pm-tabla th:nth-child(-n+2), .pm-tabla td:nth-child(-n+2) { position: sticky; z-index: 1; }
+        .pm-tabla th:nth-child(1), .pm-tabla td:nth-child(1) { left: 0; }
+        .pm-tabla th:nth-child(2), .pm-tabla td:nth-child(2) { left: 30px; box-shadow: 1px 0 0 var(--border); }
+        .pm-tabla td:nth-child(-n+2) { background: var(--surface); }
+        .pm-tabla tbody tr:nth-child(even) td:nth-child(-n+2) { background: color-mix(in srgb, var(--surface-2) 38%, var(--surface)); }
+        .pm-tabla tbody tr:hover td:nth-child(-n+2) { background: color-mix(in srgb, var(--surface-2) 75%, var(--surface)); }
         .pm-th-n, .pm-td-n { text-align: center; }
+        .pm-borrador { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 10px 0 0; font-size: 12px; color: var(--text-3); }
+        .pm-borrador-btn { min-height: 44px; padding: 0 12px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-2); font-size: 12px; font-weight: 700; cursor: pointer; }
+        .pm-borrador-btn:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 50%, transparent); }
+        .pm-borrador-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
         .pm-td-n { padding-top: 16px; font-size: 12px; font-weight: 700; color: var(--text-3); font-variant-numeric: tabular-nums; }
         .pm-th-cant { text-align: right !important; }
         .pm-th-sub { font-weight: 600; letter-spacing: 0; text-transform: none; opacity: .85; }
@@ -760,9 +772,10 @@
         .pm-chip-total { border-color: var(--brand); color: var(--brand-text, var(--brand)); }
         .pm-enviar { width: 100%; min-height: 48px; border: 0; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; }
         @media (prefers-reduced-motion: reduce) { .pm-in, .pm-quitar { transition: none; } }
-        @container pmcaja (max-width: 699px) {   /* si la tabla no cabe, cada fila es una tarjeta con sus etiquetas: nada de scroll horizontal */
+        @container pmcaja (max-width: 519px) {   /* si la tabla no cabe, cada fila es una tarjeta con sus etiquetas: nada de scroll horizontal */
             .pm-tabla { min-width: 0; }
             .pm-tabla thead, .pm-tabla colgroup { display: none; }
+            .pm-tabla td:nth-child(-n+2) { position: static; box-shadow: none; }
             .pm-tabla, .pm-tabla tbody { display: block; width: 100%; }
             .pm-tabla tbody tr, .pm-tabla tbody tr:nth-child(even), .pm-tabla tbody tr:hover { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 8px; margin: 10px; padding: 8px 6px 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
             .pm-tabla tbody tr:nth-child(even) td, .pm-tabla tbody tr:hover td, .pm-tabla td { background: transparent; border: 0; padding: 3px 4px; display: block; width: auto; }
@@ -780,7 +793,7 @@
             .pm-suc, .pm-np { min-width: 0; }
             select.pm-in { font-size: 16px; }
         }
-        @container pmcaja (max-width: 439px) {
+        @container pmcaja (max-width: 389px) {
             .pm-tabla tbody tr, .pm-tabla tbody tr:nth-child(even), .pm-tabla tbody tr:hover { grid-template-columns: minmax(0, 1fr); }
             .pm-tabla td:nth-child(n) { grid-column: 1 / -1; }
         }
@@ -1670,6 +1683,8 @@
     </div>
     <div id="cfg-pedvento" hidden>
       <p class="cfg-muted" style="margin:0 0 8px">Pide piezas a Vento en cantidad para repartirlas después a otras agencias. Elige la sucursal en cada fila: puedes pedir para varias agencias en el mismo envío. Cada fila se escribe en la hoja de pedidos de Vento (como «Piso de venta (stock)») y te llega el aviso por Telegram. Captura directo en la tabla o pega desde Excel en cualquier celda.</p>
+      <div class="pm-borrador" id="pm-borrador"><span id="pm-borrador-txt"><i aria-hidden="true" class="fa-solid fa-floppy-disk"></i> Se guarda solo como borrador en este dispositivo.</span>
+        <button type="button" class="pm-borrador-btn" id="pm-borrador-btn" onclick="pmDescartar()" hidden>Descartar borrador</button></div>
       <div class="pm-tabla-caja"><table class="pm-tabla" aria-label="Partes del pedido masivo a Vento">
         <colgroup><col class="c-n"><col class="c-suc"><col class="c-np"><col class="c-mod"><col class="c-desc"><col class="c-cant"><col class="c-cli"><col class="c-del"></colgroup>
         <thead><tr><th scope="col" class="pm-th-n">#</th><th scope="col">Sucursal *</th><th scope="col">N.º de parte *</th><th scope="col">Modelo y año</th><th scope="col">Descripción</th><th scope="col" class="pm-th-cant">Cant. *</th><th scope="col">Cliente <span class="pm-th-sub">(vacío = stock)</span></th><th scope="col"><span class="sr-only">Quitar fila</span></th></tr></thead>
@@ -7000,7 +7015,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-11-23 · v91 · Pedido Vento: tabla sin cortes y cliente opcional (vacío = stock)';
+const APP_VERSION = '2026-11-23 · v92 · Pedido Vento: tabla con columnas fijas y borrador automático';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Vendido', 'Traspaso', 'Rechazado', 'Pedido'];   // Enviada = en seguimiento: el cliente marca el resultado
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Vendido: 'fa-circle-check', Traspaso: 'fa-truck-fast', Rechazado: 'fa-circle-xmark', Pedido: 'fa-box-open' };
 let _cfgCots = [];
@@ -7114,6 +7129,7 @@ function cfgCerrar() { _cpEl('cfg-overlay').classList.remove('visible'); biMarca
 function cfgTab(t) {
     biMarcar(t);
     const cot = t === 'cot' && esAdmin;
+    const _cfgCard = document.querySelector('.cfg-card'); if (_cfgCard) _cfgCard.classList.toggle('cfg-ancho', t === 'pedvento' && !!esAdminReal);
     _cpEl('cfg-pedvento').hidden = !(t === 'pedvento' && esAdminReal); _cpEl('cfg-tab-pedvento').setAttribute('aria-selected', String(t === 'pedvento' && esAdminReal)); if (t === 'pedvento' && esAdminReal) pmAlAbrir();
     _cpEl('cfg-compat').hidden = t !== 'compat'; _cpEl('cfg-tab-compat').setAttribute('aria-selected', String(t === 'compat')); if (t === 'compat') cfgCargarCompat();
     _cpEl('cfg-aspecto').hidden = t !== 'aspecto'; _cpEl('cfg-cuenta').hidden = t !== 'cuenta'; _cpEl('cfg-cotizaciones').hidden = !cot;
@@ -7157,15 +7173,60 @@ const _pmSucursales = ['CARABELA V1', 'CAUCEL VENTO', 'PISTE VENTO', 'TICUL VENT
 const PM_COLS = ['sucursal', 'np', 'modelo', 'desc', 'cant', 'cliente'];
 const PM_DATOS = ['np', 'modelo', 'desc', 'cant', 'cliente'];   // la sucursal sola no cuenta como fila con contenido
 const PM_ETQ = { sucursal: 'Sucursal', np: 'Número de parte', modelo: 'Modelo y año', desc: 'Descripción', cant: 'Cant.', cliente: 'Cliente' };
-let _pmSucDefault = '';
+let _pmSucDefault = '', _pmTimerGuardado = null;
+/** Borrador: la tabla se guarda sola en este dispositivo (por cuenta) y se recupera al volver a abrir; se limpia al enviar o al descartarlo. */
+const _pmClaveBorrador = () => 'pmBorrador:' + String(typeof usuarioActual === 'undefined' ? '' : usuarioActual).toLowerCase();
+function _pmGuardarBorrador() {
+    clearTimeout(_pmTimerGuardado); _pmTimerGuardado = null;
+    const filas = _pmLineas.filter(l => !_pmVacia(l)).map(l => ({ sucursal: l.sucursal, np: l.np, modelo: l.modelo, desc: l.desc, cant: l.cant, cliente: l.cliente }));
+    let t = 0;
+    try {
+        if (filas.length) { t = Date.now(); localStorage.setItem(_pmClaveBorrador(), JSON.stringify({ t, filas, suc: _pmSucDefault })); }
+        else localStorage.removeItem(_pmClaveBorrador());
+    } catch (e) { /* sin almacenamiento disponible: el borrador simplemente no se guarda */ }
+    pmEstadoBorrador(filas.length, t);
+}
+function _pmProgramarGuardado() { clearTimeout(_pmTimerGuardado); _pmTimerGuardado = setTimeout(_pmGuardarBorrador, 400); }
+function _pmLeerBorrador() {
+    try {
+        const d = JSON.parse(localStorage.getItem(_pmClaveBorrador()) || 'null');
+        if (!d || !Array.isArray(d.filas)) return null;
+        const filas = d.filas.slice(0, 68).map(f => ({
+            sucursal: _pmSucursales.includes(f && f.sucursal) ? f.sucursal : '',
+            np: _pmLimpiar('np', f && f.np).slice(0, 60), modelo: _pmLimpiar('modelo', f && f.modelo).slice(0, 60), desc: _pmLimpiar('desc', f && f.desc).slice(0, 120),
+            cant: _pmLimpiar('cant', f && f.cant), cliente: _pmLimpiar('cliente', f && f.cliente).slice(0, 80) }));
+        return filas.length ? { t: Number(d.t) || 0, filas, suc: _pmSucursales.includes(d.suc) ? d.suc : '' } : null;
+    } catch (e) { return null; }
+}
+function pmEstadoBorrador(n, t) {
+    const el = _cpEl('pm-borrador-txt'), b = _cpEl('pm-borrador-btn'); if (!el) return;
+    const hora = t ? new Date(t).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    el.innerHTML = '<i aria-hidden="true" class="fa-solid fa-floppy-disk"></i> ' + (n ? 'Borrador guardado en este dispositivo · ' + _pmPlural(n, 'fila', 'filas') + ' · ' + _cpEsc(hora) : 'Se guarda solo como borrador en este dispositivo.');
+    if (b) b.hidden = !n;
+}
+async function pmDescartar() {
+    const ok = await confirmarApp({ titulo: '¿Descartar el borrador?', mensaje: 'Se borran todas las filas de la tabla en este dispositivo.', tipo: 'peligro', icono: 'fa-trash-can', confirmar: 'Descartar', cancelar: 'Cancelar' });
+    if (!ok) return;
+    _pmLineas = []; _pmGuardarBorrador(); pmAlAbrir();
+}
+window.addEventListener('pagehide', () => { if (_pmTimerGuardado) _pmGuardarBorrador(); });
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && _pmTimerGuardado) _pmGuardarBorrador(); });
 const _pmNueva = v => Object.assign({ id: ++_pmSeq, sucursal: _pmSucDefault, np: '', modelo: '', desc: '', cant: '', cliente: '', auto: false, nota: '', pista: '' }, v || {});
 const _pmVacia = l => !PM_DATOS.some(c => String(l[c] || '').trim());
 /** Reconoce una sucursal escrita o pegada («piste vento», «Tizimín Vento»…) contra la lista; '' si no coincide. */
 function _pmSucDeTexto(t) { const n = _normalizarAlmacenJS(t).replace(/\s+/g, ' '); return _pmSucursales.find(x => x === n) || ''; }
 function pmAlAbrir() {
     const propia = _pmSucursales.find(x => _normalizarAlmacenJS(almacenAdminActual) === x) || '';
-    if (!_pmLineas.length) { _pmSucDefault = propia; for (let i = 0; i < 8; i++) _pmLineas.push(_pmNueva()); }   // por omisión, la sucursal de la cuenta
+    if (!_pmLineas.length) {
+        _pmSucDefault = propia;
+        const b = _pmLeerBorrador();
+        if (b) { if (b.suc) _pmSucDefault = b.suc; b.filas.forEach(f => _pmLineas.push(_pmNueva(f))); }   // borrador guardado: se recupera tal cual
+        while (_pmLineas.length < 8) _pmLineas.push(_pmNueva({ sucursal: _pmUltimaSuc() }));   // por omisión, la sucursal de la cuenta
+        if (_pmLineas[_pmLineas.length - 1].np) _pmLineas.push(_pmNueva({ sucursal: _pmUltimaSuc() }));
+    }
     pmPintar(); pmResumen();
+    const nb = _pmLineas.filter(l => !_pmVacia(l)).length; let tb = 0; try { const d = JSON.parse(localStorage.getItem(_pmClaveBorrador()) || 'null'); tb = d && d.t || 0; } catch (e) {}
+    pmEstadoBorrador(nb, nb ? tb : 0);
 }
 function _pmFilaHtml(l, i) {
     const inp = (col, extra) => `<input id="pm-${col}-${l.id}" class="pm-in ${extra || ''}" data-col="${col}" type="text" aria-label="${PM_ETQ[col]}, fila ${i + 1}" autocomplete="off" value="${_cpEsc(l[col])}"
@@ -7194,7 +7255,7 @@ function _pmUltimaSuc() { for (let i = _pmLineas.length - 1; i >= 0; i--) if (_p
 function pmQuitar(id) {
     _pmLineas = _pmLineas.filter(l => l.id !== id);
     if (!_pmLineas.length) _pmLineas.push(_pmNueva());
-    pmPintar(); pmResumen();
+    pmPintar(); pmResumen(); _pmProgramarGuardado();
 }
 function _pmLimpiar(col, v) {
     v = String(v == null ? '' : v);
@@ -7204,14 +7265,14 @@ function _pmLimpiar(col, v) {
 }
 function pmSet(id, col, el) {
     const l = _pmLineas.find(x => x.id === id); if (!l) return;
-    if (col === 'sucursal') { l.sucursal = el.value; el.classList.toggle('pm-vacio', !el.value); el.removeAttribute('aria-invalid'); pmResumen(); return; }
+    if (col === 'sucursal') { l.sucursal = el.value; el.classList.toggle('pm-vacio', !el.value); el.removeAttribute('aria-invalid'); pmResumen(); _pmProgramarGuardado(); return; }
     const v = _pmLimpiar(col, el.value);
     if (col === 'cant' && el.value !== v) el.value = v;
     l[col] = v; el.removeAttribute('aria-invalid');
     if (col === 'np' && l.auto) { l.desc = ''; l.auto = false; l.nota = ''; l.pista = ''; const d = _cpEl('pm-desc-' + id), n = _cpEl('pm-nota-' + id), m = _cpEl('pm-modelo-' + id); if (d) d.value = ''; if (n) n.textContent = ''; if (m) m.placeholder = ''; }   // lo traído de la lista ya no corresponde
     if (col === 'desc') l.auto = false;
     if (col === 'np' && v && l === _pmLineas[_pmLineas.length - 1]) pmAgregarLinea(false);   // como en una hoja: al escribir en la última fila aparece otra
-    pmResumen();
+    pmResumen(); _pmProgramarGuardado();
 }
 /** Enter baja a la misma columna de la fila siguiente (y crea la fila si no hay). */
 function pmTecla(ev, id, col) {
@@ -7244,7 +7305,7 @@ function pmPegar(ev, id, col) {
         });
     });
     if (_pmLineas[_pmLineas.length - 1].np) _pmLineas.push(_pmNueva({ sucursal: _pmUltimaSuc() }));
-    pmPintar(); pmResumen();
+    pmPintar(); pmResumen(); _pmGuardarBorrador();
     mostrarToastInfo(matriz.length + (matriz.length === 1 ? ' fila pegada.' : ' filas pegadas.') + (omitidas ? ' Se omitieron ' + omitidas + ' de más.' : ''));
 }
 async function pmBuscarParte(id) {
@@ -7262,6 +7323,7 @@ async function pmBuscarParte(id) {
             l.pista = rs.aplicacion ? String(rs.aplicacion).slice(0, 60) : ''; const m = _cpEl('pm-modelo-' + id); if (m) m.placeholder = l.pista;   // solo sugerencia: no se escribe si no la capturas
         }
         if (nota) nota.textContent = l.nota;
+        _pmProgramarGuardado();
     } catch (e) { if (nota) nota.textContent = ''; }
 }
 /** Revisa la tabla: ignora filas vacías; devuelve las líneas agrupadas por sucursal o el primer error con la celda que hay que corregir. */
@@ -7317,6 +7379,7 @@ async function pmEnviar() {
         const okSuc = new Set(enviadas.map(x => x.sucursal));
         _pmLineas = _pmLineas.filter(l => _pmVacia(l) || !okSuc.has(l.sucursal));   // quita solo lo ya enviado
         if (!_pmLineas.length || fallidas.length === 0) _pmLineas = [];
+        _pmGuardarBorrador();   // lo enviado sale del borrador; lo que falló se queda para reintentar
         pmAlAbrir();
         if (enviadas.length) await avisoApp(fallidas.length ? 'Pedido enviado en parte' : 'Pedido enviado', enviadas.map(x => x.sucursal + ': ' + _pmPlural(x.partes, 'parte', 'partes') + ', ' + _pmPlural(x.piezas, 'pieza', 'piezas')).join('; ') + '. Ya está en la hoja de pedidos de Vento.' + (fallidas.length ? ' Falló: ' + fallidas.map(x => x.sucursal).join(', ') + '; sus filas siguen en la tabla.' : ''), fallidas.length ? 'aviso' : 'info');
         if (fallidas.length) mostrarToastInfo(fallidas.map(x => x.sucursal + ': ' + x.error).join(' · '), 'error');
