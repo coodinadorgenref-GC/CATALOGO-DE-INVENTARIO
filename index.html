@@ -724,33 +724,55 @@
         .cp-error.visible { display: block; }
         .cp-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
         @media (min-width: 560px) { .cp-grid { grid-template-columns: 1fr 1fr; } }
-        /* Pedido masivo a Vento (solo admin real): tabla con las columnas de la hoja de pedidos */
-        .pm-tabla-caja { margin-top: 10px; border: 1px solid var(--border); border-radius: 8px; overflow-x: auto; }
-        .pm-tabla { width: 100%; border-collapse: collapse; min-width: 680px; }
-        .pm-tabla th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); font-size: 12px; font-weight: 700; color: var(--text-3); text-align: left; padding: 8px; white-space: nowrap; border-bottom: 1px solid var(--border); }
-        .pm-tabla td { padding: 4px; border-bottom: 1px solid var(--divider); vertical-align: top; }
+        /* Pedido masivo a Vento (solo admin real): tabla con las columnas de la hoja de pedidos + sucursal por fila */
+        .pm-tabla-caja { margin-top: 10px; border: 1px solid var(--border); border-radius: 12px; overflow: auto; max-height: 52vh; background: var(--surface); }
+        .pm-tabla { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; min-width: 840px; }
+        .pm-tabla col.c-n { width: 36px; } .pm-tabla col.c-suc { width: 20%; } .pm-tabla col.c-np { width: 15%; } .pm-tabla col.c-mod { width: 16%; } .pm-tabla col.c-desc { width: 20%; } .pm-tabla col.c-cant { width: 8%; } .pm-tabla col.c-cli { width: 17%; } .pm-tabla col.c-del { width: 52px; }
+        .pm-tabla th { position: sticky; top: 0; z-index: 2; background: var(--surface-2); font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--text-3); text-align: left; padding: 10px 6px; white-space: nowrap; border-bottom: 1px solid var(--border); }
+        .pm-tabla td { padding: 6px 4px; border-bottom: 1px solid var(--divider, var(--border)); vertical-align: top; }
+        .pm-tabla tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--surface-2) 38%, transparent); }
+        .pm-tabla tbody tr:hover td { background: color-mix(in srgb, var(--surface-2) 75%, transparent); }
         .pm-tabla tr:last-child td { border-bottom: 0; }
-        .pm-in { width: 100%; min-height: 44px; background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--text); padding: 0 8px; font-size: 16px; }
-        .pm-in:hover { border-color: var(--border); }
-        .pm-in:focus-visible { background: var(--surface-2); border-color: var(--ring); outline: 2px solid var(--ring); outline-offset: -1px; }
-        .pm-in[aria-invalid="true"] { border-color: var(--danger); border-width: 2px; }
+        .pm-th-n, .pm-td-n { width: 34px; text-align: center; }
+        .pm-td-n { padding-top: 16px; font-size: 12px; font-weight: 700; color: var(--text-3); font-variant-numeric: tabular-nums; }
+        .pm-th-cant { text-align: right !important; }
+        .pm-in { box-sizing: border-box; width: 100%; min-height: 44px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); padding: 0 10px; font-size: 16px; font-family: inherit; transition: border-color .15s, background-color .15s, box-shadow .15s; }
+        .pm-in::placeholder { color: var(--text-3); opacity: .7; }
+        .pm-in:hover { border-color: var(--text-3); }
+        .pm-in:focus-visible { background: var(--surface-2); border-color: var(--ring); outline: 2px solid var(--ring); outline-offset: 0; }
+        .pm-in[aria-invalid="true"] { border-color: var(--danger); box-shadow: 0 0 0 1px var(--danger); }
+        select.pm-in { appearance: none; -webkit-appearance: none; cursor: pointer; padding-right: 28px; padding-left: 8px; font-size: 14px; text-overflow: ellipsis; font-weight: 700; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+        select.pm-in.pm-vacio { color: var(--text-3); font-weight: 400; }
+        select.pm-in option { color: var(--text); background: var(--surface); }
+        .pm-suc { min-width: 0; }
         .pm-np { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; text-transform: uppercase; }
         .pm-cant { text-align: right; font-variant-numeric: tabular-nums; }
-        .pm-nota { padding: 0 8px 4px; font-size: 12px; color: var(--text-3); overflow-wrap: anywhere; }
+        .pm-nota { padding: 4px 2px 0; font-size: 12px; color: var(--text-3); overflow-wrap: anywhere; }
         .pm-nota:empty { display: none; }
-        .pm-quitar { width: 44px; min-height: 44px; background: transparent; border: 1px solid transparent; border-radius: 8px; color: var(--danger); cursor: pointer; }
-        .pm-quitar:hover { background: var(--surface-2); border-color: var(--border); }
+        .pm-quitar { width: 44px; min-height: 44px; background: transparent; border: 1px solid transparent; border-radius: 8px; color: var(--text-3); cursor: pointer; transition: color .15s, background-color .15s; }
+        .pm-quitar:hover { color: var(--danger); background: color-mix(in srgb, var(--danger) 12%, transparent); border-color: color-mix(in srgb, var(--danger) 40%, transparent); }
+        .pm-quitar:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
         .pm-resumen { position: sticky; bottom: 0; margin-top: 12px; padding: 10px 0 2px; background: var(--surface); border-top: 1px solid var(--border); }
+        .pm-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; min-height: 0; }
+        .pm-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--surface-2); font-size: 12px; color: var(--text-2); }
+        .pm-chip b { color: var(--text); font-weight: 800; }
+        .pm-chip-total { border-color: var(--brand); color: var(--brand-text, var(--brand)); }
         .pm-enviar { width: 100%; min-height: 48px; border: 0; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; }
+        @media (prefers-reduced-motion: reduce) { .pm-in, .pm-quitar { transition: none; } }
         @media (max-width: 719px) {   /* en celular cada fila es una tarjeta con sus etiquetas: nada de scroll horizontal */
+            .pm-tabla-caja { max-height: none; border: 0; background: transparent; overflow: visible; }
             .pm-tabla { min-width: 0; }
-            .pm-tabla thead { display: none; }
+            .pm-tabla thead, .pm-tabla colgroup { display: none; }
             .pm-tabla, .pm-tabla tbody, .pm-tabla tr, .pm-tabla td { display: block; width: 100%; }
-            .pm-tabla tr { padding: 8px 4px; border-bottom: 1px solid var(--border); }
-            .pm-tabla td { border: 0; padding: 2px 4px; }
-            .pm-tabla td[data-label]::before { content: attr(data-label); display: block; padding: 0 8px; font-size: 12px; font-weight: 700; color: var(--text-3); }
-            .pm-tabla td.pm-td-quitar { text-align: right; }
-            .pm-in { border-color: var(--border); }
+            .pm-tabla tbody tr, .pm-tabla tbody tr:nth-child(even), .pm-tabla tbody tr:hover { position: relative; margin: 0 0 10px; padding: 8px 6px 6px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+            .pm-tabla tbody tr:nth-child(even) td, .pm-tabla tbody tr:hover td { background: transparent; }
+            .pm-tabla td { border: 0; padding: 3px 4px; }
+            .pm-tabla td[data-label]::before { content: attr(data-label); display: block; padding: 0 2px 3px; font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); }
+            .pm-td-n { width: auto; text-align: left; padding: 2px 8px 0; font-size: 12px; }
+            .pm-td-n::before { content: 'Parte '; }
+            .pm-td-quitar { position: absolute; top: 2px; right: 2px; width: auto !important; }
+            .pm-suc, .pm-np { min-width: 0; }
+            select.pm-in { font-size: 16px; }
         }
         /* Compatibilidad (índice NP): resultados escaneables, con listado copiable */
         .np-cab { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
@@ -1637,15 +1659,14 @@
       <div id="cfg-compat-lista"></div>
     </div>
     <div id="cfg-pedvento" hidden>
-      <p class="cfg-muted" style="margin:0 0 8px">Pide piezas a Vento en cantidad para repartirlas después a otras agencias. Cada fila se escribe en la hoja de pedidos de Vento (como «Piso de venta (stock)») y te llega el aviso por Telegram. Captura directo en la tabla o pega desde Excel en cualquier celda.</p>
-      <div class="cp-campo"><label for="pm-sucursal">Sucursal que solicita *</label>
-        <select id="pm-sucursal"><option value="">Elige la sucursal…</option><option>CARABELA V1</option><option>CAUCEL VENTO</option><option>PISTE VENTO</option><option>TICUL VENTO</option><option>TIZIMIN VENTO</option><option>UMAN VENTO</option></select></div>
+      <p class="cfg-muted" style="margin:0 0 8px">Pide piezas a Vento en cantidad para repartirlas después a otras agencias. Elige la sucursal en cada fila: puedes pedir para varias agencias en el mismo envío. Cada fila se escribe en la hoja de pedidos de Vento (como «Piso de venta (stock)») y te llega el aviso por Telegram. Captura directo en la tabla o pega desde Excel en cualquier celda.</p>
       <div class="pm-tabla-caja"><table class="pm-tabla" aria-label="Partes del pedido masivo a Vento">
-        <thead><tr><th scope="col">Número de parte *</th><th scope="col">Modelo y año</th><th scope="col">Descripción</th><th scope="col">Cant. *</th><th scope="col">Nombre del cliente</th><th scope="col"><span class="sr-only">Quitar fila</span></th></tr></thead>
+        <colgroup><col class="c-n"><col class="c-suc"><col class="c-np"><col class="c-mod"><col class="c-desc"><col class="c-cant"><col class="c-cli"><col class="c-del"></colgroup>
+        <thead><tr><th scope="col" class="pm-th-n">#</th><th scope="col">Sucursal *</th><th scope="col">N.º de parte *</th><th scope="col">Modelo y año</th><th scope="col">Descripción</th><th scope="col" class="pm-th-cant">Cant. *</th><th scope="col">Cliente</th><th scope="col"><span class="sr-only">Quitar fila</span></th></tr></thead>
         <tbody id="pm-lineas"></tbody></table></div>
       <button type="button" class="cp-btn-sec" onclick="pmAgregarLinea()"><i aria-hidden="true" class="fa-solid fa-plus"></i> Agregar fila</button>
       <div class="pm-resumen">
-        <p id="pm-resumen" class="cp-ayuda" role="status" aria-live="polite" style="margin:0 0 8px"></p>
+        <div id="pm-resumen" class="pm-chips" role="status" aria-live="polite"></div>
         <button type="button" id="pm-enviar" class="pm-enviar btn-primary" onclick="pmEnviar()"><i aria-hidden="true" class="fa-solid fa-truck-fast"></i> Enviar pedido a Vento</button>
       </div>
     </div>
@@ -7123,20 +7144,26 @@ async function cfgCargarCompat() {
    Tabla con las columnas de la hoja: D número de parte · E modelo y año · F descripción · G cantidad · I nombre del cliente (opcional). */
 let _pmLineas = [], _pmSeq = 0, _pmEnviando = false;
 const _pmSucursales = ['CARABELA V1', 'CAUCEL VENTO', 'PISTE VENTO', 'TICUL VENTO', 'TIZIMIN VENTO', 'UMAN VENTO'];
-const PM_COLS = ['np', 'modelo', 'desc', 'cant', 'cliente'];
-const PM_ETQ = { np: 'Número de parte', modelo: 'Modelo y año', desc: 'Descripción', cant: 'Cant.', cliente: 'Nombre del cliente' };
-const _pmNueva = v => Object.assign({ id: ++_pmSeq, np: '', modelo: '', desc: '', cant: '', cliente: '', auto: false, nota: '', pista: '' }, v || {});
-const _pmVacia = l => !PM_COLS.some(c => String(l[c] || '').trim());
+const PM_COLS = ['sucursal', 'np', 'modelo', 'desc', 'cant', 'cliente'];
+const PM_DATOS = ['np', 'modelo', 'desc', 'cant', 'cliente'];   // la sucursal sola no cuenta como fila con contenido
+const PM_ETQ = { sucursal: 'Sucursal', np: 'Número de parte', modelo: 'Modelo y año', desc: 'Descripción', cant: 'Cant.', cliente: 'Cliente' };
+let _pmSucDefault = '';
+const _pmNueva = v => Object.assign({ id: ++_pmSeq, sucursal: _pmSucDefault, np: '', modelo: '', desc: '', cant: '', cliente: '', auto: false, nota: '', pista: '' }, v || {});
+const _pmVacia = l => !PM_DATOS.some(c => String(l[c] || '').trim());
+/** Reconoce una sucursal escrita o pegada («piste vento», «Tizimín Vento»…) contra la lista; '' si no coincide. */
+function _pmSucDeTexto(t) { const n = _normalizarAlmacenJS(t).replace(/\s+/g, ' '); return _pmSucursales.find(x => x === n) || ''; }
 function pmAlAbrir() {
-    const sel = _cpEl('pm-sucursal');
-    if (sel && !sel.value) { const propia = _pmSucursales.find(x => _normalizarAlmacenJS(almacenAdminActual) === x); if (propia) sel.value = propia; }   // por omisión, la sucursal de la cuenta
-    if (!_pmLineas.length) for (let i = 0; i < 8; i++) _pmLineas.push(_pmNueva());
+    const propia = _pmSucursales.find(x => _normalizarAlmacenJS(almacenAdminActual) === x) || '';
+    if (!_pmLineas.length) { _pmSucDefault = propia; for (let i = 0; i < 8; i++) _pmLineas.push(_pmNueva()); }   // por omisión, la sucursal de la cuenta
     pmPintar(); pmResumen();
 }
 function _pmFilaHtml(l, i) {
     const inp = (col, extra) => `<input id="pm-${col}-${l.id}" class="pm-in ${extra || ''}" data-col="${col}" type="text" aria-label="${PM_ETQ[col]}, fila ${i + 1}" autocomplete="off" value="${_cpEsc(l[col])}"
         oninput="pmSet(${l.id},'${col}',this)" onkeydown="pmTecla(event,${l.id},'${col}')" onpaste="pmPegar(event,${l.id},'${col}')"`;
+    const opts = '<option value="">Elige…</option>' + _pmSucursales.map(x => `<option${x === l.sucursal ? ' selected' : ''}>${_cpEsc(x)}</option>`).join('');
     return `<tr id="pm-fila-${l.id}">
+        <td class="pm-td-n">${i + 1}</td>
+        <td data-label="${PM_ETQ.sucursal} que solicita *"><select id="pm-sucursal-${l.id}" class="pm-in pm-suc${l.sucursal ? '' : ' pm-vacio'}" data-col="sucursal" aria-label="Sucursal que solicita, fila ${i + 1}" onchange="pmSet(${l.id},'sucursal',this)">${opts}</select></td>
         <td data-label="${PM_ETQ.np} *">${inp('np', 'pm-np')} maxlength="60" autocapitalize="characters" spellcheck="false" onchange="pmBuscarParte(${l.id})"></td>
         <td data-label="${PM_ETQ.modelo}">${inp('modelo')} maxlength="60" placeholder="${_cpEsc(l.pista)}"></td>
         <td data-label="${PM_ETQ.desc}">${inp('desc')} maxlength="120"><div class="pm-nota" id="pm-nota-${l.id}">${_cpEsc(l.nota)}</div></td>
@@ -7147,11 +7174,13 @@ function _pmFilaHtml(l, i) {
 }
 function pmPintar() { _cpEl('pm-lineas').innerHTML = _pmLineas.map(_pmFilaHtml).join(''); }
 function pmAgregarLinea(enfocar) {
-    const l = _pmNueva(); _pmLineas.push(l);
+    const l = _pmNueva({ sucursal: _pmUltimaSuc() }); _pmLineas.push(l);
     _cpEl('pm-lineas').insertAdjacentHTML('beforeend', _pmFilaHtml(l, _pmLineas.length - 1));
     if (enfocar !== false) { const el = _cpEl('pm-np-' + l.id); if (el) el.focus(); }
     return l;
 }
+/** Las filas nuevas heredan la sucursal de la última fila que ya tiene una: capturas varias partes seguidas sin repetirla. */
+function _pmUltimaSuc() { for (let i = _pmLineas.length - 1; i >= 0; i--) if (_pmLineas[i].sucursal) return _pmLineas[i].sucursal; return _pmSucDefault; }
 function pmQuitar(id) {
     _pmLineas = _pmLineas.filter(l => l.id !== id);
     if (!_pmLineas.length) _pmLineas.push(_pmNueva());
@@ -7165,6 +7194,7 @@ function _pmLimpiar(col, v) {
 }
 function pmSet(id, col, el) {
     const l = _pmLineas.find(x => x.id === id); if (!l) return;
+    if (col === 'sucursal') { l.sucursal = el.value; el.classList.toggle('pm-vacio', !el.value); el.removeAttribute('aria-invalid'); pmResumen(); return; }
     const v = _pmLimpiar(col, el.value);
     if (col === 'cant' && el.value !== v) el.value = v;
     l[col] = v; el.removeAttribute('aria-invalid');
@@ -7182,7 +7212,8 @@ function pmTecla(ev, id, col) {
     const el = _cpEl('pm-' + col + '-' + sig.id); if (el) el.focus();
 }
 /** Pegado desde Excel o texto: reparte las celdas por filas y columnas desde donde se pegó. Con un solo valor por línea
- *  puede venir «NÚMERO_DE_PARTE  CANTIDAD». Las filas nuevas se agregan solas. */
+ *  puede venir «NÚMERO_DE_PARTE  CANTIDAD». Si la primera columna pegada es la sucursal, se reconoce por nombre.
+ *  Las filas nuevas se agregan solas. */
 function pmPegar(ev, id, col) {
     const txt = (ev.clipboardData || window.clipboardData).getData('text');
     if (!/[\t\n]/.test(txt.replace(/\n$/, ''))) return;   // un valor suelto: pegado normal
@@ -7194,11 +7225,15 @@ function pmPegar(ev, id, col) {
     let omitidas = 0;
     matriz.forEach((celdas, r) => {
         if (r + i0 >= 60 + 8) { omitidas++; return; }
-        while (_pmLineas.length <= i0 + r) _pmLineas.push(_pmNueva());
+        while (_pmLineas.length <= i0 + r) _pmLineas.push(_pmNueva({ sucursal: _pmUltimaSuc() }));
         const l = _pmLineas[i0 + r];
-        celdas.forEach((v, c) => { const k = PM_COLS[c0 + c]; if (!k) return; l[k] = _pmLimpiar(k, v).trim(); if (k === 'np' || k === 'desc') { l.auto = false; l.nota = ''; l.pista = ''; } });
+        celdas.forEach((v, c) => {
+            const k = PM_COLS[c0 + c]; if (!k) return;
+            if (k === 'sucursal') { const sc = _pmSucDeTexto(v); if (sc) l.sucursal = sc; return; }
+            l[k] = _pmLimpiar(k, v).trim(); if (k === 'np' || k === 'desc') { l.auto = false; l.nota = ''; l.pista = ''; }
+        });
     });
-    if (_pmLineas[_pmLineas.length - 1].np) _pmLineas.push(_pmNueva());
+    if (_pmLineas[_pmLineas.length - 1].np) _pmLineas.push(_pmNueva({ sucursal: _pmUltimaSuc() }));
     pmPintar(); pmResumen();
     mostrarToastInfo(matriz.length + (matriz.length === 1 ? ' fila pegada.' : ' filas pegadas.') + (omitidas ? ' Se omitieron ' + omitidas + ' de más.' : ''));
 }
@@ -7219,48 +7254,63 @@ async function pmBuscarParte(id) {
         if (nota) nota.textContent = l.nota;
     } catch (e) { if (nota) nota.textContent = ''; }
 }
-/** Revisa la tabla: ignora filas vacías; devuelve las líneas o el primer error con la celda que hay que corregir. */
+/** Revisa la tabla: ignora filas vacías; devuelve las líneas agrupadas por sucursal o el primer error con la celda que hay que corregir. */
 function _pmRevisar() {
-    const lineas = [], vistos = new Set();
+    const grupos = new Map(), vistos = new Set(); let partes = 0, piezas = 0;
     for (const l of _pmLineas) {
         if (_pmVacia(l)) continue;
         const np = l.np.trim();
         if (!np) return { error: 'Falta el número de parte en una fila.', id: l.id, col: 'np' };
+        if (!l.sucursal) return { error: 'Elige la sucursal que solicita ' + np + '.', id: l.id, col: 'sucursal' };
         const cant = Number(l.cant);
         if (!l.cant || !Number.isInteger(cant) || cant < 1 || cant > 9999) return { error: 'Falta la cantidad de ' + np + ' (de 1 a 9999).', id: l.id, col: 'cant' };
-        const clave = np + '|' + l.modelo.trim().toUpperCase().replace(/\s+/g, ' ');
-        if (vistos.has(clave)) return { error: 'La parte ' + np + (l.modelo.trim() ? ' (' + l.modelo.trim() + ')' : '') + ' está repetida: súmala en una sola fila.', id: l.id, col: 'np' };
+        const clave = l.sucursal + '|' + np + '|' + l.modelo.trim().toUpperCase().replace(/\s+/g, ' ');
+        if (vistos.has(clave)) return { error: 'La parte ' + np + (l.modelo.trim() ? ' (' + l.modelo.trim() + ')' : '') + ' está repetida para ' + l.sucursal + ': súmala en una sola fila.', id: l.id, col: 'np' };
         vistos.add(clave);
-        lineas.push({ numeroParte: np, cantidad: cant, modelo: l.modelo.trim(), descripcion: l.desc.trim(), cliente: l.cliente.trim() });
+        if (!grupos.has(l.sucursal)) grupos.set(l.sucursal, { sucursal: l.sucursal, lineas: [], piezas: 0 });
+        const g = grupos.get(l.sucursal);
+        g.lineas.push({ numeroParte: np, cantidad: cant, modelo: l.modelo.trim(), descripcion: l.desc.trim(), cliente: l.cliente.trim() });
+        g.piezas += cant; partes++; piezas += cant;
+        if (g.lineas.length > 60) return { error: 'Máximo 60 partes por sucursal en un pedido; divide el de ' + l.sucursal + ' en dos.', id: l.id, col: 'np' };
     }
-    if (!lineas.length) return { error: 'Agrega al menos una parte.' };
-    if (lineas.length > 60) return { error: 'Máximo 60 partes por pedido; divídelo en dos.' };
-    return { lineas, piezas: lineas.reduce((a, x) => a + x.cantidad, 0) };
+    if (!partes) return { error: 'Agrega al menos una parte.' };
+    return { grupos: [...grupos.values()], partes, piezas };
 }
+const _pmPlural = (n, s, p) => n + ' ' + (n === 1 ? s : p);
 function pmResumen() {
     const r = _pmRevisar(), el = _cpEl('pm-resumen'); if (!el) return;
-    el.textContent = r.lineas ? r.lineas.length + (r.lineas.length === 1 ? ' parte' : ' partes') + ' · ' + r.piezas + (r.piezas === 1 ? ' pieza' : ' piezas') : '';
+    if (!r.grupos) { el.innerHTML = ''; return; }
+    el.innerHTML = r.grupos.map(g => `<span class="pm-chip"><b>${_cpEsc(g.sucursal)}</b> ${_pmPlural(g.lineas.length, 'parte', 'partes')} · ${_pmPlural(g.piezas, 'pieza', 'piezas')}</span>`).join('')
+        + (r.grupos.length > 1 ? `<span class="pm-chip pm-chip-total"><b>Total</b> ${_pmPlural(r.partes, 'parte', 'partes')} · ${_pmPlural(r.piezas, 'pieza', 'piezas')}</span>` : '');
 }
 async function pmEnviar() {
     if (_pmEnviando) return;
-    const sucursal = _cpEl('pm-sucursal').value;
-    if (!sucursal) { mostrarToastInfo('Elige la sucursal que solicita.', 'error'); _cpEl('pm-sucursal').focus(); return; }
     const r = _pmRevisar();
     if (r.error) {
         mostrarToastInfo(r.error, 'error');
         const el = r.id ? _cpEl('pm-' + r.col + '-' + r.id) : null; if (el) { el.setAttribute('aria-invalid', 'true'); el.focus(); }
         return;
     }
-    const ok = await confirmarApp({ titulo: '¿Enviar el pedido a Vento?', mensaje: r.lineas.length + (r.lineas.length === 1 ? ' parte' : ' partes') + ' · ' + r.piezas + ' piezas, a nombre de ' + sucursal + '. Se escribe en la hoja de pedidos de Vento y te avisa por Telegram.', tipo: 'info', icono: 'fa-truck-fast', confirmar: 'Enviar pedido', cancelar: 'Revisar' });
+    const detalle = r.grupos.map(g => g.sucursal + ': ' + _pmPlural(g.lineas.length, 'parte', 'partes') + ', ' + _pmPlural(g.piezas, 'pieza', 'piezas')).join('; ');
+    const ok = await confirmarApp({ titulo: '¿Enviar el pedido a Vento?', mensaje: (r.grupos.length === 1 ? 'A nombre de ' : 'Se enviará un pedido por sucursal. ') + detalle + '. Se escribe en la hoja de pedidos de Vento y te avisa por Telegram.', tipo: 'info', icono: 'fa-truck-fast', confirmar: r.grupos.length === 1 ? 'Enviar pedido' : 'Enviar ' + r.grupos.length + ' pedidos', cancelar: 'Revisar' });
     if (!ok) return;
     const btn = _cpEl('pm-enviar'); _pmEnviando = true; btn.disabled = true; btn.textContent = 'Enviando…';
+    const enviadas = [], fallidas = [];
     try {
-        const rs = await _cpApi('pedidoMasivoVento', { datos: { sucursal, lineas: r.lineas } });
-        if (!rs.success) throw new Error(rs.message || 'No se pudo enviar el pedido.');
-        _pmLineas = []; pmAlAbrir();
-        await avisoApp('Pedido enviado', rs.partes + (rs.partes === 1 ? ' parte' : ' partes') + ' · ' + rs.piezas + ' piezas, a nombre de ' + rs.sucursal + '. Ya está en la hoja de pedidos de Vento.', 'info');
-    } catch (e) { mostrarToastInfo(e.message || 'No se pudo enviar el pedido.', 'error'); }
-    finally { _pmEnviando = false; btn.disabled = false; btn.innerHTML = '<i aria-hidden="true" class="fa-solid fa-truck-fast"></i> Enviar pedido a Vento'; }
+        for (const g of r.grupos) {   // un pedido por sucursal; si una falla, las demás siguen y sus filas se conservan para reintentar
+            try {
+                const rs = await _cpApi('pedidoMasivoVento', { datos: { sucursal: g.sucursal, lineas: g.lineas } });
+                if (!rs.success) throw new Error(rs.message || 'No se pudo enviar el pedido.');
+                enviadas.push({ sucursal: g.sucursal, partes: rs.partes, piezas: rs.piezas });
+            } catch (e) { fallidas.push({ sucursal: g.sucursal, error: e.message || 'No se pudo enviar el pedido.' }); }
+        }
+        const okSuc = new Set(enviadas.map(x => x.sucursal));
+        _pmLineas = _pmLineas.filter(l => _pmVacia(l) || !okSuc.has(l.sucursal));   // quita solo lo ya enviado
+        if (!_pmLineas.length || fallidas.length === 0) _pmLineas = [];
+        pmAlAbrir();
+        if (enviadas.length) await avisoApp(fallidas.length ? 'Pedido enviado en parte' : 'Pedido enviado', enviadas.map(x => x.sucursal + ': ' + _pmPlural(x.partes, 'parte', 'partes') + ', ' + _pmPlural(x.piezas, 'pieza', 'piezas')).join('; ') + '. Ya está en la hoja de pedidos de Vento.' + (fallidas.length ? ' Falló: ' + fallidas.map(x => x.sucursal).join(', ') + '; sus filas siguen en la tabla.' : ''), fallidas.length ? 'aviso' : 'info');
+        if (fallidas.length) mostrarToastInfo(fallidas.map(x => x.sucursal + ': ' + x.error).join(' · '), 'error');
+    } finally { _pmEnviando = false; btn.disabled = false; btn.innerHTML = '<i aria-hidden="true" class="fa-solid fa-truck-fast"></i> Enviar pedido a Vento'; }
 }
 
 function cfgBuscarSkuCompat(sku) {   // cierra Configuración y deja el SKU en el buscador del catálogo para abrir su ficha
