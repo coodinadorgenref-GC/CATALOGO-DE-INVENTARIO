@@ -223,20 +223,23 @@
 
         /* ══════════════════════════════════════════════════
            BOTONES FLOTANTES — ficha tipo ícono de iPhone (MASTER §7)
-           Los tres miden lo mismo: ficha de 60 px, glifo blanco, etiqueta DEBAJO.
-           Verde = cotizar (Cotizar / Cotización), azul = Pendientes.
+           Los cuatro miden lo mismo: ficha de 60 px, glifo blanco, etiqueta DEBAJO.
+           Verde = cotizar (Cotizar / Cotización), azul = Pendientes, ámbar = Pedido Vento.
            display lo controla JS (block o flex): el diseño funciona con ambos.
         ══════════════════════════════════════════════════ */
-        #btn-carrito-flotante, #btn-cotizaciones-admin, #btn-cotizar-piso {
-            position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 200;
+        #botones-flotantes {
+            position: fixed; right: 12px; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 200;
+            display: flex; flex-direction: row; align-items: flex-end; gap: 4px; pointer-events: none;   /* los botones visibles se acomodan en fila: nunca se empalman */
+        }
+        #btn-carrito-flotante, #btn-cotizaciones-admin, #btn-pedido-vento, #btn-cotizar-piso {
+            position: relative; flex: 0 0 auto; pointer-events: auto;
             width: 84px; padding: 0; margin: 0; background: none; border: 0; outline: none; box-shadow: none;
             color: var(--text); text-align: center; cursor: pointer;
             flex-direction: column; align-items: center; gap: 6px;
             -webkit-tap-highlight-color: transparent;
         }
-        #btn-carrito-flotante, #btn-cotizar-piso { right: 12px; }
-        #btn-cotizaciones-admin { right: 100px; }
-        #btn-carrito-flotante .btn-flotante-icon, #btn-cotizaciones-admin .btn-flotante-icon, #btn-cotizar-piso .btn-flotante-icon {
+        #btn-pedido-vento { width: 100px; }
+        #btn-carrito-flotante .btn-flotante-icon, #btn-cotizaciones-admin .btn-flotante-icon, #btn-pedido-vento .btn-flotante-icon, #btn-cotizar-piso .btn-flotante-icon {
             position: relative; display: grid; place-items: center;
             width: 60px; height: 60px; margin: 0 auto; border-radius: 14px;
             font-size: 28px; line-height: 1; color: #fff;
@@ -245,15 +248,15 @@
             transition: transform .15s, filter .15s;
         }
         #btn-cotizaciones-admin .btn-flotante-icon { background: linear-gradient(160deg, #4f9cff, #1d4ed8); }
-        #btn-carrito-flotante:hover .btn-flotante-icon, #btn-cotizaciones-admin:hover .btn-flotante-icon, #btn-cotizar-piso:hover .btn-flotante-icon { filter: brightness(1.07); }
-        #btn-carrito-flotante:active .btn-flotante-icon, #btn-cotizaciones-admin:active .btn-flotante-icon, #btn-cotizar-piso:active .btn-flotante-icon { transform: scale(.92); }
-        #btn-carrito-flotante:focus-visible .btn-flotante-icon, #btn-cotizaciones-admin:focus-visible .btn-flotante-icon, #btn-cotizar-piso:focus-visible .btn-flotante-icon { outline: 2px solid var(--ring); outline-offset: 3px; }
+        #btn-pedido-vento .btn-flotante-icon { background: linear-gradient(160deg, #fbbf24, #b45309); }
+        #btn-carrito-flotante:hover .btn-flotante-icon, #btn-cotizaciones-admin:hover .btn-flotante-icon, #btn-pedido-vento:hover .btn-flotante-icon, #btn-cotizar-piso:hover .btn-flotante-icon { filter: brightness(1.07); }
+        #btn-carrito-flotante:active .btn-flotante-icon, #btn-cotizaciones-admin:active .btn-flotante-icon, #btn-pedido-vento:active .btn-flotante-icon, #btn-cotizar-piso:active .btn-flotante-icon { transform: scale(.92); }
+        #btn-carrito-flotante:focus-visible .btn-flotante-icon, #btn-cotizaciones-admin:focus-visible .btn-flotante-icon, #btn-pedido-vento:focus-visible .btn-flotante-icon, #btn-cotizar-piso:focus-visible .btn-flotante-icon { outline: 2px solid var(--ring); outline-offset: 3px; }
         .btn-flotante-label {
             display: block; width: fit-content; max-width: 100%; margin: 0 auto; padding: 2px 8px; border-radius: 999px;
             font-size: 12px; font-weight: 800; line-height: 1.25; letter-spacing: 0; text-transform: none; white-space: nowrap;
             color: var(--text);
-            background: color-mix(in srgb, var(--surface) 88%, transparent);
-            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+            background: var(--surface); border: 1px solid var(--border);
             box-shadow: 0 1px 3px rgba(0,0,0,.2);
         }
         /* Globo rojo en la esquina de la ficha, como en iOS */
@@ -692,7 +695,7 @@
             .bi-principal .bi-ficha i { font-size: 24px; color: #fff; }
             .bi-item b { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: #ef4444; color: #fff; font-size: 11px; line-height: 1; display: flex; align-items: center; justify-content: center; border: 2px solid var(--surface); }
             .bi-item b[hidden] { display: none; }
-            #btn-carrito-flotante, #btn-cotizaciones-admin, #btn-cotizar-piso { display: none !important; }   /* la barra los reemplaza */
+            #btn-carrito-flotante, #btn-cotizaciones-admin, #btn-pedido-vento, #btn-cotizar-piso { display: none !important; }   /* la barra los reemplaza */
             body.con-barra #btn-header-ajustes { display: none; }   /* Ajustes ya está en la barra: no repetirlo arriba */
             body.con-barra { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
         }
@@ -1496,26 +1499,17 @@
 <nav id="barra-inferior" aria-label="Navegación principal" hidden>
     <button type="button" id="bi-catalogo" class="bi-item" aria-current="page" onclick="biIrCatalogo()"><i class="fa-solid fa-store" aria-hidden="true"></i><span class="bi-et">Catálogo</span></button>
     <button type="button" id="bi-pendientes" class="bi-item" onclick="biClic('btn-cotizaciones-admin')" hidden><i class="fa-solid fa-users-gear" aria-hidden="true"></i><span class="bi-et">Pendientes</span><b id="bi-badge-pend" hidden>0</b></button>
+    <button type="button" id="bi-pedvento" class="bi-item" onclick="biClic('btn-pedido-vento')" aria-label="Pedido Vento" hidden><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i><span class="bi-et">Vento</span></button>
     <button type="button" id="bi-cotizar" class="bi-item bi-principal" onclick="biClic('btn-cotizar-piso')" hidden><span class="bi-ficha"><i class="fa-solid fa-file-invoice-dollar" aria-hidden="true"></i></span><span class="bi-et">Cotizar</span></button>
     <button type="button" id="bi-carrito" class="bi-item" onclick="biClic('btn-carrito-flotante')" hidden><i class="fa-solid fa-cart-shopping" aria-hidden="true"></i><span class="bi-et">Cotización</span><b id="bi-badge-carrito" hidden>0</b></button>
     <button type="button" id="bi-historial" class="bi-item" onclick="biConfig('cot')" hidden><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i><span class="bi-et">Historial</span></button>
     <button type="button" id="bi-solicitudes" class="bi-item" onclick="biConfig('sol')" hidden><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i><span class="bi-et">Solicitudes</span></button>
     <button type="button" id="bi-ajustes" class="bi-item" onclick="biConfig('aspecto')"><i class="fa-solid fa-gear" aria-hidden="true"></i><span class="bi-et">Ajustes</span></button>
 </nav>
-<button id="btn-carrito-flotante" onclick="toggleCarrito()" style="display:none" title="Mi Cotización">
-    <span class="btn-flotante-icon"><i aria-hidden="true" class="fa-solid fa-cart-shopping"></i></span>
-    <span class="btn-flotante-label">Cotización</span>
-    <span id="badge-carrito" style="display:none">0</span>
-</button>
 
 <!-- ════════════════════════════════════════════════
      BOTÓN COTIZACIONES PENDIENTES (solo admin)
 ═════════════════════════════════════════════════ -->
-<button id="btn-cotizaciones-admin" onclick="toggleCotizacionesAdmin()" style="display:none" title="Cotizaciones Pendientes">
-    <span class="btn-flotante-icon"><i aria-hidden="true" class="fa-solid fa-users-gear"></i></span>
-    <span class="btn-flotante-label">Pendientes</span>
-    <span id="badge-cotizaciones-admin" style="display:none">0</span>
-</button>
 
 <!-- ════════════════════════════════════════════════
      OVERLAY + PANEL LATERAL CARRITO
@@ -1638,6 +1632,46 @@
 <!-- ════════════════════════════════════════════════
      COTIZAR EN PISO DE VENTA (admin / vendedor / gerente)
 ═════════════════════════════════════════════════ -->
+<div id="botones-flotantes">
+<button id="btn-carrito-flotante" onclick="toggleCarrito()" style="display:none" title="Mi Cotización">
+    <span class="btn-flotante-icon"><i aria-hidden="true" class="fa-solid fa-cart-shopping"></i></span>
+    <span class="btn-flotante-label">Cotización</span>
+    <span id="badge-carrito" style="display:none">0</span>
+</button>
+<button id="btn-cotizaciones-admin" onclick="toggleCotizacionesAdmin()" style="display:none" title="Cotizaciones Pendientes">
+    <span class="btn-flotante-icon"><i aria-hidden="true" class="fa-solid fa-users-gear"></i></span>
+    <span class="btn-flotante-label">Pendientes</span>
+    <span id="badge-cotizaciones-admin" style="display:none">0</span>
+</button>
+<button id="btn-pedido-vento" type="button" onclick="pvAbrir()" style="display:none" title="Pedido a Vento" aria-label="Pedido a Vento">
+    <span class="btn-flotante-icon"><i aria-hidden="true" class="fa-solid fa-boxes-stacked"></i></span>
+    <span class="btn-flotante-label">Pedido Vento</span>
+</button>
+<button id="btn-cotizar-piso" type="button" onclick="cotPisoAbrir()" style="display:none" title="Nueva cotización" aria-label="Nueva cotización">
+    <span class="btn-flotante-icon"><i aria-hidden="true" class="fa-solid fa-file-invoice-dollar"></i></span>
+    <span class="btn-flotante-label">Cotizar</span>
+</button>
+</div>
+<div id="pv-overlay" class="cp-overlay" onclick="if(event.target===this)pvCerrar()">
+  <div class="cp-card cfg-card cfg-ancho" role="dialog" aria-modal="true" aria-labelledby="pv-titulo">
+    <div class="cp-cab"><h3 id="pv-titulo">Pedido Vento</h3>
+      <button type="button" class="cp-cerrar" onclick="pvCerrar()" aria-label="Cerrar Pedido Vento"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button></div>
+    <div class="cfg-cuerpo">
+      <p class="cfg-muted" style="margin:0 0 8px">Pide piezas a Vento en cantidad para repartirlas después a otras agencias. Elige la sucursal en cada fila: puedes pedir para varias agencias en el mismo envío. Cada fila se escribe en la hoja de pedidos de Vento (como «Piso de venta (stock)») y te llega el aviso por Telegram. Captura directo en la tabla o pega desde Excel en cualquier celda.</p>
+      <div class="pm-borrador" id="pm-borrador"><span id="pm-borrador-txt"><i aria-hidden="true" class="fa-solid fa-floppy-disk"></i> Se guarda solo como borrador en este dispositivo.</span>
+        <button type="button" class="pm-borrador-btn" id="pm-borrador-btn" onclick="pmDescartar()" hidden>Descartar borrador</button></div>
+      <div class="pm-tabla-caja"><table class="pm-tabla" aria-label="Partes del pedido masivo a Vento">
+        <colgroup><col class="c-n"><col class="c-suc"><col class="c-np"><col class="c-mod"><col class="c-desc"><col class="c-cant"><col class="c-cli"><col class="c-del"></colgroup>
+        <thead><tr><th scope="col" class="pm-th-n">#</th><th scope="col">Sucursal *</th><th scope="col">N.º de parte *</th><th scope="col">Modelo y año</th><th scope="col">Descripción</th><th scope="col" class="pm-th-cant">Cant. *</th><th scope="col">Cliente <span class="pm-th-sub">(vacío = stock)</span></th><th scope="col"><span class="sr-only">Quitar fila</span></th></tr></thead>
+        <tbody id="pm-lineas"></tbody></table></div>
+      <button type="button" class="cp-btn-sec" onclick="pmAgregarLinea()"><i aria-hidden="true" class="fa-solid fa-plus"></i> Agregar fila</button>
+      <div class="pm-resumen">
+        <div id="pm-resumen" class="pm-chips" role="status" aria-live="polite"></div>
+        <button type="button" id="pm-enviar" class="pm-enviar btn-primary" onclick="pmEnviar()"><i aria-hidden="true" class="fa-solid fa-truck-fast"></i> Enviar pedido a Vento</button>
+      </div>
+    </div>
+  </div>
+</div>
 <div id="cfg-overlay" class="cp-overlay" onclick="if(event.target===this)cfgCerrar()">
   <div class="cp-card cfg-card" role="dialog" aria-modal="true" aria-labelledby="cfg-titulo">
     <div class="cp-cab"><h3 id="cfg-titulo">Configuración</h3>
@@ -1647,7 +1681,6 @@
       <button type="button" class="cfg-tab" id="cfg-tab-cuenta" role="tab" aria-selected="false" onclick="cfgTab('cuenta')">Cuenta y versión</button>
       <button type="button" class="cfg-tab" id="cfg-tab-cot" role="tab" aria-selected="false" onclick="cfgTab('cot')" style="display:none">Cotizaciones</button>
       <button type="button" class="cfg-tab" id="cfg-tab-compat" role="tab" aria-selected="false" onclick="cfgTab('compat')" style="display:none">Compatibilidad</button>
-      <button type="button" class="cfg-tab" id="cfg-tab-pedvento" role="tab" aria-selected="false" onclick="cfgTab('pedvento')" style="display:none">Pedido Vento</button>
       <button type="button" class="cfg-tab" id="cfg-tab-sol" role="tab" aria-selected="false" onclick="cfgTab('sol')" style="display:none">Mis solicitudes</button>
     </div>
     <div class="cfg-cuerpo">
@@ -1681,20 +1714,6 @@
       <p id="cfg-compat-estado" class="cp-ayuda" role="status" aria-live="polite"></p>
       <div id="cfg-compat-lista"></div>
     </div>
-    <div id="cfg-pedvento" hidden>
-      <p class="cfg-muted" style="margin:0 0 8px">Pide piezas a Vento en cantidad para repartirlas después a otras agencias. Elige la sucursal en cada fila: puedes pedir para varias agencias en el mismo envío. Cada fila se escribe en la hoja de pedidos de Vento (como «Piso de venta (stock)») y te llega el aviso por Telegram. Captura directo en la tabla o pega desde Excel en cualquier celda.</p>
-      <div class="pm-borrador" id="pm-borrador"><span id="pm-borrador-txt"><i aria-hidden="true" class="fa-solid fa-floppy-disk"></i> Se guarda solo como borrador en este dispositivo.</span>
-        <button type="button" class="pm-borrador-btn" id="pm-borrador-btn" onclick="pmDescartar()" hidden>Descartar borrador</button></div>
-      <div class="pm-tabla-caja"><table class="pm-tabla" aria-label="Partes del pedido masivo a Vento">
-        <colgroup><col class="c-n"><col class="c-suc"><col class="c-np"><col class="c-mod"><col class="c-desc"><col class="c-cant"><col class="c-cli"><col class="c-del"></colgroup>
-        <thead><tr><th scope="col" class="pm-th-n">#</th><th scope="col">Sucursal *</th><th scope="col">N.º de parte *</th><th scope="col">Modelo y año</th><th scope="col">Descripción</th><th scope="col" class="pm-th-cant">Cant. *</th><th scope="col">Cliente <span class="pm-th-sub">(vacío = stock)</span></th><th scope="col"><span class="sr-only">Quitar fila</span></th></tr></thead>
-        <tbody id="pm-lineas"></tbody></table></div>
-      <button type="button" class="cp-btn-sec" onclick="pmAgregarLinea()"><i aria-hidden="true" class="fa-solid fa-plus"></i> Agregar fila</button>
-      <div class="pm-resumen">
-        <div id="pm-resumen" class="pm-chips" role="status" aria-live="polite"></div>
-        <button type="button" id="pm-enviar" class="pm-enviar btn-primary" onclick="pmEnviar()"><i aria-hidden="true" class="fa-solid fa-truck-fast"></i> Enviar pedido a Vento</button>
-      </div>
-    </div>
     <div id="cfg-cotizaciones" hidden>
       <div class="cp-campo"><label for="cfg-buscar">Buscar por folio, cliente, teléfono o ID</label>
         <input id="cfg-buscar" type="search" autocomplete="off" enterkeyhint="search" onkeydown="if(event.key==='Enter'){event.preventDefault();cfgCargarCotizaciones(1);}"></div>
@@ -1714,10 +1733,6 @@
     </div>
   </div>
 </div>
-<button id="btn-cotizar-piso" type="button" onclick="cotPisoAbrir()" style="display:none" title="Nueva cotización" aria-label="Nueva cotización">
-    <span class="btn-flotante-icon"><i aria-hidden="true" class="fa-solid fa-file-invoice-dollar"></i></span>
-    <span class="btn-flotante-label">Cotizar</span>
-</button>
 <div id="cp-overlay" class="cp-overlay" role="dialog" aria-modal="true" aria-labelledby="cp-titulo" onclick="cotPisoClickFuera(event)">
     <div class="cp-card">
         <div class="cp-cab">
@@ -2414,6 +2429,7 @@ window.onload = function () {
     // Ocultado inicial con style.display para que iOS Safari no lo ignore
     _mostrarBotonFlotante("btn-carrito-flotante", false);
     _mostrarBotonFlotante("btn-cotizaciones-admin", false);
+    _mostrarBotonFlotante("btn-pedido-vento", false);
     _mostrarBotonFlotante("btn-cotizar-piso", false);
     actualizarIndicadorConexion();
     verificarSesionGuardada();
@@ -2896,6 +2912,7 @@ function _continuarDespuesDeAnimacionCarga() {
         // Sin sesión: garantizamos que ambos botones estén ocultos con display:none
         _mostrarBotonFlotante("btn-carrito-flotante", false);
         _mostrarBotonFlotante("btn-cotizaciones-admin", false);
+        _mostrarBotonFlotante("btn-pedido-vento", false);
         _mostrarBotonFlotante("btn-cotizar-piso", false);
     } else {
         // Con sesión: mostramos según el rol (display:flex para que el ícono esté centrado)
@@ -2905,6 +2922,7 @@ function _continuarDespuesDeAnimacionCarga() {
 
         _mostrarBotonFlotante("btn-carrito-flotante", mostrarVerde, true);
         _mostrarBotonFlotante("btn-cotizaciones-admin", mostrarAzul, true);
+        _mostrarBotonFlotante("btn-pedido-vento", esAdminReal, true);   // solo admin real, entre Pendientes y Cotizar
         _mostrarBotonFlotante("btn-cotizar-piso", esAdmin, true);
 
         // NUEVO: usuarios conectados en tiempo real — SOLO super admin
@@ -6829,6 +6847,7 @@ function filtrarPorMarcaDesdeFooter(palabraClave) {
     function(){ if (abierto('modal-zoom-imagen'))        { cerrarZoomImagen(); return true; } },
     function(){ if (abierto('modal-form-foto'))          { cerrarFormularioFoto(); return true; } },
     function(){ if (abierto('modal-usuarios-conectados')){ cerrarModalUsuariosConectados(); return true; } },
+    function(){ var e = el('pv-overlay'); if (e && e.classList.contains('visible')){ pvCerrar(); return true; } },
     function(){ var e = el('cfg-overlay'); if (e && e.classList.contains('visible')){ cfgCerrar(); return true; } },
     function(){ var e = el('modal-cotizacion'); if (e && e.classList.contains('visible')){ cerrarModalCotizacion(); return true; } },
     function(){ if (abierto('modal-detalles'))           { alternarModal(); return true; } },
@@ -7015,7 +7034,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-11-23 · v92 · Pedido Vento: tabla con columnas fijas y borrador automático';
+const APP_VERSION = '2026-11-24 · v93 · Pedido Vento como botón propio; botones flotantes sin empalmarse';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Vendido', 'Traspaso', 'Rechazado', 'Pedido'];   // Enviada = en seguimiento: el cliente marca el resultado
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Vendido: 'fa-circle-check', Traspaso: 'fa-truck-fast', Rechazado: 'fa-circle-xmark', Pedido: 'fa-box-open' };
 let _cfgCots = [];
@@ -7028,7 +7047,6 @@ function cfgAbrir() {
     _cpEl('cfg-version').textContent = APP_VERSION;
     _cpEl('cfg-tab-cot').style.display = esAdmin ? '' : 'none';
     _cpEl('cfg-tab-sol').style.display = esAdmin ? 'none' : '';
-    _cpEl('cfg-tab-pedvento').style.display = esAdminReal ? '' : 'none';   // el servidor vuelve a validar que sea admin real
     cfgTab('aspecto');
     if (esAdmin) cfgPrepararCompat();
     _cpEl('cfg-overlay').classList.add('visible');
@@ -7070,17 +7088,20 @@ async function forzarRecarga() {
 function biClic(id) { const e = document.getElementById(id); if (e) e.click(); }
 function biIrCatalogo() { try { cfgCerrar(); } catch (e) {} window.scrollTo({ top: 0, behavior: 'smooth' }); }
 function biConfig(tab) { cfgAbrir(); cfgTab(tab); }
+/** Pedido Vento: ventana propia (ya no vive en Configuración). El servidor vuelve a validar que sea admin real. */
+function pvAbrir() { if (!esAdminReal) return; pmAlAbrir(); _cpEl('pv-overlay').classList.add('visible'); biMarcar('pv'); }
+function pvCerrar() { _cpEl('pv-overlay').classList.remove('visible'); biMarcar(null); }
 /** Marca en la barra dónde está la persona: Catálogo (sin panel abierto), Historial/Solicitudes o Ajustes. */
 function biMarcar(destino) {
-    const id = destino === 'cot' ? 'bi-historial' : destino === 'sol' ? 'bi-solicitudes' : destino ? 'bi-ajustes' : 'bi-catalogo';
+    const id = destino === 'pv' ? 'bi-pedvento' : destino === 'cot' ? 'bi-historial' : destino === 'sol' ? 'bi-solicitudes' : destino ? 'bi-ajustes' : 'bi-catalogo';
     document.querySelectorAll('#barra-inferior .bi-item').forEach(b => { if (b.id === id) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
 }
 function biSincronizar() {
     const bar = document.getElementById('barra-inferior'); if (!bar) return;
     const vis = id => { const e = document.getElementById(id); return !!e && e.style.display !== 'none'; };
-    const pend = vis('btn-cotizaciones-admin'), coti = vis('btn-cotizar-piso'), carr = vis('btn-carrito-flotante');
+    const pend = vis('btn-cotizaciones-admin'), coti = vis('btn-cotizar-piso'), carr = vis('btn-carrito-flotante'), ped = vis('btn-pedido-vento');
     const g = id => document.getElementById(id);
-    g('bi-pendientes').hidden = !pend; g('bi-cotizar').hidden = !coti; g('bi-carrito').hidden = !carr || pend || coti;   // el asesor no usa el carrito de cliente
+    g('bi-pendientes').hidden = !pend; g('bi-pedvento').hidden = !ped; g('bi-cotizar').hidden = !coti; g('bi-carrito').hidden = !carr || pend || coti;   // el asesor no usa el carrito de cliente
     g('bi-historial').hidden = !(pend || coti); g('bi-solicitudes').hidden = !carr || pend || coti;
     const badge = (b, origen) => { const o = g(origen), ok = o && o.style.display !== 'none' && String(o.textContent).trim() !== '' && String(o.textContent).trim() !== '0'; b.hidden = !ok; if (ok) b.textContent = o.textContent.trim(); };
     badge(g('bi-badge-pend'), 'badge-cotizaciones-admin'); badge(g('bi-badge-carrito'), 'badge-carrito');
@@ -7089,7 +7110,7 @@ function biSincronizar() {
 }
 (function () {
     const obs = new MutationObserver(biSincronizar);
-    ['btn-carrito-flotante', 'btn-cotizaciones-admin', 'btn-cotizar-piso', 'badge-carrito', 'badge-cotizaciones-admin'].forEach(id => {
+    ['btn-carrito-flotante', 'btn-cotizaciones-admin', 'btn-pedido-vento', 'btn-cotizar-piso', 'badge-carrito', 'badge-cotizaciones-admin'].forEach(id => {
         const e = document.getElementById(id); if (e) obs.observe(e, { attributes: true, childList: true, characterData: true, subtree: true });
     });
     biSincronizar();
@@ -7129,8 +7150,6 @@ function cfgCerrar() { _cpEl('cfg-overlay').classList.remove('visible'); biMarca
 function cfgTab(t) {
     biMarcar(t);
     const cot = t === 'cot' && esAdmin;
-    const _cfgCard = document.querySelector('.cfg-card'); if (_cfgCard) _cfgCard.classList.toggle('cfg-ancho', t === 'pedvento' && !!esAdminReal);
-    _cpEl('cfg-pedvento').hidden = !(t === 'pedvento' && esAdminReal); _cpEl('cfg-tab-pedvento').setAttribute('aria-selected', String(t === 'pedvento' && esAdminReal)); if (t === 'pedvento' && esAdminReal) pmAlAbrir();
     _cpEl('cfg-compat').hidden = t !== 'compat'; _cpEl('cfg-tab-compat').setAttribute('aria-selected', String(t === 'compat')); if (t === 'compat') cfgCargarCompat();
     _cpEl('cfg-aspecto').hidden = t !== 'aspecto'; _cpEl('cfg-cuenta').hidden = t !== 'cuenta'; _cpEl('cfg-cotizaciones').hidden = !cot;
     _cpEl('cfg-solicitudes').hidden = !(t === 'sol' && !esAdmin); _cpEl('cfg-tab-sol').setAttribute('aria-selected', String(t === 'sol'));
