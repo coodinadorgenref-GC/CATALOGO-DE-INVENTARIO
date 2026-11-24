@@ -745,6 +745,15 @@
         .pm-tabla tbody tr:nth-child(even) td:nth-child(-n+2) { background: color-mix(in srgb, var(--surface-2) 38%, var(--surface)); }
         .pm-tabla tbody tr:hover td:nth-child(-n+2) { background: color-mix(in srgb, var(--surface-2) 75%, var(--surface)); }
         .pm-th-n, .pm-td-n { text-align: center; }
+        .pm-tabla thead th { position: sticky; top: 0; z-index: 2; }
+        .pm-tabla th:nth-child(-n+2) { z-index: 3; }
+        #pv-cuerpo { display: flex; flex-direction: column; overflow: hidden; }
+        #pv-cuerpo .pm-tabla-caja { flex: 1 1 auto; min-height: 0; margin-top: 0; overflow: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+        #pv-cuerpo > .cp-btn-sec, #pv-cuerpo > .pm-resumen, #pv-cuerpo > .pm-borrador { flex: 0 0 auto; }
+        #pv-cuerpo > .cp-btn-sec { margin-top: 10px; }
+        #pv-cuerpo > .pm-borrador { margin: 0 0 8px; justify-content: flex-end; }
+        #pv-cuerpo > .pm-borrador[hidden] { display: none; }
+        #pv-cuerpo .pm-resumen { position: static; margin-top: 10px; }
         .pm-borrador { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 10px 0 0; font-size: 12px; color: var(--text-3); }
         .pm-borrador-btn { min-height: 44px; padding: 0 12px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-2); font-size: 12px; font-weight: 700; cursor: pointer; }
         .pm-borrador-btn:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 50%, transparent); }
@@ -1656,9 +1665,8 @@
   <div class="cp-card cfg-card cfg-ancho" role="dialog" aria-modal="true" aria-labelledby="pv-titulo">
     <div class="cp-cab"><h3 id="pv-titulo">Pedido Vento</h3>
       <button type="button" class="cp-cerrar" onclick="pvCerrar()" aria-label="Cerrar Pedido Vento"><i aria-hidden="true" class="fa-solid fa-xmark"></i></button></div>
-    <div class="cfg-cuerpo">
-      <p class="cfg-muted" style="margin:0 0 8px">Pide piezas a Vento en cantidad para repartirlas después a otras agencias. Elige la sucursal en cada fila: puedes pedir para varias agencias en el mismo envío. Cada fila se escribe en la hoja de pedidos de Vento (como «Piso de venta (stock)») y te llega el aviso por Telegram. Captura directo en la tabla o pega desde Excel en cualquier celda.</p>
-      <div class="pm-borrador" id="pm-borrador"><span id="pm-borrador-txt"><i aria-hidden="true" class="fa-solid fa-floppy-disk"></i> Se guarda solo como borrador en este dispositivo.</span>
+    <div class="cfg-cuerpo" id="pv-cuerpo">
+      <div class="pm-borrador" id="pm-borrador"><span id="pm-borrador-txt" class="sr-only"></span>
         <button type="button" class="pm-borrador-btn" id="pm-borrador-btn" onclick="pmDescartar()" hidden>Descartar borrador</button></div>
       <div class="pm-tabla-caja"><table class="pm-tabla" aria-label="Partes del pedido masivo a Vento">
         <colgroup><col class="c-n"><col class="c-suc"><col class="c-np"><col class="c-mod"><col class="c-desc"><col class="c-cant"><col class="c-cli"><col class="c-del"></colgroup>
@@ -2916,8 +2924,7 @@ function _continuarDespuesDeAnimacionCarga() {
         _mostrarBotonFlotante("btn-cotizar-piso", false);
     } else {
         // Con sesión: mostramos según el rol (display:flex para que el ícono esté centrado)
-        const zonaTotal    = esAdmin && esZonaValladolid();
-        const mostrarVerde = !esAdmin || zonaTotal;
+        const mostrarVerde = !esAdmin;   // el asesor cotiza con «Cotizar»: no usa el carrito de cliente
         const mostrarAzul  = esAdmin;
 
         _mostrarBotonFlotante("btn-carrito-flotante", mostrarVerde, true);
@@ -7034,7 +7041,7 @@ async function cambiarSeccion(k) {
 }
 
 /* ───────── Configuración (panel oculto): Cuenta y versión · Cotizaciones ───────── */
-const APP_VERSION = '2026-11-24 · v93 · Pedido Vento como botón propio; botones flotantes sin empalmarse';
+const APP_VERSION = '2026-11-24 · v94 · Pedido Vento: tabla ajustada; sin carrito para el asesor';
 const ESTADOS_COT = ['Borrador', 'Enviada', 'Vendido', 'Traspaso', 'Rechazado', 'Pedido'];   // Enviada = en seguimiento: el cliente marca el resultado
 const ICONO_ESTADO_COT = { Borrador: 'fa-pen', Enviada: 'fa-paper-plane', Vendido: 'fa-circle-check', Traspaso: 'fa-truck-fast', Rechazado: 'fa-circle-xmark', Pedido: 'fa-box-open' };
 let _cfgCots = [];
@@ -7220,8 +7227,9 @@ function _pmLeerBorrador() {
 function pmEstadoBorrador(n, t) {
     const el = _cpEl('pm-borrador-txt'), b = _cpEl('pm-borrador-btn'); if (!el) return;
     const hora = t ? new Date(t).toLocaleString('es-MX', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
-    el.innerHTML = '<i aria-hidden="true" class="fa-solid fa-floppy-disk"></i> ' + (n ? 'Borrador guardado en este dispositivo · ' + _pmPlural(n, 'fila', 'filas') + ' · ' + _cpEsc(hora) : 'Se guarda solo como borrador en este dispositivo.');
-    if (b) b.hidden = !n;
+    el.textContent = n ? 'Borrador guardado en este dispositivo · ' + _pmPlural(n, 'fila', 'filas') + ' · ' + hora : '';
+    if (b) { b.hidden = !n; b.title = n ? el.textContent : ''; }
+    const caja = _cpEl('pm-borrador'); if (caja) caja.hidden = !n;
 }
 async function pmDescartar() {
     const ok = await confirmarApp({ titulo: '¿Descartar el borrador?', mensaje: 'Se borran todas las filas de la tabla en este dispositivo.', tipo: 'peligro', icono: 'fa-trash-can', confirmar: 'Descartar', cancelar: 'Cancelar' });
