@@ -7856,10 +7856,19 @@ function _bcCrear() {
     const d = document.createElement('div');
     d.id = 'cp-bc'; d.className = 'cp-bc'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'cp-bc-titulo');
     d.innerHTML = `<div class="cp-bc-card"><h2 id="cp-bc-titulo">Buscar cliente</h2>
-        <label for="cp-bc-q" class="cp-ayuda" style="margin:0">Nombre, ID o teléfono</label>
+        <label for="cp-bc-q" id="cp-bc-bus" class="cp-ayuda" style="margin:0">Nombre, ID o teléfono</label>
         <input id="cp-bc-q" type="text" autocomplete="off" aria-controls="cp-bc-lista" placeholder="Ej. Juan Pérez">
         <p id="cp-bc-estado" class="cp-ayuda" role="status" aria-live="polite" style="margin:0">Escribe al menos 2 letras o números. ↑ ↓ para moverte, Enter para elegir, Esc para cerrar.</p>
         <div id="cp-bc-lista" class="cp-bc-lista" role="listbox"></div>
+        <button type="button" class="cp-btn-sec" id="cp-bc-nuevo" style="margin-top:4px">+ Registrar nuevo cliente</button>
+        <div id="cp-bc-form" hidden>
+            <div class="cp-campo"><label for="cp-bc-n-nombre">Nombre del mecánico *</label><input id="cp-bc-n-nombre" type="text" maxlength="80" autocomplete="off"></div>
+            <div class="cp-campo" style="margin-top:8px"><label for="cp-bc-n-tel">Teléfono (10 dígitos) *</label><input id="cp-bc-n-tel" type="tel" inputmode="numeric" maxlength="15" autocomplete="off"></div>
+            <div class="cp-campo" style="margin-top:8px"><label for="cp-bc-n-obs">Observaciones (opcional)</label><input id="cp-bc-n-obs" type="text" maxlength="200" autocomplete="off"></div>
+            <p id="cp-bc-n-estado" class="cp-ayuda" role="status" aria-live="polite" style="margin:8px 0">El ID del ERP se agrega después, en la hoja Mecanicos.</p>
+            <button type="button" class="btn-primary" id="cp-bc-n-guardar" style="width:100%;min-height:48px;border-radius:8px;font-weight:600;cursor:pointer">Guardar y usar</button>
+            <button type="button" class="cp-btn-sec" id="cp-bc-n-volver" style="margin-top:8px">Volver a buscar</button>
+        </div>
         <button type="button" class="cp-btn-sec" id="cp-bc-cerrar" style="margin-top:4px">Cerrar</button></div>`;
     document.body.appendChild(d); _bcEl = d;
     const q = d.querySelector('#cp-bc-q');
@@ -7871,6 +7880,11 @@ function _bcCrear() {
     d.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); _bcCerrar(); } });
     d.addEventListener('mousedown', e => { if (e.target === d) _bcCerrar(); });
     d.querySelector('#cp-bc-cerrar').addEventListener('click', _bcCerrar);
+    d.querySelector('#cp-bc-nuevo').addEventListener('click', () => _bcModoForm(true));
+    d.querySelector('#cp-bc-n-volver').addEventListener('click', () => _bcModoForm(false));
+    d.querySelector('#cp-bc-n-guardar').addEventListener('click', _bcRegistrar);
+    const _ids = ['#cp-bc-n-nombre', '#cp-bc-n-tel', '#cp-bc-n-obs'];
+    _ids.forEach((id, k) => d.querySelector(id).addEventListener('keydown', e => { if (e.key !== 'Enter') return; e.preventDefault(); if (k < _ids.length - 1) d.querySelector(_ids[k + 1]).focus(); else _bcRegistrar(); }));
     d.querySelector('#cp-bc-lista').addEventListener('click', e => { const b = e.target.closest('[data-bc]'); if (b) _bcElegir(Number(b.dataset.bc)); });
     return d;
 }
@@ -7878,6 +7892,7 @@ function cotPisoBuscadorAbrir() {
     const d = _bcCrear(); if (d.classList.contains('visible')) return;
     const q = d.querySelector('#cp-bc-q'); q.value = ''; _bcLista = []; _bcSel = -1; d.querySelector('#cp-bc-lista').innerHTML = '';
     d.querySelector('#cp-bc-estado').textContent = 'Escribe al menos 2 letras o números. ↑ ↓ para moverte, Enter para elegir, Esc para cerrar.';
+    _bcModoForm(false);
     d.classList.add('visible'); setTimeout(() => q.focus(), 30);
 }
 function _bcCerrar() {
@@ -7898,9 +7913,38 @@ async function _bcBuscar() {
         if (mi !== _bcSeq) return;   // llegó tarde: ya se tecleó otra cosa
         if (!rs || !rs.success) { est.textContent = (rs && rs.message) || 'No se pudo buscar.'; return; }
         _bcLista = rs.coincidencias || []; _bcSel = _bcLista.length ? 0 : -1;
-        est.textContent = _bcLista.length ? `${_bcLista.length} ${_bcLista.length === 1 ? 'coincidencia' : 'coincidencias'}: elige una.` : 'Sin coincidencias. Cierra y captura el nombre y el teléfono a mano.';
+        est.textContent = _bcLista.length ? `${_bcLista.length} ${_bcLista.length === 1 ? 'coincidencia' : 'coincidencias'}: elige una.` : 'Sin coincidencias. Usa «Registrar nuevo cliente» o cierra y captura el nombre y el teléfono a mano.';
         cont.innerHTML = _bcLista.map((m, k) => `<button type="button" class="cp-res" role="option" data-bc="${k}" aria-selected="${k === 0}"><b>${escaparHTML(m.nombre)}</b><span>ID ${escaparHTML(m.id)} · ${escaparHTML(m.telefono)}</span></button>`).join('');
     } catch (e) { if (mi === _bcSeq) est.textContent = 'No se pudo buscar. Revisa tu conexión.'; }
+}
+/** Alterna entre buscar y registrar un cliente nuevo (cualquier vendedor puede; el ID del ERP lo agrega después un admin en la hoja). */
+function _bcModoForm(on) {
+    const d = _bcEl; if (!d) return;
+    ['#cp-bc-bus', '#cp-bc-q', '#cp-bc-estado', '#cp-bc-lista', '#cp-bc-nuevo'].forEach(id => { d.querySelector(id).hidden = !!on; });
+    d.querySelector('#cp-bc-form').hidden = !on;
+    d.querySelector('#cp-bc-titulo').textContent = on ? 'Registrar cliente nuevo' : 'Buscar cliente';
+    d.querySelector('#cp-bc-n-estado').textContent = 'El ID del ERP se agrega después, en la hoja Mecanicos.';
+    if (on) {
+        const q = d.querySelector('#cp-bc-q').value.trim(), n = d.querySelector('#cp-bc-n-nombre'), t = d.querySelector('#cp-bc-n-tel');
+        n.value = q && !/^\d+$/.test(q) ? q : ''; t.value = /^\d{4,}$/.test(q) ? q : ''; d.querySelector('#cp-bc-n-obs').value = '';
+        setTimeout(() => (n.value ? t : n).focus(), 30);
+    } else { setTimeout(() => d.querySelector('#cp-bc-q').focus(), 30); }
+}
+async function _bcRegistrar() {
+    const d = _bcEl, est = d.querySelector('#cp-bc-n-estado'), btn = d.querySelector('#cp-bc-n-guardar');
+    const nombre = d.querySelector('#cp-bc-n-nombre').value.replace(/\s+/g, ' ').trim(), tel = d.querySelector('#cp-bc-n-tel').value.replace(/\D/g, ''), obs = d.querySelector('#cp-bc-n-obs').value.replace(/\s+/g, ' ').trim();
+    if (nombre.length < 3) { est.textContent = 'Escribe el nombre del mecánico (mínimo 3 letras).'; d.querySelector('#cp-bc-n-nombre').focus(); return; }
+    if (tel.length < 10) { est.textContent = 'El teléfono debe tener 10 dígitos.'; d.querySelector('#cp-bc-n-tel').focus(); return; }
+    if (!navigator.onLine) { est.textContent = 'Sin señal: captura el nombre y el teléfono a mano en la cotización.'; return; }
+    btn.disabled = true; est.textContent = 'Guardando…';
+    try {
+        const rs = await _cpApi('registrarMecanico', { datos: { nombre, telefono: tel, observaciones: obs } });
+        if (!rs || !rs.success) { est.textContent = (rs && rs.message) || 'No se pudo registrar.'; return; }
+        _bcEl.classList.remove('visible'); clearTimeout(_bcT); _bcSeq++;
+        _cpElegirCliente({ id: rs.id, nombre: rs.nombre, telefono: rs.telefono }); _cpGuardarBorrador();
+        mostrarToastInfo(rs.yaExistia ? 'Ese teléfono ya estaba registrado: se usó ese cliente.' : 'Cliente registrado. Falta agregar su ID del ERP en la hoja Mecanicos.');
+    } catch (e) { est.textContent = 'No se pudo registrar. Revisa tu conexión.'; }
+    finally { btn.disabled = false; }
 }
 function _bcElegir(k) {
     const m = _bcLista[k]; if (!m) return;
